@@ -21,13 +21,15 @@ export default async function handler(req, res) {
     const text = await tokenRes.text();
     if (!tokenRes.ok) return res.status(500).send('WHOOP token exchange failed: ' + text);
     let json;
-    try { json = JSON.parse(text); } catch { return res.status(500).send('Non-JSON: ' + text); }
-    const access = json.access_token || '';
-    const refresh = json.refresh_token || '';
-    const expiresIn = json.expires_in || 3600;
+    try { json = JSON.parse(text); } catch { return res.status(500).send('Non-JSON from WHOOP: ' + text); }
+    const access    = json.access_token  || '';
+    const refresh   = json.refresh_token || '';
+    // Use explicit null-check so expires_in:0 isn't silently replaced with 3600.
+    const expiresIn = json.expires_in != null ? json.expires_in : 3600;
     const hash = new URLSearchParams({
-      whoop_access: access, whoop_refresh: refresh,
-      whoop_expires: String(Date.now() + expiresIn * 1000),
+      whoop_access:   access,
+      whoop_refresh:  refresh,
+      whoop_expires:  String(Date.now() + expiresIn * 1000),
     }).toString();
     res.writeHead(302, { Location: '/health.html#' + hash });
     res.end();

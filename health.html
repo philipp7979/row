@@ -670,23 +670,30 @@ main {
       try { await loadData(); } finally { setTimeout(() => btn.classList.remove('spin'), 600); }
     });
 
+    // Shared promise so concurrent 401s don't each fire a separate refresh request.
+    let _refreshPending = null;
     async function refreshTok(t) {
       if (!t.refresh) return null;
-      try {
-        const r = await fetch('/api/whoop-refresh', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ refresh_token: t.refresh }) });
-        const j = await r.json();
-        if (j.access_token) {
-          const next = { access: j.access_token, refresh: j.refresh_token || t.refresh, expires: Date.now() + (j.expires_in||3500)*1000 };
-          save(next); return next;
-        }
-      } catch {}
-      return null;
+      if (_refreshPending) return _refreshPending;
+      _refreshPending = (async () => {
+        try {
+          const r = await fetch('/api/whoop-refresh', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ refresh_token: t.refresh }) });
+          const j = await r.json();
+          if (j.access_token) {
+            const next = { access: j.access_token, refresh: j.refresh_token || t.refresh, expires: Date.now() + (j.expires_in != null ? j.expires_in : 3500)*1000 };
+            save(next); return next;
+          }
+        } catch {}
+        return null;
+      })();
+      try { return await _refreshPending; } finally { _refreshPending = null; }
     }
-    async function whFetch(path, t) {
+    // retried flag prevents infinite recursion when a refreshed token is also rejected.
+    async function whFetch(path, t, retried) {
       const [p, qs] = path.split('?');
       const params = new URLSearchParams(qs || ''); params.set('path', p);
       const r = await fetch('/api/whoop-data?' + params.toString(), { headers: { 'Authorization': 'Bearer ' + t.access, 'Accept':'application/json' } });
-      if (r.status === 401) { const n = await refreshTok(t); if (n) return whFetch(path, n); throw new Error('unauthorized â€” reconnect'); }
+      if (r.status === 401 && !retried) { const n = await refreshTok(t); if (n) return whFetch(path, n, true); throw new Error('Session expired — tap Disconnect then Connect again'); }
       if (!r.ok) throw new Error('WHOOP ' + r.status + ': ' + (await r.text()));
       return await r.json();
     }
@@ -737,7 +744,8 @@ main {
         let recScore = null, hrv = null, rhr = null, skin = null, spo2 = null;
         const r0 = rec && rec.records && rec.records[0];
         if (r0 && r0.score) {
-          recScore = Math.round(r0.score.recovery_score || 0);
+          const _rawRec = r0.score.recovery_score;
+          recScore = _rawRec != null ? Math.round(_rawRec) : null;
           hrv = r0.score.hrv_rmssd_milli != null ? Math.round(r0.score.hrv_rmssd_milli) : null;
           rhr = r0.score.resting_heart_rate != null ? Math.round(r0.score.resting_heart_rate) : null;
           skin = r0.score.skin_temp_celsius != null ? r0.score.skin_temp_celsius : null;
@@ -760,7 +768,8 @@ main {
         let sleepPerf = null, sleepDuration = null, resp = null;
         const s0 = sleep && sleep.records && sleep.records[0];
         if (s0 && s0.score) {
-          sleepPerf = Math.round(s0.score.sleep_performance_percentage || 0);
+          const _rawSleep = s0.score.sleep_performance_percentage;
+          sleepPerf = _rawSleep != null ? Math.round(_rawSleep) : null;
           resp = s0.score.respiratory_rate != null ? Number(s0.score.respiratory_rate).toFixed(1) : null;
           if (s0.score.stage_summary) {
             const ss = s0.score.stage_summary;

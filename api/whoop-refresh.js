@@ -12,9 +12,11 @@ export default async function handler(req, res) {
   const clientSecret = process.env.WHOOP_CLIENT_SECRET;
   if (!clientId || !clientSecret) return res.status(500).json({ error: 'server not configured' });
   try {
+    // Keep the full scope so the refreshed token retains all data-read permissions.
     const form = new URLSearchParams({
       grant_type: 'refresh_token', refresh_token: refresh,
-      client_id: clientId, client_secret: clientSecret, scope: 'offline',
+      client_id: clientId, client_secret: clientSecret,
+      scope: 'read:recovery read:sleep read:workout read:cycles read:profile read:body_measurement offline',
     });
     const r = await fetch('https://api.prod.whoop.com/oauth/oauth2/token', {
       method: 'POST',
@@ -24,7 +26,7 @@ export default async function handler(req, res) {
     const text = await r.text();
     if (!r.ok) return res.status(500).json({ error: 'refresh failed: ' + text });
     try { return res.status(200).json(JSON.parse(text)); }
-    catch { return res.status(500).json({ error: 'non-JSON' }); }
+    catch { return res.status(500).json({ error: 'non-JSON response from WHOOP' }); }
   } catch (e) {
     return res.status(500).json({ error: 'fetch error: ' + (e.message || String(e)) });
   }

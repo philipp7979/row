@@ -1100,7 +1100,9 @@ html, body {
    getting blocked by the iPhone home indicator. These rules add
    safe-area padding so nothing sits under it. */
 .shell {
-  padding-bottom: calc(80px + env(safe-area-inset-bottom));
+  /* When loaded standalone, topbar.js adds has-bottombar (72px + safe-area).
+     Use the same value so content clears the tab bar without extra dead space. */
+  padding-bottom: calc(72px + env(safe-area-inset-bottom));
 }
 .modal-bg {
   padding-bottom: max(20px, env(safe-area-inset-bottom));

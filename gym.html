@@ -2990,6 +2990,14 @@ img, video, canvas, svg { max-width: 100%; }
     });
   }
   async function uploadPhotoToStorage(dataUrl) {
+    // pcSupa is set inside an async IIFE — wait up to 8 s for it to initialise
+    // so photos taken immediately on page load aren't silently skipped.
+    if (!pcSupa) {
+      await new Promise((res) => {
+        const deadline = Date.now() + 8000;
+        const t = setInterval(() => { if (pcSupa || Date.now() >= deadline) { clearInterval(t); res(); } }, 200);
+      });
+    }
     if (!pcSupa) return null;
     try {
       const res = await fetch(dataUrl);
@@ -3341,9 +3349,13 @@ img, video, canvas, svg { max-width: 100%; }
       let val;
       try { val = JSON.parse(v); } catch { continue; }
       if (k === 'po_coach_photos' && Array.isArray(val)) {
-        val = val
+        const withUrl = val
           .filter((p) => p && p.url)
           .map((p) => ({ id: p.id, url: p.url, dateKey: p.dateKey, weight: p.weight }));
+        // Only push photos if at least one has a Storage URL — avoids overwriting
+        // remote with an empty array while all photos are still uploading.
+        if (withUrl.length === 0) continue;
+        val = withUrl;
       }
       out[k] = val;
     }

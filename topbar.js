@@ -247,8 +247,8 @@ body.topbar-modal-open { overflow: hidden; touch-action: none; }
     if (total === 0) return 'idle';
     if (done >= total) return 'good';
     if (done >= total * 0.5) return 'warn';
-    const h = new Date().getHours();
-    if (h >= 18 && done < total * 0.5) return 'miss';
+    // Under 50% of goal — miss (red) if past 6 PM, warn (yellow) otherwise.
+    if (new Date().getHours() >= 18) return 'miss';
     return 'warn';
   }
   function setPillStatus(pillEl, status) {
