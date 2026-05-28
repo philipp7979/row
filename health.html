@@ -1,11 +1,11 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#050506">
 <meta name="color-scheme" content="dark">
-<title>Daily Stack â€” Customizable Template</title>
+<title>Daily Stack — Customizable Template</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="sync.js" defer></script>
 <script src="topbar.js" defer></script>
@@ -81,7 +81,7 @@ main {
   margin: 0 4px 14px;
   display: flex; align-items: center; gap: 12px;
 }
-.section-title::before { content: 'â‰¡'; font-size: 14px; opacity: 0.5; }
+.section-title::before { content: '≡'; font-size: 14px; opacity: 0.5; }
 
 .water-embed { margin-top: 56px; }
 .water-iframe {
@@ -220,7 +220,7 @@ main {
   color: var(--text-secondary);
 }
 .stack-item-meta:empty::before {
-  content: 'add notesâ€¦';
+  content: 'add notes…';
   color: var(--text-quaternary);
   font-style: italic;
 }
@@ -284,7 +284,7 @@ main {
   padding: 8px 12px;
 }
 
-/* ====== TICKER â€” cycles missed + running low every 5s ====== */
+/* ====== TICKER — cycles missed + running low every 5s ====== */
 .stack-ticker {
   display: flex;
   align-items: center;
@@ -393,7 +393,7 @@ main {
 }
 .stack-add-btn:active { transform: translateY(0) scale(0.97); }
 
-/* ====== SEARCH AUTOCOMPLETE â€” appears below the form when typing in Name ====== */
+/* ====== SEARCH AUTOCOMPLETE — appears below the form when typing in Name ====== */
 .stack-name-wrap { position: relative; }
 
 .stack-search-results {
@@ -470,394 +470,424 @@ main {
 <body>
 
 <main>
-  <!-- ===== WHOOP card (full) ===== -->
+  <!-- ===== WHOOP card ===== -->
   <style>
     .whoop-section { margin-bottom: 32px; }
-    .whoop-card {
-      padding: 22px 22px 18px;
-      background: rgba(255,255,255,0.025);
-      border-radius: 22px;
-      box-shadow: 0 1px 0 0 rgba(255,255,255,0.06) inset, 0 12px 40px rgba(0,0,0,0.45), 0 1px 2px rgba(0,0,0,0.25);
-    }
+    /* Card */
+    .whoop-card { padding: 22px 22px 18px; background: rgba(255,255,255,0.025); border: 1px solid transparent; border-radius: 22px; box-shadow: 0 1px 0 0 rgba(255,255,255,0.06) inset, 0 12px 40px rgba(0,0,0,0.45), 0 1px 2px rgba(0,0,0,0.25); transition: box-shadow 0.3s; }
+    .whoop-card:hover { box-shadow: 0 1px 0 0 rgba(255,255,255,0.08) inset, 0 18px 50px rgba(0,0,0,0.50); }
+    /* Brand */
+    .whoop-brand { display: inline-flex; align-items: center; gap: 8px; }
+    .whoop-brand-mark { width: 22px; height: 22px; border-radius: 50%; background: #FFFFFF; color: #0A0A0B; font-weight: 900; font-size: 12px; display: inline-flex; align-items: center; justify-content: center; letter-spacing: -0.04em; box-shadow: 0 0 12px rgba(255,255,255,0.20); }
+    .whoop-brand-text { font-weight: 800; font-size: 13px; letter-spacing: 0.18em; color: var(--text-primary); }
     /* Disconnected */
-    .wh-brand { display:inline-flex; align-items:center; gap:8px; }
-    .wh-brand-mark { width:22px; height:22px; border-radius:50%; background:#FFF; color:#0A0A0B; font-weight:900; font-size:12px; display:inline-flex; align-items:center; justify-content:center; letter-spacing:-0.04em; box-shadow:0 0 12px rgba(255,255,255,0.20); }
-    .wh-brand-text { font-weight:800; font-size:13px; letter-spacing:0.18em; color:var(--text-primary); }
-    .wh-disc { display:flex; flex-direction:column; align-items:center; text-align:center; padding:18px 8px 8px; gap:6px; }
-    .wh-disc .wh-brand { margin-bottom:14px; }
-    .wh-disc-title { font-size:22px; font-weight:700; color:var(--text-primary); letter-spacing:-0.02em; margin-top:2px; }
-    .wh-disc-sub { font-size:13px; color:var(--text-tertiary); max-width:280px; line-height:1.5; margin-bottom:18px; }
-    .wh-connect { display:inline-flex; align-items:center; gap:8px; padding:12px 22px; border-radius:999px; border:1px solid rgba(255,255,255,0.85); background:linear-gradient(180deg, #FFF, #E8E5DD); color:#0A0A0B; font-family:inherit; font-size:13.5px; font-weight:700; cursor:pointer; box-shadow:inset 0 1px 0 rgba(255,255,255,0.55), 0 6px 20px rgba(0,0,0,0.45); transition:transform 0.12s; }
-    .wh-connect:hover { transform:translateY(-1px); }
-    /* Header */
-    .wh-head { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:18px; flex-wrap:wrap; }
-    .wh-live { display:inline-flex; align-items:center; gap:5px; font-size:9.5px; font-weight:700; letter-spacing:0.16em; text-transform:uppercase; color:#6BE3A4; margin-left:4px; padding:3px 8px; border-radius:999px; background:rgba(107,227,164,0.10); border:1px solid rgba(107,227,164,0.30); }
-    .wh-live-dot { width:6px; height:6px; border-radius:50%; background:#6BE3A4; box-shadow:0 0 8px rgba(107,227,164,0.65); animation:wh-pulse 1.6s ease-in-out infinite; }
-    @keyframes wh-pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.85)} }
-    .wh-head-right { display:flex; align-items:center; gap:10px; }
-    .wh-updated { font-size:11px; color:var(--text-tertiary); font-family:var(--font-mono); }
-    .wh-refresh { width:32px; height:32px; border-radius:50%; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.06); color:var(--text-secondary); cursor:pointer; display:flex; align-items:center; justify-content:center; transition:transform 0.4s, background 0.18s, color 0.18s; }
-    .wh-refresh:hover { background:rgba(255,255,255,0.10); color:var(--text-primary); }
-    .wh-refresh.spin { transform:rotate(360deg); }
-    /* Ring */
-    .wh-ring-wrap { position:relative; width:240px; max-width:78%; margin:0 auto 24px; aspect-ratio:1; }
-    .wh-ring { width:100%; height:100%; transform:rotate(-90deg); filter:drop-shadow(0 0 24px rgba(255,255,255,0.05)); }
-    .wh-ring-track { fill:none; stroke:rgba(255,255,255,0.06); stroke-width:12; }
-    .wh-ring-fill { fill:none; stroke:#FFF; stroke-width:12; stroke-linecap:round; stroke-dasharray:603.19; stroke-dashoffset:603.19; transition:stroke-dashoffset 0.8s cubic-bezier(0.22,1,0.36,1), stroke 0.4s; }
-    .wh-ring-center { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; pointer-events:none; }
-    .wh-ring-num { font-size:60px; font-weight:700; letter-spacing:-0.04em; color:var(--text-primary); line-height:1; font-variant-numeric:tabular-nums; }
-    .wh-ring-unit { font-size:10px; font-weight:700; letter-spacing:0.22em; text-transform:uppercase; color:var(--text-tertiary); margin-top:10px; }
-    .wh-ring-label { font-size:12.5px; font-weight:600; margin-top:6px; letter-spacing:-0.005em; }
-    /* Stages */
-    .wh-stages { margin-bottom:22px; padding-top:22px; border-top:1px solid rgba(255,255,255,0.05); }
-    .wh-stages-head { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px; }
-    .wh-stages-eye { font-size:10px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:var(--text-tertiary); }
-    .wh-stages-meta { font-size:11px; color:var(--text-tertiary); font-family:var(--font-mono); }
-    .wh-stages-bar { display:flex; height:10px; background:rgba(255,255,255,0.04); border-radius:999px; overflow:hidden; margin-bottom:12px; border:1px solid rgba(255,255,255,0.04); }
-    .wh-stage { height:100%; transition:width 0.7s cubic-bezier(0.22,1,0.36,1); }
-    .wh-stage-rem   { background:#FFF; }
-    .wh-stage-deep  { background:#B8B6B0; }
-    .wh-stage-light { background:#76746E; }
-    .wh-stage-awake { background:#38362F; }
-    .wh-stages-legend { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
-    .wh-leg { display:flex; align-items:center; gap:6px; font-size:11px; color:var(--text-secondary); font-weight:500; }
-    .wh-leg-dot { width:8px; height:8px; border-radius:2px; flex-shrink:0; }
-    .wh-leg-dot.d-rem{background:#FFF} .wh-leg-dot.d-deep{background:#B8B6B0} .wh-leg-dot.d-light{background:#76746E} .wh-leg-dot.d-awake{background:#38362F; border:1px solid rgba(255,255,255,0.10);}
-    .wh-leg-num { margin-left:auto; color:var(--text-primary); font-weight:700; font-family:var(--font-mono); font-size:11px; }
-    @media (max-width:480px) { .wh-stages-legend { grid-template-columns:repeat(2,1fr); } }
-    /* Stats */
-    .wh-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; padding-top:22px; border-top:1px solid rgba(255,255,255,0.05); }
-    .wh-stat { position:relative; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.04); border-radius:12px; padding:12px 10px; text-align:center; }
-    .wh-stat-label { font-size:10px; color:var(--text-tertiary); text-transform:uppercase; letter-spacing:0.14em; font-weight:700; margin-bottom:8px; }
-    .wh-stat-val { font-size:22px; font-weight:700; color:var(--text-primary); line-height:1; font-variant-numeric:tabular-nums; letter-spacing:-0.03em; }
-    .wh-stat-sub { font-size:10px; color:var(--text-tertiary); margin-top:5px; font-family:var(--font-mono); }
-    @media (max-width:480px) { .wh-stats { grid-template-columns:repeat(2,1fr); } .wh-stat-val { font-size:20px; } }
-    /* Biomarkers */
-    .wh-bio { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:12px; }
-    .wh-bio-item { position:relative; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.04); border-radius:12px; padding:11px 12px; text-align:center; }
-    .wh-bio-label { display:block; font-size:9.5px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:var(--text-tertiary); margin-bottom:4px; }
-    .wh-bio-val { display:block; font-size:14px; font-weight:700; color:var(--text-primary); font-variant-numeric:tabular-nums; }
-    @media (max-width:380px) { .wh-bio { grid-template-columns:1fr; } }
-    /* Zone dot */
-    .wh-zone { position:absolute; top:9px; right:9px; width:7px; height:7px; border-radius:50%; background:rgba(255,255,255,0.12); }
-    .wh-zone.z-good { background:#6BE3A4; box-shadow:0 0 7px rgba(107,227,164,0.55); }
-    .wh-zone.z-norm { background:rgba(255,255,255,0.30); }
-    .wh-zone.z-warn { background:#F2C063; box-shadow:0 0 7px rgba(242,192,99,0.55); }
-    .wh-zone.z-bad  { background:#FF8A8A; box-shadow:0 0 7px rgba(255,138,138,0.55); }
-    /* Legend */
-    .wh-legend { display:flex; justify-content:center; flex-wrap:wrap; gap:14px; margin-top:14px; padding:10px 12px; background:rgba(255,255,255,0.02); border-radius:999px; border:1px solid rgba(255,255,255,0.04); }
-    .wh-leg-item { display:inline-flex; align-items:center; gap:6px; font-size:10.5px; font-weight:600; color:var(--text-tertiary); }
-    .wh-leg-item .wh-zone { position:static; display:inline-block; }
-    /* Today's Call */
-    .wh-verdict { margin-top:18px; padding:16px 18px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.04); border-left:2px solid rgba(255,255,255,0.40); border-radius:0 12px 12px 0; }
-    .wh-verdict-head { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
-    .wh-verdict-eye { font-size:10px; color:var(--text-tertiary); text-transform:uppercase; letter-spacing:0.18em; font-weight:700; }
-    .wh-verdict-badge { font-size:9.5px; font-weight:800; padding:3px 9px; border-radius:999px; letter-spacing:0.14em; text-transform:uppercase; border:1px solid; }
-    .wh-verdict-badge.green  { color:#6BE3A4; border-color:rgba(107,227,164,0.50); background:rgba(107,227,164,0.10); }
-    .wh-verdict-badge.yellow { color:#F2C063; border-color:rgba(242,192,99,0.50); background:rgba(242,192,99,0.10); }
-    .wh-verdict-badge.red    { color:#FF8A8A; border-color:rgba(255,138,138,0.50); background:rgba(255,138,138,0.10); }
-    .wh-verdict-headline { font-size:15px; font-weight:600; color:var(--text-primary); line-height:1.4; margin-bottom:12px; }
-    .wh-verdict-reasons { font-size:12.5px; color:var(--text-secondary); line-height:1.65; }
+    .whoop-disconnected { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 18px 8px 8px; gap: 6px; }
+    .whoop-disconnected .whoop-brand { margin-bottom: 14px; }
+    .whoop-disconnected-title { font-size: 22px; font-weight: 700; color: var(--text-primary); letter-spacing: -0.02em; margin-top: 2px; }
+    .whoop-disconnected-sub { font-size: 13px; color: var(--text-tertiary); max-width: 280px; line-height: 1.5; margin-bottom: 18px; }
+    .whoop-connect-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 22px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.85); background: linear-gradient(180deg, #FFFFFF 0%, #E8E5DD 100%); color: #0A0A0B; font-family: inherit; font-size: 13.5px; font-weight: 700; cursor: pointer; transition: transform 0.12s, box-shadow 0.18s, background 0.18s; box-shadow: inset 0 1px 0 rgba(255,255,255,0.55), 0 6px 20px rgba(0,0,0,0.45); }
+    .whoop-connect-btn:hover { background: linear-gradient(180deg, #FFFFFF 0%, #F2F0EA 100%); transform: translateY(-1px); }
+    .whoop-connect-btn:active { transform: scale(0.98); }
+    .whoop-auth-status { font-size: 11px; color: var(--text-tertiary); margin-top: 12px; min-height: 14px; font-style: italic; }
+    /* Connected header */
+    .whoop-header { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; }
+    .whoop-live-tag { display: inline-flex; align-items: center; gap: 5px; font-size: 9.5px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: #6BE3A4; margin-left: 4px; }
+    .whoop-live-dot { width: 6px; height: 6px; border-radius: 50%; background: #6BE3A4; box-shadow: 0 0 8px rgba(107,227,164,0.65); animation: whoop-pulse 1.6s ease-in-out infinite; }
+    @keyframes whoop-pulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.5; transform:scale(0.85); } }
+    .whoop-header-right { display: flex; align-items: center; gap: 10px; }
+    .whoop-updated { font-size: 11px; color: var(--text-tertiary); font-variant-numeric: tabular-nums; font-family: var(--font-mono); }
+    .whoop-refresh-btn { width: 32px; height: 32px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.04); color: var(--text-secondary); cursor: pointer; font-family: inherit; display: flex; align-items: center; justify-content: center; transition: background 0.18s, color 0.18s, transform 0.12s; flex-shrink: 0; }
+    .whoop-refresh-btn:hover { background: rgba(255,255,255,0.10); color: var(--text-primary); }
+    .whoop-refresh-btn svg { display: block; }
+    /* Calibrating banner */
+    .whoop-calibrating { display: flex; align-items: center; gap: 8px; padding: 9px 14px; margin-bottom: 16px; background: rgba(242,192,99,0.08); border: 1px solid rgba(242,192,99,0.28); border-radius: 10px; color: #F2C063; font-size: 11.5px; font-weight: 500; }
+    .whoop-cal-dot { width: 6px; height: 6px; border-radius: 50%; background: #F2C063; box-shadow: 0 0 8px rgba(242,192,99,0.55); animation: whoop-pulse 1.6s ease-in-out infinite; flex-shrink: 0; }
+    /* Recovery ring */
+    .whoop-ring-wrap { position: relative; width: 240px; max-width: 78%; margin: 0 auto 24px; aspect-ratio: 1; }
+    .whoop-ring { width: 100%; height: 100%; transform: rotate(-90deg); filter: drop-shadow(0 0 24px rgba(255,255,255,0.05)); }
+    .whoop-ring-track { fill: none; stroke: rgba(255,255,255,0.06); stroke-width: 12; }
+    .whoop-ring-fill { fill: none; stroke: #FFFFFF; stroke-width: 12; stroke-linecap: round; stroke-dasharray: 603.19; stroke-dashoffset: 603.19; transition: stroke-dashoffset 0.8s cubic-bezier(0.22,1,0.36,1), stroke 0.4s, filter 0.4s; }
+    .whoop-ring-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; }
+    .whoop-ring-num { font-size: 60px; font-weight: 700; letter-spacing: -0.04em; color: var(--text-primary); line-height: 1; font-variant-numeric: tabular-nums; }
+    .whoop-ring-unit { font-size: 10px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: var(--text-tertiary); margin-top: 10px; }
+    .whoop-ring-label { font-size: 12.5px; font-weight: 600; margin-top: 6px; letter-spacing: -0.005em; }
+    /* Sleep stages */
+    .whoop-stages { margin-bottom: 22px; padding-top: 22px; border-top: 1px solid rgba(255,255,255,0.05); }
+    .whoop-stages-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+    .whoop-stages-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-tertiary); }
+    .whoop-stages-meta { font-size: 11px; color: var(--text-tertiary); font-variant-numeric: tabular-nums; font-family: var(--font-mono); }
+    .whoop-stages-bar { display: flex; height: 10px; background: rgba(255,255,255,0.04); border-radius: 999px; overflow: hidden; margin-bottom: 12px; }
+    .whoop-stage { height: 100%; transition: width 0.7s cubic-bezier(0.22,1,0.36,1); }
+    .whoop-stage-rem   { background: #FFFFFF; }
+    .whoop-stage-deep  { background: #B8B6B0; }
+    .whoop-stage-light { background: #76746E; }
+    .whoop-stage-awake { background: #38362F; }
+    .whoop-stages-legend { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; }
+    .whoop-stages-leg { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-secondary); font-weight: 500; }
+    .whoop-stages-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+    .whoop-stages-dot.d-rem   { background: #FFFFFF; }
+    .whoop-stages-dot.d-deep  { background: #B8B6B0; }
+    .whoop-stages-dot.d-light { background: #76746E; }
+    .whoop-stages-dot.d-awake { background: #38362F; border: 1px solid rgba(255,255,255,0.08); }
+    .whoop-stages-num { margin-left: auto; color: var(--text-primary); font-weight: 700; font-variant-numeric: tabular-nums; font-family: var(--font-mono); font-size: 11px; }
+    @media (max-width: 480px) { .whoop-stages-legend { grid-template-columns: repeat(2,1fr); } }
+    /* Stats grid */
+    .whoop-stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; padding-top: 22px; border-top: 1px solid rgba(255,255,255,0.05); }
+    .whoop-stat { position: relative; background: rgba(255,255,255,0.025); border: 1px solid transparent; border-radius: 12px; padding: 12px 10px; text-align: center; transition: background 0.18s; }
+    .whoop-stat:hover { background: rgba(255,255,255,0.05); }
+    .whoop-stat-label { font-size: 10px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.14em; font-weight: 700; margin-bottom: 8px; }
+    .whoop-stat-value { font-size: 22px; font-weight: 700; color: var(--text-primary); line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -0.03em; }
+    .whoop-stat-sub { font-size: 10px; color: var(--text-tertiary); margin-top: 5px; font-variant-numeric: tabular-nums; font-family: var(--font-mono); }
+    @media (max-width: 480px) { .whoop-stats { grid-template-columns: repeat(2,1fr); } .whoop-stat-value { font-size: 20px; } }
+    /* Biomarker strip */
+    .whoop-bio { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-top: 12px; }
+    .whoop-bio-item { position: relative; display: flex; flex-direction: column; gap: 4px; padding: 11px 12px; background: rgba(255,255,255,0.025); border: 1px solid transparent; border-radius: 12px; text-align: center; }
+    .whoop-bio-label { font-size: 9.5px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-tertiary); }
+    .whoop-bio-val { font-size: 14px; font-weight: 700; color: var(--text-primary); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+    @media (max-width: 380px) { .whoop-bio { grid-template-columns: 1fr; } }
+    /* Zone dot system */
+    .whoop-zone { position: absolute; top: 9px; right: 9px; width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.12); transition: background 0.3s, box-shadow 0.3s; }
+    .whoop-zone.z-good { background: #6BE3A4; box-shadow: 0 0 7px rgba(107,227,164,0.55); }
+    .whoop-zone.z-norm { background: rgba(255,255,255,0.30); }
+    .whoop-zone.z-warn { background: #F2C063; box-shadow: 0 0 7px rgba(242,192,99,0.55); }
+    .whoop-zone.z-bad  { background: #FF8A8A; box-shadow: 0 0 7px rgba(255,138,138,0.55); }
+    /* Zone legend */
+    .whoop-legend { display: flex; justify-content: center; flex-wrap: wrap; gap: 14px; margin-top: 14px; padding: 10px 12px; background: rgba(255,255,255,0.02); border-radius: 999px; border: 1px solid rgba(255,255,255,0.04); }
+    .whoop-legend-item { display: inline-flex; align-items: center; gap: 6px; font-size: 10.5px; font-weight: 600; color: var(--text-tertiary); letter-spacing: 0.04em; }
+    .whoop-legend-item .whoop-zone { position: static; display: inline-block; }
+    /* Today's call */
+    .whoop-verdict { margin-top: 18px; padding: 16px 18px; background: rgba(255,255,255,0.025); border: 1px solid transparent; border-left: 2px solid rgba(255,255,255,0.40); border-radius: 0 12px 12px 0; }
+    .whoop-verdict-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .whoop-verdict-eyebrow { font-size: 10px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.18em; font-weight: 700; }
+    .whoop-verdict-badge { font-size: 9.5px; font-weight: 800; padding: 3px 9px; border-radius: 999px; letter-spacing: 0.14em; text-transform: uppercase; border: 1px solid; }
+    .whoop-verdict-headline { font-size: 15px; font-weight: 600; color: var(--text-primary); line-height: 1.4; margin-bottom: 12px; letter-spacing: -0.01em; }
+    .whoop-verdict-reasons { font-size: 12.5px; color: var(--text-secondary); line-height: 1.65; }
+    .whoop-verdict-avoid { font-size: 12.5px; color: var(--text-secondary); line-height: 1.6; margin-top: 10px; padding-top: 10px; border-top: 1px dashed rgba(255,255,255,0.06); }
+    .whoop-verdict-avoid-label { color: #FF8A8A; font-weight: 700; }
     /* Disconnect */
-    .wh-disconnect-link { display:block; margin:16px auto 0; padding:6px 14px; background:transparent; border:none; color:var(--text-tertiary); font-family:inherit; font-size:11px; text-align:center; cursor:pointer; letter-spacing:0.04em; }
-    .wh-disconnect-link:hover { color:var(--text-secondary); text-decoration:underline; }
-    .wh-err { background:rgba(255,107,107,0.08); border:1px solid rgba(255,107,107,0.28); color:#FF8A8A; padding:10px 12px; border-radius:10px; font-size:11.5px; font-family:var(--font-mono); margin-bottom:14px; }
+    .whoop-disconnect-btn { display: block; margin: 16px auto 0; padding: 7px 14px; background: transparent; border: 1px solid transparent; color: var(--text-tertiary); font-size: 11px; font-family: inherit; font-weight: 500; letter-spacing: 0.04em; border-radius: 999px; cursor: pointer; transition: color 0.15s, border-color 0.15s; }
+    .whoop-disconnect-btn:hover { color: var(--text-secondary); border-color: rgba(255,255,255,0.08); }
   </style>
+
   <div class="whoop-section">
     <div class="section-title">Whoop</div>
     <div class="whoop-card">
-      <div id="whDisc" class="wh-disc">
-        <div class="wh-brand"><span class="wh-brand-mark">W</span><span class="wh-brand-text">WHOOP</span></div>
-        <div class="wh-disc-title">Not connected</div>
-        <div class="wh-disc-sub">Link your account to see live recovery, sleep, and strain.</div>
-        <button id="whConnectBtn" class="wh-connect" type="button">Connect WHOOP</button>
+
+      <!-- DISCONNECTED -->
+      <div id="whoopDisconnected" class="whoop-disconnected">
+        <div class="whoop-brand">
+          <span class="whoop-brand-mark">W</span>
+          <span class="whoop-brand-text">WHOOP</span>
+        </div>
+        <div class="whoop-disconnected-title">Not connected</div>
+        <div class="whoop-disconnected-sub">Link your account to see live recovery, sleep, and strain.</div>
+        <button id="whoopConnectBtn" class="whoop-connect-btn" type="button">
+          Connect WHOOP
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 5 20 12 13 19"/></svg>
+        </button>
+        <div id="whoopAuthStatus" class="whoop-auth-status"></div>
       </div>
-      <div id="whConn" style="display:none">
-        <div class="wh-head">
-          <div class="wh-brand"><span class="wh-brand-mark">W</span><span class="wh-brand-text">WHOOP</span><span class="wh-live"><span class="wh-live-dot"></span>live</span></div>
-          <div class="wh-head-right">
-            <span id="whUpdated" class="wh-updated">â€”</span>
-            <button id="whRefresh" class="wh-refresh" type="button" aria-label="Refresh"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M20.49 15A9 9 0 1 1 5.64 5.64L23 10"/></svg></button>
+
+      <!-- CONNECTED -->
+      <div id="whoopConnected" class="whoop-connected" style="display:none">
+        <div class="whoop-header">
+          <div class="whoop-brand">
+            <span class="whoop-brand-mark">W</span>
+            <span class="whoop-brand-text">WHOOP</span>
+            <span class="whoop-live-tag"><span class="whoop-live-dot"></span>live</span>
+          </div>
+          <div class="whoop-header-right">
+            <span id="whoopUpdated" class="whoop-updated">loading…</span>
+            <button id="whoopRefreshBtn" class="whoop-refresh-btn" title="Refresh" aria-label="Refresh">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M20.49 15A9 9 0 1 1 5.64 5.64L23 10"/></svg>
+            </button>
           </div>
         </div>
-        <div id="whErr" class="wh-err" style="display:none"></div>
-        <div class="wh-ring-wrap">
-          <svg class="wh-ring" viewBox="0 0 220 220" aria-hidden="true">
-            <circle class="wh-ring-track" cx="110" cy="110" r="96"/>
-            <circle class="wh-ring-fill" cx="110" cy="110" r="96" id="whRingFill"/>
+
+        <div id="whoopCalibrating" class="whoop-calibrating" style="display:none">
+          <span class="whoop-cal-dot"></span>
+          WHOOP is still calibrating — early scores may shift over the next few weeks
+        </div>
+
+        <div class="whoop-ring-wrap">
+          <svg class="whoop-ring" viewBox="0 0 220 220" aria-hidden="true">
+            <circle class="whoop-ring-track" cx="110" cy="110" r="96"/>
+            <circle class="whoop-ring-fill"  cx="110" cy="110" r="96" id="whoopRecoveryRingFill"/>
           </svg>
-          <div class="wh-ring-center">
-            <div id="whRecNum" class="wh-ring-num">â€”</div>
-            <div class="wh-ring-unit">recovery</div>
-            <div id="whRecLabel" class="wh-ring-label">â€”</div>
+          <div class="whoop-ring-center">
+            <div id="whoopRecoveryScore" class="whoop-ring-num">—</div>
+            <div class="whoop-ring-unit">recovery</div>
+            <div id="whoopRecoveryLabel" class="whoop-ring-label">—</div>
           </div>
         </div>
-        <div id="whStages" class="wh-stages" style="display:none">
-          <div class="wh-stages-head"><span class="wh-stages-eye">Sleep stages</span><span class="wh-stages-meta" id="whStagesMeta">â€”</span></div>
-          <div class="wh-stages-bar">
-            <div class="wh-stage wh-stage-rem"   id="whBarRem"   style="width:0%"></div>
-            <div class="wh-stage wh-stage-deep"  id="whBarDeep"  style="width:0%"></div>
-            <div class="wh-stage wh-stage-light" id="whBarLight" style="width:0%"></div>
-            <div class="wh-stage wh-stage-awake" id="whBarAwake" style="width:0%"></div>
+
+        <div id="whoopStages" class="whoop-stages" style="display:none">
+          <div class="whoop-stages-head">
+            <span class="whoop-stages-eyebrow">Sleep stages</span>
+            <span class="whoop-stages-meta" id="whoopStagesMeta"></span>
           </div>
-          <div class="wh-stages-legend">
-            <div class="wh-leg"><span class="wh-leg-dot d-rem"></span>REM<span class="wh-leg-num" id="whRem">â€”</span></div>
-            <div class="wh-leg"><span class="wh-leg-dot d-deep"></span>Deep<span class="wh-leg-num" id="whDeep">â€”</span></div>
-            <div class="wh-leg"><span class="wh-leg-dot d-light"></span>Light<span class="wh-leg-num" id="whLight">â€”</span></div>
-            <div class="wh-leg"><span class="wh-leg-dot d-awake"></span>Awake<span class="wh-leg-num" id="whAwake">â€”</span></div>
+          <div class="whoop-stages-bar">
+            <div class="whoop-stage whoop-stage-rem"   id="whoopStageRem"   style="width:0%"></div>
+            <div class="whoop-stage whoop-stage-deep"  id="whoopStageDeep"  style="width:0%"></div>
+            <div class="whoop-stage whoop-stage-light" id="whoopStageLight" style="width:0%"></div>
+            <div class="whoop-stage whoop-stage-awake" id="whoopStageAwake" style="width:0%"></div>
+          </div>
+          <div class="whoop-stages-legend">
+            <div class="whoop-stages-leg"><span class="whoop-stages-dot d-rem"></span>REM <span id="whoopStageRemTxt" class="whoop-stages-num">—</span></div>
+            <div class="whoop-stages-leg"><span class="whoop-stages-dot d-deep"></span>Deep <span id="whoopStageDeepTxt" class="whoop-stages-num">—</span></div>
+            <div class="whoop-stages-leg"><span class="whoop-stages-dot d-light"></span>Light <span id="whoopStageLightTxt" class="whoop-stages-num">—</span></div>
+            <div class="whoop-stages-leg"><span class="whoop-stages-dot d-awake"></span>Awake <span id="whoopStageAwakeTxt" class="whoop-stages-num">—</span></div>
           </div>
         </div>
-        <div class="wh-stats">
-          <div class="wh-stat"><span class="wh-zone" id="whZoneSleep"></span><div class="wh-stat-label">Sleep</div><div class="wh-stat-val" id="whSleep">â€”</div><div class="wh-stat-sub" id="whSleepSub">â€”</div></div>
-          <div class="wh-stat"><span class="wh-zone" id="whZoneStrain"></span><div class="wh-stat-label">Strain</div><div class="wh-stat-val" id="whStrain">â€”</div><div class="wh-stat-sub" id="whStrainSub">today</div></div>
-          <div class="wh-stat"><span class="wh-zone" id="whZoneHrv"></span><div class="wh-stat-label">HRV</div><div class="wh-stat-val" id="whHrv">â€”</div><div class="wh-stat-sub">ms</div></div>
-          <div class="wh-stat"><span class="wh-zone" id="whZoneRhr"></span><div class="wh-stat-label">RHR</div><div class="wh-stat-val" id="whRhr">â€”</div><div class="wh-stat-sub">bpm</div></div>
+
+        <div class="whoop-stats">
+          <div class="whoop-stat"><span class="whoop-zone" id="whoopZoneSleep"></span><div class="whoop-stat-label">Sleep</div><div class="whoop-stat-value" id="whoopSleepScore">—</div><div class="whoop-stat-sub" id="whoopSleepDuration">—</div></div>
+          <div class="whoop-stat"><span class="whoop-zone" id="whoopZoneStrain"></span><div class="whoop-stat-label">Strain</div><div class="whoop-stat-value" id="whoopStrain">—</div><div class="whoop-stat-sub">today</div></div>
+          <div class="whoop-stat"><span class="whoop-zone" id="whoopZoneHrv"></span><div class="whoop-stat-label">HRV</div><div class="whoop-stat-value" id="whoopHrv">—</div><div class="whoop-stat-sub">ms</div></div>
+          <div class="whoop-stat"><span class="whoop-zone" id="whoopZoneRhr"></span><div class="whoop-stat-label">RHR</div><div class="whoop-stat-value" id="whoopRhr">—</div><div class="whoop-stat-sub">bpm</div></div>
         </div>
-        <div id="whBio" class="wh-bio" style="display:none">
-          <div class="wh-bio-item"><span class="wh-zone" id="whZoneSkin"></span><span class="wh-bio-label">Skin temp</span><span class="wh-bio-val" id="whSkin">â€”</span></div>
-          <div class="wh-bio-item"><span class="wh-zone" id="whZoneSpo2"></span><span class="wh-bio-label">Blood Oâ‚‚</span><span class="wh-bio-val" id="whSpo2">â€”</span></div>
-          <div class="wh-bio-item"><span class="wh-zone" id="whZoneResp"></span><span class="wh-bio-label">Resp rate</span><span class="wh-bio-val" id="whResp">â€”</span></div>
+
+        <div id="whoopBio" class="whoop-bio" style="display:none">
+          <div class="whoop-bio-item"><span class="whoop-zone" id="whoopZoneSkin"></span><span class="whoop-bio-label">Skin temp</span><span class="whoop-bio-val" id="whoopSkinTemp">—</span></div>
+          <div class="whoop-bio-item"><span class="whoop-zone" id="whoopZoneSpo2"></span><span class="whoop-bio-label">Blood O₂</span><span class="whoop-bio-val" id="whoopSpo2">—</span></div>
+          <div class="whoop-bio-item"><span class="whoop-zone" id="whoopZoneResp"></span><span class="whoop-bio-label">Resp rate</span><span class="whoop-bio-val" id="whoopResp">—</span></div>
         </div>
-        <div class="wh-legend">
-          <span class="wh-leg-item"><span class="wh-zone z-good"></span>Good</span>
-          <span class="wh-leg-item"><span class="wh-zone z-norm"></span>Normal</span>
-          <span class="wh-leg-item"><span class="wh-zone z-warn"></span>Watch</span>
-          <span class="wh-leg-item"><span class="wh-zone z-bad"></span>High / Low</span>
+
+        <div class="whoop-legend">
+          <span class="whoop-legend-item"><span class="whoop-zone z-good"></span>Good</span>
+          <span class="whoop-legend-item"><span class="whoop-zone z-norm"></span>Normal</span>
+          <span class="whoop-legend-item"><span class="whoop-zone z-warn"></span>Watch</span>
+          <span class="whoop-legend-item"><span class="whoop-zone z-bad"></span>High / Low</span>
         </div>
-        <div id="whVerdict" class="wh-verdict" style="display:none">
-          <div class="wh-verdict-head"><span class="wh-verdict-eye">Today's call</span><span id="whVerdictBadge" class="wh-verdict-badge"></span></div>
-          <div id="whVerdictHead" class="wh-verdict-headline"></div>
-          <div id="whVerdictReasons" class="wh-verdict-reasons"></div>
+
+        <div id="whoopVerdict" class="whoop-verdict" style="display:none">
+          <div class="whoop-verdict-head">
+            <span class="whoop-verdict-eyebrow">Today's call</span>
+            <span id="whoopVerdictBadge" class="whoop-verdict-badge"></span>
+          </div>
+          <div id="whoopVerdictHeadline" class="whoop-verdict-headline"></div>
+          <div id="whoopVerdictReasons" class="whoop-verdict-reasons"></div>
+          <div id="whoopVerdictAvoid" class="whoop-verdict-avoid" style="display:none">
+            <span class="whoop-verdict-avoid-label">Avoid today:</span> <span id="whoopVerdictAvoidText"></span>
+          </div>
         </div>
-        <button id="whDisconnectBtn" class="wh-disconnect-link" type="button">Disconnect</button>
+
+        <button id="whoopDisconnectBtn" class="whoop-disconnect-btn" type="button">Disconnect</button>
       </div>
     </div>
   </div>
   <script>
   (function () {
-    const KEY = 'whoop_tokens_v1';
+    const KEY       = 'whoop_tokens_v1';
     const CLIENT_ID = 'ae647e05-832f-4f89-acd7-1178aaf20d9f';
     const REDIRECT  = window.location.origin + '/api/whoop-callback';
     const SCOPES    = 'read:recovery read:sleep read:workout read:cycles read:profile read:body_measurement offline';
+    const CIRC      = 2 * Math.PI * 96; // 603.19 — matches r="96" on the ring
 
-    function load() { try { return JSON.parse(localStorage.getItem(KEY)); } catch { return null; } }
-    function save(t) { try { localStorage.setItem(KEY, JSON.stringify(t)); } catch {} }
-    function wipe() { try { localStorage.removeItem(KEY); } catch {} }
+    const el = (id) => document.getElementById(id);
+    const loadTokens  = () => { try { return JSON.parse(localStorage.getItem(KEY)); } catch { return null; } };
+    const saveTokens  = (t) => { try { localStorage.setItem(KEY, JSON.stringify(t)); } catch {} };
+    const clearTokens = () => { try { localStorage.removeItem(KEY); } catch {} };
 
+    // Absorb token from URL hash after OAuth redirect back to this page
     if (location.hash && location.hash.indexOf('whoop_access') !== -1) {
       const h = new URLSearchParams(location.hash.slice(1));
       const access = h.get('whoop_access'), refresh = h.get('whoop_refresh');
-      const expires = Number(h.get('whoop_expires')) || Date.now() + 3500e3;
-      if (access) { save({ access, refresh, expires }); history.replaceState(null, '', location.pathname + location.search); }
+      const expires = Number(h.get('whoop_expires')) || (Date.now() + 3500 * 1000);
+      if (access) { saveTokens({ access, refresh, expires }); history.replaceState(null, '', location.pathname + location.search); }
     }
 
-    const $ = (id) => document.getElementById(id);
-    const errEl = $('whErr');
-    function showErr(m) { errEl.textContent = m || ''; errEl.style.display = m ? 'block' : 'none'; }
-
-    $('whConnectBtn').addEventListener('click', () => {
-      const url = 'https://api.prod.whoop.com/oauth/oauth2/auth'
-        + '?client_id='     + encodeURIComponent(CLIENT_ID)
-        + '&redirect_uri='  + encodeURIComponent(REDIRECT)
+    el('whoopConnectBtn').addEventListener('click', () => {
+      location.href = 'https://api.prod.whoop.com/oauth/oauth2/auth'
+        + '?client_id='    + encodeURIComponent(CLIENT_ID)
+        + '&redirect_uri=' + encodeURIComponent(REDIRECT)
         + '&response_type=code'
-        + '&scope='         + encodeURIComponent(SCOPES)
-        + '&state='         + Math.random().toString(36).slice(2);
-      location.href = url;
+        + '&scope='        + encodeURIComponent(SCOPES)
+        + '&state='        + Math.random().toString(36).slice(2);
     });
-    $('whDisconnectBtn').addEventListener('click', () => { wipe(); render(); });
-    $('whRefresh').addEventListener('click', async (e) => {
-      const btn = e.currentTarget; btn.classList.add('spin');
-      try { await loadData(); } finally { setTimeout(() => btn.classList.remove('spin'), 600); }
+    el('whoopDisconnectBtn').addEventListener('click', () => { clearTokens(); render(); });
+    el('whoopRefreshBtn').addEventListener('click', async (e) => {
+      const btn = e.currentTarget;
+      btn.style.transition = 'transform 0.5s ease';
+      btn.style.transform  = 'rotate(360deg)';
+      try { await loadData(); } finally { setTimeout(() => { btn.style.transform = ''; btn.style.transition = ''; }, 500); }
     });
 
     // Shared promise so concurrent 401s don't each fire a separate refresh request.
     let _refreshPending = null;
-    async function refreshTok(t) {
+    async function refreshToken(t) {
       if (!t.refresh) return null;
       if (_refreshPending) return _refreshPending;
       _refreshPending = (async () => {
         try {
-          const r = await fetch('/api/whoop-refresh', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ refresh_token: t.refresh }) });
+          const r = await fetch('/api/whoop-refresh', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh_token: t.refresh }) });
           const j = await r.json();
           if (j.access_token) {
-            const next = { access: j.access_token, refresh: j.refresh_token || t.refresh, expires: Date.now() + (j.expires_in != null ? j.expires_in : 3500)*1000 };
-            save(next); return next;
+            const next = { access: j.access_token, refresh: j.refresh_token || t.refresh, expires: Date.now() + (j.expires_in != null ? j.expires_in : 3500) * 1000 };
+            saveTokens(next); return next;
           }
         } catch {}
         return null;
       })();
       try { return await _refreshPending; } finally { _refreshPending = null; }
     }
+
     // retried flag prevents infinite recursion when a refreshed token is also rejected.
-    async function whFetch(path, t, retried) {
+    async function whoopFetch(path, t, retried) {
       const [p, qs] = path.split('?');
-      const params = new URLSearchParams(qs || ''); params.set('path', p);
-      const r = await fetch('/api/whoop-data?' + params.toString(), { headers: { 'Authorization': 'Bearer ' + t.access, 'Accept':'application/json' } });
-      if (r.status === 401 && !retried) { const n = await refreshTok(t); if (n) return whFetch(path, n, true); throw new Error('Session expired — tap Disconnect then Connect again'); }
+      const params = new URLSearchParams(qs || '');
+      params.set('path', p);
+      const r = await fetch('/api/whoop-data?' + params.toString(), { headers: { 'Authorization': 'Bearer ' + t.access, 'Accept': 'application/json' } });
+      if (r.status === 401 && !retried) { const n = await refreshToken(t); if (n) return whoopFetch(path, n, true); throw new Error('Session expired — tap Disconnect then Connect again'); }
       if (!r.ok) throw new Error('WHOOP ' + r.status + ': ' + (await r.text()));
-      return await r.json();
+      return r.json();
     }
 
-    function fmtMins(ms) { const m = Math.round(ms/60000); const h = Math.floor(m/60); return h + 'h ' + String(m%60).padStart(2,'0') + 'm'; }
-    function fmtMinsShort(ms) { const m = Math.round(ms/60000); const h = Math.floor(m/60); return (h>0?h+'h ':'') + (m%60)+'m'; }
-    function zone(el, c) { el.className = 'wh-zone'; if (c) el.classList.add('z-' + c); }
-    function recoveryZone(v) { if (v == null) return null; if (v >= 67) return 'good'; if (v >= 34) return 'warn'; return 'bad'; }
-    function sleepZone(p) { if (p == null) return null; if (p >= 85) return 'good'; if (p >= 70) return 'norm'; return 'warn'; }
-    function strainZone(s) { if (s == null) return null; if (s < 6) return 'norm'; if (s < 14) return 'good'; if (s < 18) return 'warn'; return 'bad'; }
-    function hrvZone(h) { if (h == null) return null; if (h >= 60) return 'good'; if (h >= 40) return 'norm'; return 'warn'; }
-    function rhrZone(r) { if (r == null) return null; if (r <= 55) return 'good'; if (r <= 70) return 'norm'; return 'warn'; }
-    function tempZone(t) { if (t == null) return null; if (t >= 32.5 && t <= 34) return 'good'; if (t >= 31 && t <= 35) return 'norm'; return 'warn'; }
-    function spo2Zone(s) { if (s == null) return null; if (s >= 95) return 'good'; if (s >= 92) return 'norm'; if (s >= 88) return 'warn'; return 'bad'; }
-    function respZone(r) { if (r == null) return null; if (r >= 12 && r <= 18) return 'good'; if (r >= 10 && r <= 22) return 'norm'; return 'warn'; }
+    function fmtMins(ms) { const m = Math.round(ms / 60000); const h = Math.floor(m / 60); return h + 'h ' + String(m % 60).padStart(2, '0') + 'm'; }
 
-    function ringStroke(score) {
-      // green > yellow > red
-      if (score >= 67) return '#6BE3A4';
-      if (score >= 34) return '#F2C063';
-      return '#FF8A8A';
-    }
-    function recoveryLabel(score) {
-      if (score >= 67) return 'Go hard today';
-      if (score >= 34) return 'Moderate â€” listen to body';
-      return 'Recover today';
+    function recoveryColor(s) { return s >= 67 ? '#6BE3A4' : s >= 34 ? '#F2C063' : '#FF6B6B'; }
+    function recoveryLabel(s) { return s >= 67 ? 'High Recovery' : s >= 34 ? 'Moderate' : 'Low Recovery'; }
+
+    function setZone(id, cls) {
+      const e = el(id); if (!e) return;
+      e.className = 'whoop-zone' + (cls ? ' ' + cls : '');
     }
 
-    function verdict(rec, strain, sleepPerf) {
-      if (rec == null) return null;
-      let cls = 'green', badge = 'GREEN', headline = 'Push hard today. Body\'s primed â€” go for the PR, do the harder workout, take on the heavy task.';
-      if (rec < 67 && rec >= 34) { cls = 'yellow'; badge = 'YELLOW'; headline = 'Moderate day. Train, but don\'t max out. Stick to planned volume, skip the max effort sets.'; }
-      else if (rec < 34) { cls = 'red'; badge = 'RED'; headline = 'Recover. Body is asking for rest â€” light movement, walk, mobility, sleep early.'; }
-      return { cls, badge, headline };
+    function setRing(score) {
+      const fill = el('whoopRecoveryRingFill'); if (!fill) return;
+      const color  = recoveryColor(score);
+      fill.style.strokeDashoffset = CIRC * (1 - score / 100);
+      fill.style.stroke = color;
+      fill.style.filter = 'drop-shadow(0 0 8px ' + color + '80)';
+      el('whoopRecoveryScore').textContent = Math.round(score) + '%';
+      const lbl = el('whoopRecoveryLabel');
+      lbl.textContent = recoveryLabel(score);
+      lbl.style.color = color;
+    }
+
+    function buildVerdict(recovery, strain, sleepPct) {
+      const v = el('whoopVerdict'); if (!v || recovery == null) return;
+      let badge, color, borderColor, bgColor, headline, reasons = [], avoid = [];
+      if (recovery >= 67) {
+        badge = 'Go'; color = '#6BE3A4'; borderColor = 'rgba(107,227,164,0.45)'; bgColor = 'rgba(107,227,164,0.10)';
+        headline = 'Your body is primed — push it today.';
+        reasons.push('Recovery ' + Math.round(recovery) + '% puts you in the green zone.');
+        if (strain != null && strain < 10) reasons.push('Yesterday was light (' + strain.toFixed(1) + ' strain) — you have capacity to train hard.');
+        if (sleepPct != null && sleepPct >= 70) reasons.push('Sleep performance ' + Math.round(sleepPct) + '% — well rested.');
+      } else if (recovery >= 34) {
+        badge = 'Moderate'; color = '#F2C063'; borderColor = 'rgba(242,192,99,0.45)'; bgColor = 'rgba(242,192,99,0.10)';
+        headline = 'Moderate effort is safe — don\'t overdo it.';
+        reasons.push('Recovery ' + Math.round(recovery) + '% is in the yellow zone.');
+        if (strain != null && strain > 16) { reasons.push('Yesterday was very demanding (' + strain.toFixed(1) + ' strain).'); avoid.push('max-effort lifting or HIIT'); }
+        if (sleepPct != null && sleepPct < 50) reasons.push('Sleep performance was low (' + Math.round(sleepPct) + '%).');
+      } else {
+        badge = 'Rest'; color = '#FF6B6B'; borderColor = 'rgba(255,107,107,0.45)'; bgColor = 'rgba(255,107,107,0.10)';
+        headline = 'Your body needs recovery — take it easy.';
+        reasons.push('Recovery ' + Math.round(recovery) + '% signals your body is under stress.');
+        avoid.push('intense training', 'heavy compound lifts');
+        reasons.push('Prioritise sleep, light movement, and nutrition today.');
+      }
+      const b = el('whoopVerdictBadge');
+      b.textContent = badge; b.style.color = color; b.style.borderColor = borderColor; b.style.background = bgColor;
+      v.style.borderLeftColor = color;
+      el('whoopVerdictHeadline').textContent = headline;
+      el('whoopVerdictReasons').innerHTML = reasons.map(r => '· ' + r).join('<br>');
+      const avoidEl = el('whoopVerdictAvoid');
+      if (avoid.length) { el('whoopVerdictAvoidText').textContent = avoid.join(', '); avoidEl.style.display = ''; }
+      else { avoidEl.style.display = 'none'; }
+      v.style.display = '';
     }
 
     async function loadData() {
-      let t = load(); if (!t) return;
-      if (t.expires && Date.now() > t.expires - 60000) { const n = await refreshTok(t); if (n) t = n; }
-      showErr('');
+      let t = loadTokens(); if (!t) return;
+      if (t.expires && Date.now() > t.expires - 60000) { const n = await refreshToken(t); if (n) t = n; }
+      el('whoopUpdated').textContent = 'loading…';
       try {
         const [rec, sleep, cycle] = await Promise.all([
-          whFetch('/recovery?limit=1', t).catch((e)=>{console.error('[whoop] recovery', e.message); return null;}),
-          whFetch('/activity/sleep?limit=1', t).catch((e)=>{console.error('[whoop] sleep', e.message); return null;}),
-          whFetch('/cycle?limit=1', t).catch((e)=>{console.error('[whoop] cycle', e.message); return null;}),
+          whoopFetch('/recovery?limit=1', t).catch(e => { console.error('[whoop] recovery:', e.message); return null; }),
+          whoopFetch('/activity/sleep?limit=1', t).catch(e => { console.error('[whoop] sleep:', e.message); return null; }),
+          whoopFetch('/cycle?limit=1', t).catch(e => { console.error('[whoop] cycle:', e.message); return null; }),
         ]);
 
-        let recScore = null, hrv = null, rhr = null, skin = null, spo2 = null;
-        const r0 = rec && rec.records && rec.records[0];
-        if (r0 && r0.score) {
-          const _rawRec = r0.score.recovery_score;
-          recScore = _rawRec != null ? Math.round(_rawRec) : null;
-          hrv = r0.score.hrv_rmssd_milli != null ? Math.round(r0.score.hrv_rmssd_milli) : null;
-          rhr = r0.score.resting_heart_rate != null ? Math.round(r0.score.resting_heart_rate) : null;
-          skin = r0.score.skin_temp_celsius != null ? r0.score.skin_temp_celsius : null;
-          spo2 = r0.score.spo2_percentage != null ? r0.score.spo2_percentage : null;
+        // Recovery ring + HRV / RHR / biomarkers
+        const recScore = rec && rec.records && rec.records[0] && rec.records[0].score;
+        let recoveryPct = null;
+        if (recScore) {
+          const _rawRec = recScore.recovery_score;
+          recoveryPct = _rawRec != null ? _rawRec : null;
+          setRing(recoveryPct);
+          const hrv = recScore.hrv_rmssd_milli;
+          const rhr = recScore.resting_heart_rate;
+          el('whoopHrv').textContent = hrv != null ? Math.round(hrv) : '—';
+          el('whoopRhr').textContent = rhr != null ? Math.round(rhr) : '—';
+          setZone('whoopZoneHrv', hrv == null ? '' : hrv >= 60 ? 'z-good' : hrv >= 40 ? 'z-norm' : 'z-warn');
+          setZone('whoopZoneRhr', rhr == null ? '' : rhr <= 55 ? 'z-good' : rhr <= 70 ? 'z-norm' : 'z-bad');
+          const skin = recScore.skin_temp_celsius, spo2 = recScore.spo2_percentage;
+          let hasBio = false;
+          if (skin != null) { el('whoopSkinTemp').textContent = skin.toFixed(1) + '°C'; setZone('whoopZoneSkin', Math.abs(skin) < 0.5 ? 'z-good' : 'z-norm'); hasBio = true; }
+          if (spo2 != null) { el('whoopSpo2').textContent = spo2.toFixed(1) + '%'; setZone('whoopZoneSpo2', spo2 >= 95 ? 'z-good' : spo2 >= 90 ? 'z-warn' : 'z-bad'); hasBio = true; }
+          if (hasBio) el('whoopBio').style.display = '';
         }
 
-        // Ring
-        const fill = $('whRingFill');
-        const C = 603.19;
-        if (recScore != null) {
-          fill.style.strokeDashoffset = String(C * (1 - recScore/100));
-          fill.style.stroke = ringStroke(recScore);
-          $('whRecNum').textContent = String(recScore);
-          const labelEl = $('whRecLabel');
-          labelEl.textContent = recoveryLabel(recScore);
-          labelEl.style.color = ringStroke(recScore);
-        }
-
-        // Sleep
-        let sleepPerf = null, sleepDuration = null, resp = null;
-        const s0 = sleep && sleep.records && sleep.records[0];
-        if (s0 && s0.score) {
-          const _rawSleep = s0.score.sleep_performance_percentage;
-          sleepPerf = _rawSleep != null ? Math.round(_rawSleep) : null;
-          resp = s0.score.respiratory_rate != null ? Number(s0.score.respiratory_rate).toFixed(1) : null;
-          if (s0.score.stage_summary) {
-            const ss = s0.score.stage_summary;
-            const inBed = ss.total_in_bed_time_milli || 0;
-            const awake = ss.total_awake_time_milli || 0;
-            sleepDuration = inBed - awake;
-            const rem = ss.total_rem_sleep_time_milli || 0;
-            const deep = ss.total_slow_wave_sleep_time_milli || 0;
-            const light = ss.total_light_sleep_time_milli || 0;
-            const total = rem + deep + light + awake;
-            if (total > 0) {
-              $('whStages').style.display = '';
-              $('whBarRem').style.width   = (100*rem/total)   + '%';
-              $('whBarDeep').style.width  = (100*deep/total)  + '%';
-              $('whBarLight').style.width = (100*light/total) + '%';
-              $('whBarAwake').style.width = (100*awake/total) + '%';
-              $('whStagesMeta').textContent = fmtMins(total) + ' total';
-              $('whRem').textContent   = fmtMinsShort(rem);
-              $('whDeep').textContent  = fmtMinsShort(deep);
-              $('whLight').textContent = fmtMinsShort(light);
-              $('whAwake').textContent = fmtMinsShort(awake);
-            }
+        // Sleep stages + performance
+        let sleepPct = null;
+        const sleepRec = sleep && sleep.records && sleep.records[0];
+        if (sleepRec && sleepRec.score) {
+          const sc = sleepRec.score, ss = sc.stage_summary || {};
+          sleepPct = sc.sleep_performance_percentage;
+          const rem   = ss.total_rem_sleep_time_milli       || 0;
+          const deep  = ss.total_slow_wave_sleep_time_milli || 0;
+          const light = ss.total_light_sleep_time_milli     || 0;
+          const awake = ss.total_awake_time_milli           || 0;
+          const inBed = rem + deep + light + awake;
+          el('whoopSleepScore').textContent    = sleepPct != null ? Math.round(sleepPct) + '%' : '—';
+          el('whoopSleepDuration').textContent = (rem + deep + light) ? fmtMins(rem + deep + light) : '—';
+          setZone('whoopZoneSleep', sleepPct == null ? '' : sleepPct >= 85 ? 'z-good' : sleepPct >= 70 ? 'z-norm' : 'z-warn');
+          if (inBed > 0) {
+            el('whoopStageRem').style.width   = (rem   / inBed * 100).toFixed(1) + '%';
+            el('whoopStageDeep').style.width  = (deep  / inBed * 100).toFixed(1) + '%';
+            el('whoopStageLight').style.width = (light / inBed * 100).toFixed(1) + '%';
+            el('whoopStageAwake').style.width = (awake / inBed * 100).toFixed(1) + '%';
+            el('whoopStageRemTxt').textContent   = rem   ? fmtMins(rem)   : '—';
+            el('whoopStageDeepTxt').textContent  = deep  ? fmtMins(deep)  : '—';
+            el('whoopStageLightTxt').textContent = light ? fmtMins(light) : '—';
+            el('whoopStageAwakeTxt').textContent = awake ? fmtMins(awake) : '—';
+            el('whoopStagesMeta').textContent = fmtMins(inBed) + ' in bed';
+            el('whoopStages').style.display = '';
           }
-        }
-        if (sleepPerf != null) {
-          $('whSleep').textContent = sleepPerf + '%';
-          const hrs = sleepDuration ? (sleepDuration/3.6e6).toFixed(1) + 'h' : 'â€”';
-          $('whSleepSub').textContent = hrs;
-          zone($('whZoneSleep'), sleepZone(sleepPerf));
+          const resp = sc.respiratory_rate;
+          if (resp != null) {
+            el('whoopResp').textContent = resp.toFixed(1) + ' rpm';
+            setZone('whoopZoneResp', resp >= 12 && resp <= 20 ? 'z-norm' : 'z-warn');
+            el('whoopBio').style.display = '';
+          }
         }
 
         // Strain
-        let strain = null, kcal = null;
-        const c0 = cycle && cycle.records && cycle.records[0];
-        if (c0 && c0.score && c0.score.strain != null) {
-          strain = Number(c0.score.strain);
-          $('whStrain').textContent = strain.toFixed(1);
-          if (c0.score.kilojoule != null) {
-            kcal = Math.round(c0.score.kilojoule / 4.184);
-            $('whStrainSub').textContent = kcal + ' kcal';
-          }
-          zone($('whZoneStrain'), strainZone(strain));
+        let strainVal = null;
+        const cycleRec = cycle && cycle.records && cycle.records[0];
+        if (cycleRec && cycleRec.score) {
+          strainVal = cycleRec.score.strain;
+          el('whoopStrain').textContent = strainVal != null ? strainVal.toFixed(1) : '—';
+          setZone('whoopZoneStrain', strainVal == null ? '' : strainVal >= 14 ? 'z-warn' : strainVal >= 8 ? 'z-norm' : 'z-good');
         }
 
-        if (hrv != null) { $('whHrv').textContent = String(hrv); zone($('whZoneHrv'), hrvZone(hrv)); }
-        if (rhr != null) { $('whRhr').textContent = String(rhr); zone($('whZoneRhr'), rhrZone(rhr)); }
-
-        // Biomarkers
-        const anyBio = (skin != null) || (spo2 != null) || (resp != null);
-        if (anyBio) {
-          $('whBio').style.display = '';
-          if (skin != null) { $('whSkin').textContent = Number(skin).toFixed(1) + 'Â°C'; zone($('whZoneSkin'), tempZone(skin)); }
-          if (spo2 != null) { $('whSpo2').textContent = Number(spo2).toFixed(1) + '%'; zone($('whZoneSpo2'), spo2Zone(spo2)); }
-          if (resp != null) { $('whResp').textContent = resp + ' br/min'; zone($('whZoneResp'), respZone(Number(resp))); }
-        }
-
-        // Verdict
-        const v = verdict(recScore, strain, sleepPerf);
-        if (v) {
-          $('whVerdict').style.display = '';
-          const badge = $('whVerdictBadge');
-          badge.textContent = v.badge;
-          badge.className = 'wh-verdict-badge ' + v.cls;
-          $('whVerdictHead').textContent = v.headline;
-          const reasons = [];
-          if (sleepPerf != null) reasons.push((sleepPerf >= 80 ? 'âœ“' : 'Â·') + ' Sleep score ' + sleepPerf + '% â€” ' + (sleepPerf >= 80 ? 'you slept well.' : 'sub-par sleep.'));
-          if (strain != null)   reasons.push((strain < 14 ? 'Â·' : 'âœ“') + ' Strain ' + strain.toFixed(1) + ' yesterday â€” ' + (strain < 14 ? 'room to push today if recovery allows.' : 'high load logged.'));
-          if (hrv != null)      reasons.push((hrv >= 50 ? 'âœ“' : 'Â·') + ' HRV ' + hrv + 'ms â€” ' + (hrv >= 50 ? 'strong autonomic state.' : 'autonomic stress.'));
-          if (rhr != null)      reasons.push((rhr <= 60 ? 'âœ“' : 'Â·') + ' RHR ' + rhr + 'bpm â€” ' + (rhr <= 60 ? 'well-conditioned.' : 'elevated.'));
-          $('whVerdictReasons').innerHTML = reasons.join('<br>');
-        }
-
-        const now = new Date();
-        $('whUpdated').textContent = 'Updated ' + now.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+        buildVerdict(recoveryPct, strainVal, sleepPct);
+        el('whoopUpdated').textContent = 'Updated ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       } catch (e) {
-        showErr(e.message || String(e));
+        console.error('[whoop] loadData:', e);
+        el('whoopUpdated').textContent = 'Error — ' + (e.message || 'fetch failed');
       }
     }
 
     function render() {
-      const t = load();
-      if (t && t.access) { $('whDisc').style.display = 'none'; $('whConn').style.display = ''; loadData(); }
-      else { $('whDisc').style.display = ''; $('whConn').style.display = 'none'; }
+      const t = loadTokens();
+      if (t && t.access) { el('whoopDisconnected').style.display = 'none'; el('whoopConnected').style.display = ''; loadData(); }
+      else               { el('whoopDisconnected').style.display = '';     el('whoopConnected').style.display = 'none'; }
     }
     render();
   })();
   </script>
-
 
   <div class="section-title">Daily Stack</div>
 
@@ -865,15 +895,15 @@ main {
     <div class="stack-ticker" id="stackTicker">
       <span class="stack-ticker-dot"></span>
       <span class="stack-ticker-label">STACK</span>
-      <span class="stack-ticker-sep">Â·</span>
-      <span class="stack-ticker-msg" id="stackTickerMsg">All caught up â€” keep it rolling</span>
+      <span class="stack-ticker-sep">·</span>
+      <span class="stack-ticker-msg" id="stackTickerMsg">All caught up — keep it rolling</span>
       <span class="stack-ticker-count" id="stackTickerCount">0/0</span>
     </div>
 
     <div class="stack-head">
       <div class="sf-eyebrow">Daily stack</div>
       <div class="sf-title">Tap each as you take it</div>
-      <div class="stack-progress-text" id="stackProgressText">â€” / â€” taken today Â· resets at 6 AM</div>
+      <div class="stack-progress-text" id="stackProgressText">— / — taken today · resets at 6 AM</div>
     </div>
 
     <div class="stack-progress-track">
@@ -906,7 +936,7 @@ main {
     <iframe src="po-water.html" class="water-iframe" loading="lazy" title="Water Tracker"></iframe>
   </section>
 
-  <div class="attribution">// editable template Â· all data stays in your browser</div>
+  <div class="attribution">// editable template · all data stays in your browser</div>
 </main>
 
 <script>
@@ -939,88 +969,88 @@ main {
   ];
 
   const STACK_WINDOWS = [
-    { key: 'morning', icon: 'ðŸŒ…', title: 'Morning', time: '7â€“10 AM', cutoffHour: 10 },
-    { key: 'lunch',   icon: 'ðŸ½ï¸', title: 'Lunch',   time: '12â€“2 PM', cutoffHour: 14 },
-    { key: 'evening', icon: 'ðŸŒ™', title: 'Evening', time: '9â€“11 PM', cutoffHour: 23 },
-    { key: 'anytime', icon: 'â±ï¸', title: 'Anytime', time: 'No fixed window', cutoffHour: null },
+    { key: 'morning', icon: '🌅', title: 'Morning', time: '7–10 AM', cutoffHour: 10 },
+    { key: 'lunch',   icon: '🍽️', title: 'Lunch',   time: '12–2 PM', cutoffHour: 14 },
+    { key: 'evening', icon: '🌙', title: 'Evening', time: '9–11 PM', cutoffHour: 23 },
+    { key: 'anytime', icon: '⏱️', title: 'Anytime', time: 'No fixed window', cutoffHour: null },
   ];
 
-  // ====== SUPPLEMENT DATABASE â€” researched defaults ======
+  // ====== SUPPLEMENT DATABASE — researched defaults ======
   const SUPPLEMENT_DB = [
-    { name: 'Creatine monohydrate', dose: '5g', window: 'anytime', note: 'Daily â€” consistency matters more than timing', icon: 'ðŸ‹ï¸', aliases: ['creatine'] },
-    { name: 'Beta-alanine', dose: '2â€“5g', window: 'morning', note: 'Pre-workout â€” split doses to avoid tingles', icon: 'ðŸ‹ï¸', aliases: ['beta alanine'] },
-    { name: 'L-citrulline', dose: '6â€“8g', window: 'morning', note: '~30 min pre-workout for pump', icon: 'ðŸ‹ï¸', aliases: ['citrulline'] },
-    { name: 'BCAAs', dose: '5â€“10g', window: 'anytime', note: 'Around workout window', icon: 'ðŸ‹ï¸', aliases: ['bcaa'] },
-    { name: 'Whey protein', dose: '25â€“40g', window: 'anytime', note: 'Post-workout or to hit daily target', icon: 'ðŸ¥¤', aliases: ['whey'] },
-    { name: 'Casein protein', dose: '25â€“40g', window: 'evening', note: 'Before bed for slow overnight aminos', icon: 'ðŸ¥¤', aliases: ['casein'] },
-    { name: 'L-carnitine', dose: '1â€“2g', window: 'morning', note: 'With carbs for best uptake', icon: 'ðŸ‹ï¸', aliases: ['carnitine'] },
-    { name: 'Acetyl-L-carnitine', dose: '500mgâ€“2g', window: 'morning', note: 'Cognitive variant â€” crosses BBB', icon: 'ðŸ§ ', aliases: ['alcar'] },
-    { name: 'HMB', dose: '3g', window: 'anytime', note: 'Split 3x daily â€” muscle preservation', icon: 'ðŸ‹ï¸', aliases: ['hmb'] },
-    { name: 'Glutamine', dose: '5g', window: 'anytime', note: 'Recovery â€” post-workout or before bed', icon: 'ðŸ‹ï¸', aliases: ['l-glutamine'] },
-    { name: 'Vitamin D3', dose: '2000â€“5000 IU', window: 'lunch', note: 'Fat-soluble â€” take with biggest meal', icon: 'â˜€ï¸', aliases: ['vit d', 'vitamin d', 'd3', 'cholecalciferol'] },
-    { name: 'Vitamin K2 (MK-7)', dose: '100â€“200 mcg', window: 'lunch', note: 'Pairs with D3 â€” same meal', icon: 'ðŸ’Š', aliases: ['vit k', 'vitamin k', 'k2', 'mk7'] },
-    { name: 'Vitamin C', dose: '500â€“1000mg', window: 'morning', note: 'Water-soluble â€” split if over 500mg', icon: 'ðŸŠ', aliases: ['vit c', 'ascorbic acid'] },
-    { name: 'Vitamin B12', dose: '500â€“1000mcg', window: 'morning', note: 'Methylcobalamin form preferred', icon: 'âš¡', aliases: ['b12', 'methylcobalamin'] },
-    { name: 'B-complex', dose: '1 cap', window: 'morning', note: 'All B vitamins â€” energy', icon: 'âš¡', aliases: ['b complex', 'b vitamins'] },
-    { name: 'Vitamin A', dose: '5000 IU', window: 'lunch', note: 'Fat-soluble â€” with fat', icon: 'ðŸ’Š', aliases: ['vit a', 'retinol'] },
-    { name: 'Vitamin E', dose: '400 IU', window: 'lunch', note: 'Fat-soluble â€” with fat', icon: 'ðŸ’Š', aliases: ['vit e', 'tocopherol'] },
-    { name: 'Folate', dose: '400â€“800mcg', window: 'morning', note: 'Methylfolate preferred', icon: 'ðŸ’Š', aliases: ['folic acid', 'b9', 'methylfolate'] },
-    { name: 'Biotin', dose: '30mcgâ€“5mg', window: 'anytime', note: 'Hair, skin, nails', icon: 'ðŸ’…', aliases: ['biotin', 'b7'] },
-    { name: 'Multivitamin', dose: '1 serving', window: 'lunch', note: 'Take with food', icon: 'ðŸ’Š', aliases: ['multi', 'multivitamin'] },
-    { name: 'Magnesium glycinate', dose: '200â€“400mg', window: 'evening', note: '30â€“60 min before bed â€” sleep helper', icon: 'ðŸŒ™', aliases: ['magnesium', 'mag glycinate', 'bisglycinate'] },
-    { name: 'Magnesium L-threonate', dose: '144mg elemental', window: 'evening', note: 'Cognitive variant â€” crosses BBB', icon: 'ðŸ§ ', aliases: ['magtein', 'threonate'] },
-    { name: 'Magnesium citrate', dose: '200â€“400mg', window: 'evening', note: 'Also supports digestion', icon: 'ðŸŒ™', aliases: ['mag citrate'] },
-    { name: 'Zinc', dose: '15â€“30mg', window: 'evening', note: 'With food â€” not with calcium or iron', icon: 'ðŸ’Š', aliases: ['zinc'] },
-    { name: 'Iron', dose: '18â€“65mg', window: 'morning', note: 'Empty stomach with vit C', icon: 'ðŸ’Š', aliases: ['iron'] },
-    { name: 'Calcium', dose: '500mg', window: 'evening', note: 'With food â€” not with iron', icon: 'ðŸ¦´', aliases: ['calcium'] },
-    { name: 'Selenium', dose: '100â€“200mcg', window: 'anytime', note: 'Thyroid + antioxidant', icon: 'ðŸ’Š', aliases: ['selenium'] },
-    { name: 'Iodine', dose: '150mcg', window: 'morning', note: 'Thyroid support', icon: 'ðŸ’Š', aliases: ['iodine'] },
-    { name: 'Omega-3 (Fish oil)', dose: '2â€“3g EPA+DHA', window: 'lunch', note: 'With biggest fatty meal', icon: 'ðŸŸ', aliases: ['omega 3', 'omega3', 'fish oil', 'epa', 'dha'] },
-    { name: 'Krill oil', dose: '500â€“1000mg', window: 'lunch', note: 'More absorbable than fish oil', icon: 'ðŸŸ', aliases: ['krill'] },
-    { name: 'MCT oil', dose: '1â€“2 tbsp', window: 'morning', note: 'Fast energy â€” start low', icon: 'ðŸ¥¥', aliases: ['mct'] },
-    { name: 'Flaxseed oil', dose: '1â€“2g', window: 'lunch', note: 'Plant omega-3 â€” with food', icon: 'ðŸŒ±', aliases: ['flax', 'flaxseed'] },
-    { name: 'L-theanine', dose: '100â€“200mg', window: 'morning', note: 'Stacks with caffeine 2:1', icon: 'ðŸ§ ', aliases: ['theanine'] },
-    { name: 'Caffeine', dose: '100â€“200mg', window: 'morning', note: 'Stack with L-theanine for cleaner focus', icon: 'â˜•', aliases: ['caffeine'] },
-    { name: 'Rhodiola rosea', dose: '200â€“400mg', window: 'morning', note: 'Adaptogen â€” energy and stress', icon: 'ðŸŒ¿', aliases: ['rhodiola'] },
-    { name: 'Lion\'s mane', dose: '500â€“1000mg', window: 'morning', note: 'Cognitive support â€” daily', icon: 'ðŸ„', aliases: ['lions mane', 'hericium'] },
-    { name: 'Bacopa monnieri', dose: '300â€“600mg', window: 'morning', note: 'With fat â€” long-term memory', icon: 'ðŸŒ¿', aliases: ['bacopa'] },
-    { name: 'Ginkgo biloba', dose: '120â€“240mg', window: 'morning', note: 'Circulation and cognition', icon: 'ðŸŒ¿', aliases: ['ginkgo'] },
-    { name: 'Alpha-GPC', dose: '300â€“600mg', window: 'morning', note: 'Choline â€” focus and learning', icon: 'ðŸ§ ', aliases: ['alpha gpc'] },
-    { name: 'Phosphatidylserine', dose: '100â€“300mg', window: 'evening', note: 'Cortisol regulation', icon: 'ðŸ§ ', aliases: ['ps'] },
-    { name: 'NAC', dose: '600â€“1800mg', window: 'morning', note: 'Glutathione precursor â€” split doses', icon: 'ðŸ’Š', aliases: ['nac', 'n-acetyl cysteine'] },
-    { name: 'Melatonin', dose: '0.3â€“3mg', window: 'evening', note: '30â€“60 min before bed â€” start low', icon: 'ðŸŒ™', aliases: ['melatonin'] },
-    { name: 'Glycine', dose: '3g', window: 'evening', note: 'Body temp drop = better sleep onset', icon: 'ðŸŒ™', aliases: ['glycine'] },
-    { name: 'Apigenin', dose: '50mg', window: 'evening', note: 'From chamomile â€” before bed', icon: 'ðŸŒ™', aliases: ['apigenin'] },
-    { name: 'Ashwagandha', dose: '300â€“600mg', window: 'evening', note: 'KSM-66 form â€” stress and cortisol', icon: 'ðŸŒ¿', aliases: ['ashwagandha', 'ksm-66'] },
-    { name: 'L-tryptophan', dose: '500mgâ€“1g', window: 'evening', note: 'Serotonin precursor â€” sleep onset', icon: 'ðŸŒ™', aliases: ['tryptophan'] },
-    { name: 'GABA', dose: '500â€“750mg', window: 'evening', note: 'Calming â€” before bed', icon: 'ðŸŒ™', aliases: ['gaba'] },
-    { name: 'Valerian root', dose: '300â€“600mg', window: 'evening', note: 'Sleep onset support', icon: 'ðŸŒ™', aliases: ['valerian'] },
-    { name: 'Probiotics', dose: '10â€“50 billion CFU', window: 'morning', note: 'Empty stomach or with food', icon: 'ðŸ¦ ', aliases: ['probiotic'] },
-    { name: 'Quercetin', dose: '500â€“1000mg', window: 'anytime', note: 'Pairs well with vitamin C', icon: 'ðŸŒ¿', aliases: ['quercetin'] },
-    { name: 'Curcumin', dose: '500â€“1000mg', window: 'lunch', note: 'With black pepper + fat', icon: 'ðŸŒ¿', aliases: ['curcumin', 'turmeric'] },
-    { name: 'Resveratrol', dose: '250â€“500mg', window: 'morning', note: 'With fat for absorption', icon: 'ðŸ‡', aliases: ['resveratrol'] },
-    { name: 'CoQ10 / Ubiquinol', dose: '100â€“200mg', window: 'lunch', note: 'Fat-soluble â€” with biggest meal', icon: 'ðŸ’Š', aliases: ['coq10', 'ubiquinol'] },
-    { name: 'Alpha lipoic acid', dose: '300â€“600mg', window: 'morning', note: 'Empty stomach for absorption', icon: 'ðŸ’Š', aliases: ['ala', 'alpha lipoic'] },
-    { name: 'Glutathione', dose: '250â€“1000mg', window: 'morning', note: 'Liposomal form for absorption', icon: 'ðŸ’Š', aliases: ['glutathione'] },
-    { name: 'Astaxanthin', dose: '4â€“12mg', window: 'lunch', note: 'Fat-soluble â€” with fatty meal', icon: 'ðŸ’Š', aliases: ['astaxanthin'] },
-    { name: 'Berberine', dose: '500mg', window: 'lunch', note: 'Before meals â€” glucose support', icon: 'ðŸ’Š', aliases: ['berberine'] },
-    { name: 'Milk thistle', dose: '200â€“400mg', window: 'anytime', note: 'Silymarin â€” liver support', icon: 'ðŸŒ¿', aliases: ['milk thistle', 'silymarin'] },
-    { name: 'Spirulina', dose: '3â€“5g', window: 'morning', note: 'Algae â€” protein and antioxidants', icon: 'ðŸŒ±', aliases: ['spirulina'] },
-    { name: 'Chlorella', dose: '2â€“4g', window: 'morning', note: 'Algae â€” detox support', icon: 'ðŸŒ±', aliases: ['chlorella'] },
-    { name: 'Tongkat ali', dose: '200â€“400mg', window: 'morning', note: 'Cycle 8 weeks on/off', icon: 'ðŸŒ¿', aliases: ['tongkat', 'longjack'] },
-    { name: 'Fadogia agrestis', dose: '600mg', window: 'morning', note: 'Cycle 8 weeks on/off', icon: 'ðŸŒ¿', aliases: ['fadogia'] },
-    { name: 'DHEA', dose: '25â€“50mg', window: 'morning', note: 'Hormonal â€” consult doctor', icon: 'ðŸ’Š', aliases: ['dhea'] },
-    { name: 'Pregnenolone', dose: '10â€“50mg', window: 'morning', note: 'Hormonal â€” consult doctor', icon: 'ðŸ’Š', aliases: ['pregnenolone'] },
-    { name: 'Tribulus terrestris', dose: '250â€“750mg', window: 'morning', note: 'Libido and energy', icon: 'ðŸŒ¿', aliases: ['tribulus'] },
-    { name: 'Maca root', dose: '1.5â€“3g', window: 'morning', note: 'Adaptogen â€” energy and libido', icon: 'ðŸŒ¿', aliases: ['maca'] },
-    { name: 'Collagen peptides', dose: '10â€“20g', window: 'anytime', note: 'With vitamin C for synthesis', icon: 'ðŸ’…', aliases: ['collagen'] },
-    { name: 'Glucosamine', dose: '1500mg', window: 'lunch', note: 'With food', icon: 'ðŸ¦´', aliases: ['glucosamine'] },
-    { name: 'Chondroitin', dose: '1200mg', window: 'lunch', note: 'Often paired with glucosamine', icon: 'ðŸ¦´', aliases: ['chondroitin'] },
-    { name: 'MSM', dose: '1â€“3g', window: 'anytime', note: 'Joint support', icon: 'ðŸ¦´', aliases: ['msm'] },
-    { name: 'Hyaluronic acid', dose: '120â€“200mg', window: 'anytime', note: 'Skin and joint hydration', icon: 'ðŸ’…', aliases: ['hyaluronic', 'ha'] },
-    { name: 'Cordyceps', dose: '1â€“3g', window: 'morning', note: 'Energy and endurance', icon: 'ðŸ„', aliases: ['cordyceps'] },
-    { name: 'Reishi', dose: '1â€“2g', window: 'evening', note: 'Calming adaptogen', icon: 'ðŸ„', aliases: ['reishi', 'ganoderma'] },
-    { name: 'Chaga', dose: '1â€“2g', window: 'morning', note: 'Antioxidant and immune', icon: 'ðŸ„', aliases: ['chaga'] },
+    { name: 'Creatine monohydrate', dose: '5g', window: 'anytime', note: 'Daily — consistency matters more than timing', icon: '🏋️', aliases: ['creatine'] },
+    { name: 'Beta-alanine', dose: '2–5g', window: 'morning', note: 'Pre-workout — split doses to avoid tingles', icon: '🏋️', aliases: ['beta alanine'] },
+    { name: 'L-citrulline', dose: '6–8g', window: 'morning', note: '~30 min pre-workout for pump', icon: '🏋️', aliases: ['citrulline'] },
+    { name: 'BCAAs', dose: '5–10g', window: 'anytime', note: 'Around workout window', icon: '🏋️', aliases: ['bcaa'] },
+    { name: 'Whey protein', dose: '25–40g', window: 'anytime', note: 'Post-workout or to hit daily target', icon: '🥤', aliases: ['whey'] },
+    { name: 'Casein protein', dose: '25–40g', window: 'evening', note: 'Before bed for slow overnight aminos', icon: '🥤', aliases: ['casein'] },
+    { name: 'L-carnitine', dose: '1–2g', window: 'morning', note: 'With carbs for best uptake', icon: '🏋️', aliases: ['carnitine'] },
+    { name: 'Acetyl-L-carnitine', dose: '500mg–2g', window: 'morning', note: 'Cognitive variant — crosses BBB', icon: '🧠', aliases: ['alcar'] },
+    { name: 'HMB', dose: '3g', window: 'anytime', note: 'Split 3x daily — muscle preservation', icon: '🏋️', aliases: ['hmb'] },
+    { name: 'Glutamine', dose: '5g', window: 'anytime', note: 'Recovery — post-workout or before bed', icon: '🏋️', aliases: ['l-glutamine'] },
+    { name: 'Vitamin D3', dose: '2000–5000 IU', window: 'lunch', note: 'Fat-soluble — take with biggest meal', icon: '☀️', aliases: ['vit d', 'vitamin d', 'd3', 'cholecalciferol'] },
+    { name: 'Vitamin K2 (MK-7)', dose: '100–200 mcg', window: 'lunch', note: 'Pairs with D3 — same meal', icon: '💊', aliases: ['vit k', 'vitamin k', 'k2', 'mk7'] },
+    { name: 'Vitamin C', dose: '500–1000mg', window: 'morning', note: 'Water-soluble — split if over 500mg', icon: '🍊', aliases: ['vit c', 'ascorbic acid'] },
+    { name: 'Vitamin B12', dose: '500–1000mcg', window: 'morning', note: 'Methylcobalamin form preferred', icon: '⚡', aliases: ['b12', 'methylcobalamin'] },
+    { name: 'B-complex', dose: '1 cap', window: 'morning', note: 'All B vitamins — energy', icon: '⚡', aliases: ['b complex', 'b vitamins'] },
+    { name: 'Vitamin A', dose: '5000 IU', window: 'lunch', note: 'Fat-soluble — with fat', icon: '💊', aliases: ['vit a', 'retinol'] },
+    { name: 'Vitamin E', dose: '400 IU', window: 'lunch', note: 'Fat-soluble — with fat', icon: '💊', aliases: ['vit e', 'tocopherol'] },
+    { name: 'Folate', dose: '400–800mcg', window: 'morning', note: 'Methylfolate preferred', icon: '💊', aliases: ['folic acid', 'b9', 'methylfolate'] },
+    { name: 'Biotin', dose: '30mcg–5mg', window: 'anytime', note: 'Hair, skin, nails', icon: '💅', aliases: ['biotin', 'b7'] },
+    { name: 'Multivitamin', dose: '1 serving', window: 'lunch', note: 'Take with food', icon: '💊', aliases: ['multi', 'multivitamin'] },
+    { name: 'Magnesium glycinate', dose: '200–400mg', window: 'evening', note: '30–60 min before bed — sleep helper', icon: '🌙', aliases: ['magnesium', 'mag glycinate', 'bisglycinate'] },
+    { name: 'Magnesium L-threonate', dose: '144mg elemental', window: 'evening', note: 'Cognitive variant — crosses BBB', icon: '🧠', aliases: ['magtein', 'threonate'] },
+    { name: 'Magnesium citrate', dose: '200–400mg', window: 'evening', note: 'Also supports digestion', icon: '🌙', aliases: ['mag citrate'] },
+    { name: 'Zinc', dose: '15–30mg', window: 'evening', note: 'With food — not with calcium or iron', icon: '💊', aliases: ['zinc'] },
+    { name: 'Iron', dose: '18–65mg', window: 'morning', note: 'Empty stomach with vit C', icon: '💊', aliases: ['iron'] },
+    { name: 'Calcium', dose: '500mg', window: 'evening', note: 'With food — not with iron', icon: '🦴', aliases: ['calcium'] },
+    { name: 'Selenium', dose: '100–200mcg', window: 'anytime', note: 'Thyroid + antioxidant', icon: '💊', aliases: ['selenium'] },
+    { name: 'Iodine', dose: '150mcg', window: 'morning', note: 'Thyroid support', icon: '💊', aliases: ['iodine'] },
+    { name: 'Omega-3 (Fish oil)', dose: '2–3g EPA+DHA', window: 'lunch', note: 'With biggest fatty meal', icon: '🐟', aliases: ['omega 3', 'omega3', 'fish oil', 'epa', 'dha'] },
+    { name: 'Krill oil', dose: '500–1000mg', window: 'lunch', note: 'More absorbable than fish oil', icon: '🐟', aliases: ['krill'] },
+    { name: 'MCT oil', dose: '1–2 tbsp', window: 'morning', note: 'Fast energy — start low', icon: '🥥', aliases: ['mct'] },
+    { name: 'Flaxseed oil', dose: '1–2g', window: 'lunch', note: 'Plant omega-3 — with food', icon: '🌱', aliases: ['flax', 'flaxseed'] },
+    { name: 'L-theanine', dose: '100–200mg', window: 'morning', note: 'Stacks with caffeine 2:1', icon: '🧠', aliases: ['theanine'] },
+    { name: 'Caffeine', dose: '100–200mg', window: 'morning', note: 'Stack with L-theanine for cleaner focus', icon: '☕', aliases: ['caffeine'] },
+    { name: 'Rhodiola rosea', dose: '200–400mg', window: 'morning', note: 'Adaptogen — energy and stress', icon: '🌿', aliases: ['rhodiola'] },
+    { name: 'Lion\'s mane', dose: '500–1000mg', window: 'morning', note: 'Cognitive support — daily', icon: '🍄', aliases: ['lions mane', 'hericium'] },
+    { name: 'Bacopa monnieri', dose: '300–600mg', window: 'morning', note: 'With fat — long-term memory', icon: '🌿', aliases: ['bacopa'] },
+    { name: 'Ginkgo biloba', dose: '120–240mg', window: 'morning', note: 'Circulation and cognition', icon: '🌿', aliases: ['ginkgo'] },
+    { name: 'Alpha-GPC', dose: '300–600mg', window: 'morning', note: 'Choline — focus and learning', icon: '🧠', aliases: ['alpha gpc'] },
+    { name: 'Phosphatidylserine', dose: '100–300mg', window: 'evening', note: 'Cortisol regulation', icon: '🧠', aliases: ['ps'] },
+    { name: 'NAC', dose: '600–1800mg', window: 'morning', note: 'Glutathione precursor — split doses', icon: '💊', aliases: ['nac', 'n-acetyl cysteine'] },
+    { name: 'Melatonin', dose: '0.3–3mg', window: 'evening', note: '30–60 min before bed — start low', icon: '🌙', aliases: ['melatonin'] },
+    { name: 'Glycine', dose: '3g', window: 'evening', note: 'Body temp drop = better sleep onset', icon: '🌙', aliases: ['glycine'] },
+    { name: 'Apigenin', dose: '50mg', window: 'evening', note: 'From chamomile — before bed', icon: '🌙', aliases: ['apigenin'] },
+    { name: 'Ashwagandha', dose: '300–600mg', window: 'evening', note: 'KSM-66 form — stress and cortisol', icon: '🌿', aliases: ['ashwagandha', 'ksm-66'] },
+    { name: 'L-tryptophan', dose: '500mg–1g', window: 'evening', note: 'Serotonin precursor — sleep onset', icon: '🌙', aliases: ['tryptophan'] },
+    { name: 'GABA', dose: '500–750mg', window: 'evening', note: 'Calming — before bed', icon: '🌙', aliases: ['gaba'] },
+    { name: 'Valerian root', dose: '300–600mg', window: 'evening', note: 'Sleep onset support', icon: '🌙', aliases: ['valerian'] },
+    { name: 'Probiotics', dose: '10–50 billion CFU', window: 'morning', note: 'Empty stomach or with food', icon: '🦠', aliases: ['probiotic'] },
+    { name: 'Quercetin', dose: '500–1000mg', window: 'anytime', note: 'Pairs well with vitamin C', icon: '🌿', aliases: ['quercetin'] },
+    { name: 'Curcumin', dose: '500–1000mg', window: 'lunch', note: 'With black pepper + fat', icon: '🌿', aliases: ['curcumin', 'turmeric'] },
+    { name: 'Resveratrol', dose: '250–500mg', window: 'morning', note: 'With fat for absorption', icon: '🍇', aliases: ['resveratrol'] },
+    { name: 'CoQ10 / Ubiquinol', dose: '100–200mg', window: 'lunch', note: 'Fat-soluble — with biggest meal', icon: '💊', aliases: ['coq10', 'ubiquinol'] },
+    { name: 'Alpha lipoic acid', dose: '300–600mg', window: 'morning', note: 'Empty stomach for absorption', icon: '💊', aliases: ['ala', 'alpha lipoic'] },
+    { name: 'Glutathione', dose: '250–1000mg', window: 'morning', note: 'Liposomal form for absorption', icon: '💊', aliases: ['glutathione'] },
+    { name: 'Astaxanthin', dose: '4–12mg', window: 'lunch', note: 'Fat-soluble — with fatty meal', icon: '💊', aliases: ['astaxanthin'] },
+    { name: 'Berberine', dose: '500mg', window: 'lunch', note: 'Before meals — glucose support', icon: '💊', aliases: ['berberine'] },
+    { name: 'Milk thistle', dose: '200–400mg', window: 'anytime', note: 'Silymarin — liver support', icon: '🌿', aliases: ['milk thistle', 'silymarin'] },
+    { name: 'Spirulina', dose: '3–5g', window: 'morning', note: 'Algae — protein and antioxidants', icon: '🌱', aliases: ['spirulina'] },
+    { name: 'Chlorella', dose: '2–4g', window: 'morning', note: 'Algae — detox support', icon: '🌱', aliases: ['chlorella'] },
+    { name: 'Tongkat ali', dose: '200–400mg', window: 'morning', note: 'Cycle 8 weeks on/off', icon: '🌿', aliases: ['tongkat', 'longjack'] },
+    { name: 'Fadogia agrestis', dose: '600mg', window: 'morning', note: 'Cycle 8 weeks on/off', icon: '🌿', aliases: ['fadogia'] },
+    { name: 'DHEA', dose: '25–50mg', window: 'morning', note: 'Hormonal — consult doctor', icon: '💊', aliases: ['dhea'] },
+    { name: 'Pregnenolone', dose: '10–50mg', window: 'morning', note: 'Hormonal — consult doctor', icon: '💊', aliases: ['pregnenolone'] },
+    { name: 'Tribulus terrestris', dose: '250–750mg', window: 'morning', note: 'Libido and energy', icon: '🌿', aliases: ['tribulus'] },
+    { name: 'Maca root', dose: '1.5–3g', window: 'morning', note: 'Adaptogen — energy and libido', icon: '🌿', aliases: ['maca'] },
+    { name: 'Collagen peptides', dose: '10–20g', window: 'anytime', note: 'With vitamin C for synthesis', icon: '💅', aliases: ['collagen'] },
+    { name: 'Glucosamine', dose: '1500mg', window: 'lunch', note: 'With food', icon: '🦴', aliases: ['glucosamine'] },
+    { name: 'Chondroitin', dose: '1200mg', window: 'lunch', note: 'Often paired with glucosamine', icon: '🦴', aliases: ['chondroitin'] },
+    { name: 'MSM', dose: '1–3g', window: 'anytime', note: 'Joint support', icon: '🦴', aliases: ['msm'] },
+    { name: 'Hyaluronic acid', dose: '120–200mg', window: 'anytime', note: 'Skin and joint hydration', icon: '💅', aliases: ['hyaluronic', 'ha'] },
+    { name: 'Cordyceps', dose: '1–3g', window: 'morning', note: 'Energy and endurance', icon: '🍄', aliases: ['cordyceps'] },
+    { name: 'Reishi', dose: '1–2g', window: 'evening', note: 'Calming adaptogen', icon: '🍄', aliases: ['reishi', 'ganoderma'] },
+    { name: 'Chaga', dose: '1–2g', window: 'morning', note: 'Antioxidant and immune', icon: '🍄', aliases: ['chaga'] },
   ];
 
   let todayKey = `stack:taken:${getActiveDate()}`;
@@ -1091,7 +1121,7 @@ main {
     const totalCount = items.length;
     const takenCount = items.filter(i => taken[i.id]).length;
     document.getElementById('stackProgressText').textContent =
-      `${takenCount} / ${totalCount} taken today Â· resets at 6 AM`;
+      `${takenCount} / ${totalCount} taken today · resets at 6 AM`;
     const pct = totalCount === 0 ? 0 : (takenCount / totalCount) * 100;
     document.getElementById('stackProgressBar').style.width = pct + '%';
 
@@ -1129,15 +1159,15 @@ main {
         else if (item.tag === 'not-ordered') tagHtml = '<span class="stack-item-tag tag-not-ordered">not ordered</span>';
 
         row.innerHTML = `
-          <button class="stack-check ${isTaken ? 'checked' : ''}" data-action="toggle" data-id="${item.id}" aria-label="Mark taken">${isTaken ? 'âœ“' : ''}</button>
+          <button class="stack-check ${isTaken ? 'checked' : ''}" data-action="toggle" data-id="${item.id}" aria-label="Mark taken">${isTaken ? '✓' : ''}</button>
           <div class="stack-item-body">
             <div class="stack-item-name" data-edit="name" data-id="${item.id}">
               <span class="stack-item-name-text">${escapeHtml(item.name)}</span>${tagHtml}
             </div>
             <div class="stack-item-meta" data-edit="meta" data-id="${item.id}">${escapeHtml(metaText(item))}</div>
           </div>
-          <button class="stack-low-btn ${isLow ? 'is-low' : ''}" data-action="low" data-id="${item.id}">â†“ Running low</button>
-          <button class="stack-item-del" data-action="del" data-id="${item.id}" aria-label="Delete">Ã—</button>`;
+          <button class="stack-low-btn ${isLow ? 'is-low' : ''}" data-action="low" data-id="${item.id}">↓ Running low</button>
+          <button class="stack-item-del" data-action="del" data-id="${item.id}" aria-label="Delete">×</button>`;
 
         group.appendChild(row);
       });
@@ -1146,7 +1176,7 @@ main {
     });
 
     if (groupsEl.children.length === 0) {
-      groupsEl.innerHTML = `<div class="stack-window-empty">No items yet â€” add one below to start your stack.</div>`;
+      groupsEl.innerHTML = `<div class="stack-window-empty">No items yet — add one below to start your stack.</div>`;
     }
 
     // Sync ticker after every render
@@ -1175,13 +1205,13 @@ main {
       if (isPastCutoff && !isTaken) {
         missed.push({
           type: 'missed',
-          text: `${item.name} â€” missed ${win.title.toLowerCase()} dose`
+          text: `${item.name} — missed ${win.title.toLowerCase()} dose`
         });
       }
       if (low.includes(item.id)) {
         lowList.push({
           type: 'low',
-          text: `${item.name} â€” running low, reorder soon`
+          text: `${item.name} — running low, reorder soon`
         });
       }
     });
@@ -1199,7 +1229,7 @@ main {
     cachedIssues = issues;
 
     if (issues.length === 0) {
-      msgEl.textContent = 'All caught up â€” keep it rolling';
+      msgEl.textContent = 'All caught up — keep it rolling';
       tickerEl.classList.remove('status-low', 'status-missed');
       countEl.textContent = `0/${totalItems}`;
       tickerIndex = 0;
@@ -1238,7 +1268,7 @@ main {
     const parts = [];
     if (item.dose) parts.push(item.dose);
     if (item.note) parts.push(item.note);
-    return parts.join(' Â· ');
+    return parts.join(' · ');
   }
   function escapeHtml(str) {
     return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1300,9 +1330,9 @@ main {
         el.removeAttribute('contenteditable');
         if (commit) {
           const text = el.textContent.trim();
-          const parts = text.split(/\s*Â·\s*/);
+          const parts = text.split(/\s*·\s*/);
           updateItem(id, 'dose', parts[0] || '');
-          updateItem(id, 'note', parts.slice(1).join(' Â· '));
+          updateItem(id, 'note', parts.slice(1).join(' · '));
         }
         render();
       };
@@ -1359,10 +1389,10 @@ main {
       const winMeta = STACK_WINDOWS.find(w => w.key === s.window) || STACK_WINDOWS[3];
       return `
         <button class="stack-result" data-name="${escapeHtml(s.name)}" data-dose="${escapeHtml(s.dose)}" data-window="${s.window}" data-note="${escapeHtml(s.note)}">
-          <div class="stack-result-icon">${s.icon || 'ðŸ’Š'}</div>
+          <div class="stack-result-icon">${s.icon || '💊'}</div>
           <div class="stack-result-body">
             <div class="stack-result-name">${escapeHtml(s.name)}</div>
-            <div class="stack-result-meta">${escapeHtml(s.dose)} Â· ${winMeta.icon} ${winMeta.title.toLowerCase()} Â· ${escapeHtml(s.note)}</div>
+            <div class="stack-result-meta">${escapeHtml(s.dose)} · ${winMeta.icon} ${winMeta.title.toLowerCase()} · ${escapeHtml(s.note)}</div>
           </div>
         </button>`;
     }).join('');
