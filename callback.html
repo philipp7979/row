@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0b">
+<title>Connecting WHOOP…</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  background: #0a0a0b;
+  color: #FAFAFA;
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-font-smoothing: antialiased;
+}
+.card {
+  max-width: 380px; width: 100%;
+  padding: 40px 32px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 20px;
+  text-align: center;
+  margin: 20px;
+}
+.spinner {
+  width: 36px; height: 36px;
+  border: 3px solid rgba(255,255,255,0.10);
+  border-top-color: #6ee7b7;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 20px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+h1 { font-size: 20px; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.02em; }
+p  { font-size: 14px; color: rgba(255,255,255,0.55); line-height: 1.6; }
+.success { color: #6ee7b7; }
+.error   { color: #ff8a8a; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="spinner" id="spinner"></div>
+  <h1 id="title">Connecting WHOOP…</h1>
+  <p  id="msg">Exchanging authorisation code for access token.</p>
+</div>
+<script>
+(async function () {
+  const CLIENT_ID     = 'ae647e05-832f-4f89-acd7-1178aaf20d9f';
+  const CLIENT_SECRET = 'b587454c95e570dc15efc050169809967328b08fa146d4e5019750e23f2900a7';
+  const REDIRECT_URI  = 'https://row-gray.vercel.app/callback.html';
+
+  const params = new URLSearchParams(window.location.search);
+  const code   = params.get('code');
+  const errParam = params.get('error');
+
+  const spinner = document.getElementById('spinner');
+  const title   = document.getElementById('title');
+  const msg     = document.getElementById('msg');
+
+  function showError(text) {
+    spinner.style.display = 'none';
+    title.textContent = 'Connection failed';
+    title.className = 'error';
+    msg.textContent = text;
+  }
+  function showSuccess() {
+    spinner.style.display = 'none';
+    title.textContent = 'WHOOP connected!';
+    title.className = 'success';
+    msg.textContent = 'Redirecting to your dashboard…';
+    setTimeout(() => { window.location.href = 'gym.html'; }, 1500);
+  }
+
+  if (errParam) { showError('WHOOP returned: ' + errParam); return; }
+  if (!code)    { showError('No authorisation code in the URL.'); return; }
+
+  try {
+    const body = new URLSearchParams({
+      grant_type:    'authorization_code',
+      code,
+      client_id:     CLIENT_ID,
+      client_secret: CLIENT_SECRET,
+      redirect_uri:  REDIRECT_URI,
+    });
+    const res = await fetch('https://api.prod.whoop.com/oauth/oauth2/token', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body:    body.toString(),
+    });
+    if (!res.ok) {
+      const txt = await res.text();
+      showError('Token exchange failed (' + res.status + '). ' + txt);
+      return;
+    }
+    const data = await res.json();
+    localStorage.setItem('whoop_token', JSON.stringify({
+      access_token:  data.access_token,
+      refresh_token: data.refresh_token,
+      expires_at:    Date.now() + (data.expires_in || 3600) * 1000,
+      token_type:    data.token_type || 'Bearer',
+    }));
+    showSuccess();
+  } catch (e) {
+    showError('Network error: ' + e.message);
+  }
+})();
+</script>
+</body>
+</html>
