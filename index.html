@@ -697,7 +697,12 @@ body::after {
 (function () {
   'use strict';
 
-  const GEMINI_API_KEY = localStorage.getItem('gemini_api_key') || '';
+  function getGeminiKey() { return localStorage.getItem('gemini_api_key') || ''; }
+  function promptGeminiKey() {
+    const k = window.prompt('Enter your Gemini API key to enable AI Polish:\n(Get one free at aistudio.google.com → Get API key)');
+    if (k && k.trim()) { localStorage.setItem('gemini_api_key', k.trim()); return k.trim(); }
+    return '';
+  }
 
   const WAKE_HOUR  = 8;
   const SLEEP_HOUR = 24;
@@ -1209,9 +1214,9 @@ body::after {
     el._t = setTimeout(() => { el.textContent = ''; el.classList.remove('gm-status-error'); }, 3500);
   }
 
-  async function polishOne(text) {
+  async function polishOne(text, key) {
     const res = await fetch(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=' + GEMINI_API_KEY,
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=' + key,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1251,20 +1256,26 @@ body::after {
     polishBtn.addEventListener('click', async () => {
       const text = input.value.trim();
       if (!text) return;
-      if (!GEMINI_API_KEY) {
-        plainAdd(text);
-        showStatus(statusEl, 'Polish needs a Gemini API key — added as-typed.', false);
-        return;
+      let key = getGeminiKey();
+      if (!key) {
+        key = promptGeminiKey();
+        if (!key) {
+          showStatus(statusEl, 'No API key — goal added as-typed.', false);
+          plainAdd(text);
+          return;
+        }
       }
       polishBtn.disabled = true;
+      polishBtn.textContent = '…';
       try {
-        const polished = await polishOne(text);
+        const polished = await polishOne(text, key);
         plainAdd(polished);
       } catch (e) {
         plainAdd(text);
         showStatus(statusEl, 'Polish failed — added as-typed.', true);
       } finally {
         polishBtn.disabled = false;
+        polishBtn.textContent = '✨ Polish';
       }
     });
   }
