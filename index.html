@@ -697,8 +697,7 @@ body::after {
 (function () {
   'use strict';
 
-  // Paste your Anthropic key here to enable ✨ Polish. Empty = falls back to plain add.
-  const ANTHROPIC_API_KEY = '';
+  const GEMINI_API_KEY = localStorage.getItem('gemini_api_key') || '';
 
   const WAKE_HOUR  = 8;
   const SLEEP_HOUR = 24;
@@ -1211,28 +1210,24 @@ body::after {
   }
 
   async function polishOne(text) {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-5',
-        max_tokens: 1000,
-        messages: [{
-          role: 'user',
-          content:
-            'Rewrite this single goal so it is concrete, action-oriented, and under 60 characters. ' +
-            'Return ONLY a JSON array with exactly one string, no preamble, no code fences.\n\nGoal: ' + text
-        }]
-      })
-    });
+    const res = await fetch(
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=' + GEMINI_API_KEY,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: 'Rewrite this single goal so it is concrete, action-oriented, and under 60 characters. ' +
+                    'Return ONLY a JSON array with exactly one string, no preamble, no code fences.\n\nGoal: ' + text
+            }]
+          }]
+        })
+      }
+    );
     const data = await res.json();
-    const content = (data && data.content && data.content[0] && data.content[0].text) || '';
-    const arr = JSON.parse(content);
+    const content = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const arr = JSON.parse(content.replace(/```json|```/g, '').trim());
     if (!Array.isArray(arr) || arr.length < 1 || typeof arr[0] !== 'string') throw new Error('bad response');
     return arr[0].trim();
   }
@@ -1256,9 +1251,9 @@ body::after {
     polishBtn.addEventListener('click', async () => {
       const text = input.value.trim();
       if (!text) return;
-      if (!ANTHROPIC_API_KEY) {
+      if (!GEMINI_API_KEY) {
         plainAdd(text);
-        showStatus(statusEl, 'Polish needs an Anthropic API key — added as-typed.', false);
+        showStatus(statusEl, 'Polish needs a Gemini API key — added as-typed.', false);
         return;
       }
       polishBtn.disabled = true;
