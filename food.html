@@ -121,6 +121,8 @@ button{font-family:var(--font);cursor:pointer}
 .app-nav{display:flex;align-items:center;justify-content:space-between;padding:10px 16px}
 .app-nav-btn{background:none;border:none;font-size:22px;color:#fff;padding:4px 8px}
 .app-nav-title{font-size:17px;font-weight:700;color:#fff}
+.app-back{background:none;border:none;color:#fff;font-size:22px;padding:4px 10px 4px 2px;opacity:.7;display:flex;align-items:center;gap:4px;font-family:inherit}
+.app-back span{font-size:15px;font-weight:500;opacity:.9}
 .week-strip{display:flex;padding:4px 8px 10px;overflow-x:auto;scrollbar-width:none;gap:0}
 .week-strip::-webkit-scrollbar{display:none}
 .wday{flex:1;min-width:40px;display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 2px;border-radius:10px;cursor:pointer}
@@ -138,7 +140,7 @@ button{font-family:var(--font);cursor:pointer}
 .mbar-track{flex:1;height:5px;background:rgba(255,255,255,.10);border-radius:3px;overflow:hidden}
 .mbar-fill{height:100%;border-radius:3px;transition:width .5s;max-width:100%}
 .mbar-val{width:80px;text-align:right;color:#8e8e93;font-size:11px;font-variant-numeric:tabular-nums}
-.app-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(80px + env(safe-area-inset-bottom))}
+.app-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(88px + env(safe-area-inset-bottom))}
 
 /* food log */
 .meal-grp{}
@@ -156,18 +158,34 @@ button{font-family:var(--font);cursor:pointer}
 .empty-log{text-align:center;padding:60px 20px;color:#8e8e93}
 .empty-log h3{font-size:20px;color:#fff;margin-bottom:8px}
 
-/* search bar bottom */
-.app-sbar{position:fixed;bottom:0;left:0;right:0;padding:8px 16px;padding-bottom:max(8px,env(safe-area-inset-bottom));background:#000;border-top:.5px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:10px;z-index:5}
-.app-sbar-wrap{flex:1;display:flex;align-items:center;gap:8px;background:#1c1c1e;border-radius:10px;padding:9px 12px}
+/* bottom action bar */
+.app-sbar{
+  position:fixed;bottom:0;left:0;right:0;
+  padding:10px 16px;padding-bottom:max(14px,env(safe-area-inset-bottom));
+  background:#000;border-top:.5px solid rgba(255,255,255,.08);
+  display:flex;align-items:center;gap:10px;z-index:5;
+}
+.app-sbar-wrap{
+  flex:1;display:flex;align-items:center;gap:8px;
+  background:#1c1c1e;border-radius:12px;padding:10px 14px;
+}
 .app-sbar-wrap input{flex:1;border:none;background:none;font-size:16px;color:#fff;outline:none}
 .app-sbar-wrap input::placeholder{color:#8e8e93}
-.app-sbar-scan{background:none;border:none;color:#8e8e93;font-size:20px;padding:2px 4px}
+.app-add-btn{
+  height:48px;padding:0 20px;
+  background:#fff;color:#000;border:none;border-radius:14px;
+  font-size:15px;font-weight:700;white-space:nowrap;
+  display:flex;align-items:center;gap:6px;flex-shrink:0;
+  box-shadow:0 2px 12px rgba(255,255,255,.15);
+  transition:transform .12s,opacity .12s;
+}
+.app-add-btn:active{transform:scale(.95);opacity:.9}
 
 /* ── ADD SHEET ── */
 #add-sheet{position:fixed;inset:0;z-index:100;display:none}
 #add-sheet.open{display:block}
 .as-scrim{position:fixed;inset:0;background:rgba(0,0,0,.6)}
-.as-panel{position:fixed;bottom:0;left:0;right:0;background:#1c1c1e;border-radius:20px 20px 0 0;max-height:92vh;display:flex;flex-direction:column;color:#fff}
+.as-panel{position:fixed;bottom:0;left:0;right:0;background:#1c1c1e;border-radius:20px 20px 0 0;height:88vh;display:flex;flex-direction:column;color:#fff}
 .as-handle{width:36px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;margin:10px auto 0}
 .as-macro-bar{display:flex;justify-content:space-between;padding:10px 20px 8px;border-bottom:.5px solid rgba(255,255,255,.08)}
 .as-macro-item{text-align:center;flex:1}
@@ -293,12 +311,16 @@ button{font-family:var(--font);cursor:pointer}
 <div id="app">
   <div class="app-header">
     <div class="app-nav">
-      <button class="app-nav-btn" onclick="shiftDay(-1)" style="font-size:20px;opacity:.7">‹</button>
-      <span class="app-nav-title" id="appDateTitle">Today</span>
-      <div style="display:flex;align-items:center;gap:4px">
-        <button class="app-nav-btn" onclick="shiftDay(1)" style="font-size:20px;opacity:.7">›</button>
-        <button class="app-nav-btn" onclick="openSettings()" style="font-size:18px;opacity:.6" title="Settings">⚙</button>
+      <button class="app-back" onclick="goBack()">
+        <svg width="10" height="17" viewBox="0 0 10 17" fill="none"><path d="M9 1L1.5 8.5L9 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Health</span>
+      </button>
+      <div style="display:flex;align-items:center;gap:0">
+        <button class="app-nav-btn" onclick="shiftDay(-1)" style="font-size:20px;opacity:.5">‹</button>
+        <span class="app-nav-title" id="appDateTitle">Today</span>
+        <button class="app-nav-btn" onclick="shiftDay(1)" style="font-size:20px;opacity:.5">›</button>
       </div>
+      <button class="app-nav-btn" onclick="openSettings()" style="font-size:18px;opacity:.5" title="Settings">⚙</button>
     </div>
     <div class="week-strip" id="weekStrip"></div>
     <div class="macro-bars" id="macroBars"></div>
@@ -309,12 +331,13 @@ button{font-family:var(--font);cursor:pointer}
   </div>
 
   <div class="app-sbar">
-    <div class="app-sbar-wrap">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8e8e93" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="text" placeholder="Search for a food" id="appSbarInput" onkeydown="if(event.key==='Enter')openAddSheet('search',this.value)" readonly onclick="openAddSheet('search','')">
+    <div class="app-sbar-wrap" onclick="openAddSheet('search','')">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8e8e93" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" placeholder="Search food…" id="appSbarInput" readonly onclick="openAddSheet('search','')">
     </div>
-    <button class="app-sbar-scan" onclick="openAddSheet('scan','')">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="4" height="10"/><rect x="18" y="7" width="4" height="10"/><line x1="6" y1="12" x2="18" y2="12"/></svg>
+    <button class="app-add-btn" onclick="openAddSheet('scan','')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Add Food
     </button>
   </div>
 </div>
@@ -369,7 +392,7 @@ button{font-family:var(--font);cursor:pointer}
             <div class="scan-box"></div>
           </div>
         </div>
-        <button class="scan-capture-btn" id="scanCaptureBtn" onclick="handleScanCapture()">Start Camera</button>
+        <button class="scan-capture-btn" id="scanCaptureBtn" onclick="handleScanCapture()" style="display:none">Stop Camera</button>
         <div id="scanResult" style="display:none" class="scan-result-card">
           <div class="scan-result-name" id="scanResultName"></div>
           <div class="scan-result-macros" id="scanResultMacros"></div>
@@ -1152,9 +1175,16 @@ function addEntry(entry){
 // ═══════════════════════════════════════════════════════
 let scanStream=null, scanMode='barcode', scanData=null;
 
+function goBack(){
+  if(window.self!==window.top){
+    window.parent.postMessage({type:'switchTab',tab:'health'},'*');
+  } else {
+    history.back();
+  }
+}
 function openAddSheet(tab,query){
   document.getElementById('add-sheet').classList.add('open');
-  switchAddTab(tab||'search');
+  switchAddTab(tab||'scan');
   if(query&&tab==='search'){
     const inp=document.getElementById('srchInput');
     if(inp){inp.value=query;handleSearch(query)}
@@ -1165,16 +1195,25 @@ function closeAddSheet(){
   document.getElementById('add-sheet').classList.remove('open');
   stopCamera();
 }
+const ADD_TABS=['scan','search','quickadd','library','aidesc'];
 function switchAddTab(tab){
-  document.querySelectorAll('.add-tab').forEach((el,i)=>{
-    const tabs=['scan','search','quickadd','library','aidesc'];
-    el.classList.toggle('on',tabs[i]===tab);
+  ADD_TABS.forEach((t,i)=>{
+    document.querySelectorAll('.add-tab')[i]?.classList.toggle('on',t===tab);
   });
   document.querySelectorAll('.add-panel').forEach(el=>el.classList.remove('on'));
   const panel=document.getElementById('panel-'+tab);
   if(panel)panel.classList.add('on');
-  if(tab!=='scan')stopCamera();
+  if(tab==='scan'){
+    // auto-start camera immediately
+    if(!scanStream) setTimeout(()=>handleScanCapture(),100);
+  } else {
+    stopCamera();
+  }
   if(tab==='library')renderLibrary();
+  if(tab==='search'){
+    setTimeout(()=>document.getElementById('srchInput')?.focus(),150);
+    renderSearchHistory();
+  }
 }
 
 // ── SCAN ──
@@ -1193,17 +1232,18 @@ function setScanMode(mode){
 async function handleScanCapture(){
   const btn=document.getElementById('scanCaptureBtn');
   if(!scanStream){
-    // start camera
     try{
-      scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
+      scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}},audio:false});
       const video=document.getElementById('scanVideo');
       video.srcObject=scanStream; video.style.display='block';
       document.getElementById('vfPlaceholder').style.display='none';
       document.getElementById('scanOverlay').style.display=scanMode==='barcode'?'flex':'none';
-      btn.textContent=scanMode==='barcode'?'Stop Camera':'Capture Photo';
+      btn.style.display='block';
+      btn.textContent=scanMode==='barcode'?'Stop Scan':'Capture Photo';
       if(scanMode==='barcode') startBarcodeDetect();
     }catch(e){
-      document.getElementById('scanStatus').textContent='Camera access denied. Please allow camera permissions.';
+      document.getElementById('scanStatus').textContent='Camera access denied — please allow in browser settings.';
+      btn.style.display='block'; btn.textContent='Retry';
     }
     return;
   }
@@ -1260,7 +1300,7 @@ function stopCamera(){
   if(video){video.style.display='none';video.srcObject=null;}
   const ph=document.getElementById('vfPlaceholder');if(ph)ph.style.display='';
   const ov=document.getElementById('scanOverlay');if(ov)ov.style.display='none';
-  const btn=document.getElementById('scanCaptureBtn');if(btn)btn.textContent='Start Camera';
+  const btn=document.getElementById('scanCaptureBtn');if(btn){btn.style.display='none';btn.textContent='Stop Scan';}
 }
 
 function showScanResult(data){
