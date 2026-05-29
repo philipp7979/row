@@ -88,7 +88,7 @@ main {
 .water-iframe {
   display: block;
   width: 100%;
-  height: 880px;
+  height: 600px; /* initial min — JS resizes to exact content height */
   border: 0;
   background: transparent;
   border-radius: 16px;
@@ -97,7 +97,6 @@ main {
 }
 @media (max-width: 480px) {
   .water-embed { margin-top: 40px; }
-  .water-iframe { height: 780px; }
 }
 
 .stack-card {
@@ -946,8 +945,29 @@ main {
 
   <section id="water" class="water-embed">
     <div class="section-title">Water Tracker</div>
-    <iframe src="po-water.html" class="water-iframe" loading="lazy" title="Water Tracker" scrolling="no"></iframe>
+    <iframe src="po-water.html" class="water-iframe" id="waterIframe" loading="lazy" title="Water Tracker" scrolling="no"></iframe>
   </section>
+  <script>
+  (function () {
+    var iframe = document.getElementById('waterIframe');
+    if (!iframe) return;
+    function fitIframe() {
+      try {
+        var doc = iframe.contentDocument || iframe.contentWindow.document;
+        var h = doc.documentElement.scrollHeight || doc.body.scrollHeight;
+        if (h > 100) iframe.style.height = h + 'px';
+      } catch (e) {}
+    }
+    iframe.addEventListener('load', function () {
+      fitIframe();
+      // Re-fit when content inside changes (e.g. settings modal expands)
+      try {
+        var doc = iframe.contentDocument || iframe.contentWindow.document;
+        new ResizeObserver(fitIframe).observe(doc.documentElement);
+      } catch (e) {}
+    });
+  })();
+  </script>
 
   <div class="attribution">// editable template · all data stays in your browser</div>
 </main>

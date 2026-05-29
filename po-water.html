@@ -85,10 +85,9 @@ html, body {
   min-height: 100vh;
   overflow-x: hidden;
 }
-/* When embedded as an iframe, prevent internal scrolling */
+/* When embedded as an iframe, hide scrollbars (iframe resizes to fit instead) */
 html.embedded, html.embedded body {
   overflow: hidden !important;
-  height: auto !important;
 }
 .shell { max-width: 720px; margin: 0 auto; padding: 24px max(16px, env(safe-area-inset-right)) 80px max(16px, env(safe-area-inset-left)); }
 
