@@ -1025,6 +1025,13 @@ let curDate = todayKey();
 let editingEntry = null;
 
 function initApp(){
+  // hide back button when embedded in health.html
+  if(IS_EMBED){
+    const back=document.querySelector('.app-back');
+    if(back) back.style.display='none';
+    // remove extra bottom padding — health.html provides scroll
+    document.getElementById('appScroll').style.paddingBottom='120px';
+  }
   renderWeekStrip();
   renderMacroBars();
   renderFoodLog();
@@ -1175,6 +1182,7 @@ function addEntry(entry){
 // ═══════════════════════════════════════════════════════
 let scanStream=null, scanMode='barcode', scanData=null;
 
+const IS_EMBED = new URLSearchParams(location.search).get('embed')==='1';
 function goBack(){
   if(window.self!==window.top){
     window.top.postMessage({type:'switchTab',tab:'health'},'*');
