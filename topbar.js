@@ -350,7 +350,18 @@ body.topbar-modal-open { overflow: hidden; touch-action: none; }
     sync();
   }
 
+  function injectIOSZoomFix() {
+    // iOS zooms in when an input/select has font-size < 16px.
+    // Force 16px on mobile so the viewport never jumps on focus.
+    if (document.getElementById('ios-zoom-fix')) return;
+    const s = document.createElement('style');
+    s.id = 'ios-zoom-fix';
+    s.textContent = '@media (max-width:768px){input,select,textarea{font-size:16px!important;}}';
+    document.head.appendChild(s);
+  }
+
   function boot() {
+    injectIOSZoomFix();
     injectStyleAndHTML();
     const btn = document.getElementById('topbarWaterAdd');
     if (btn) btn.addEventListener('click', (e) => { e.preventDefault(); addWater(); });
