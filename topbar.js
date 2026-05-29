@@ -168,7 +168,7 @@ body.topbar-modal-open { overflow: hidden; touch-action: none; }
 
   const bottombarHtml = `
 <nav class="bottombar" id="bottombar" role="navigation" aria-label="Main tabs">
-  <a href="index.html" class="bottombar-tab" data-page="main">
+  <a href="index.html" class="bottombar-tab" data-page="main" data-tab="main">
     <span class="bottombar-tab-icon">
       <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
         <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9.5z"/><polyline points="9 21 9 13 15 13 15 21"/>
@@ -176,7 +176,7 @@ body.topbar-modal-open { overflow: hidden; touch-action: none; }
     </span>
     <span>Main</span>
   </a>
-  <a href="health.html" class="bottombar-tab" data-page="health">
+  <a href="health.html" class="bottombar-tab" data-page="health" data-tab="health">
     <span class="bottombar-tab-icon">
       <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
@@ -184,7 +184,7 @@ body.topbar-modal-open { overflow: hidden; touch-action: none; }
     </span>
     <span>Health</span>
   </a>
-  <a href="gym.html" class="bottombar-tab" data-page="fitness">
+  <a href="gym.html" class="bottombar-tab" data-page="fitness" data-tab="fitness">
     <span class="bottombar-tab-icon">
       <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
         <path d="M6.5 6.5h11M6.5 17.5h11M5 12h14"/><circle cx="3.5" cy="6.5" r="1.5"/><circle cx="3.5" cy="17.5" r="1.5"/><circle cx="20.5" cy="6.5" r="1.5"/><circle cx="20.5" cy="17.5" r="1.5"/>
@@ -372,6 +372,17 @@ body.topbar-modal-open { overflow: hidden; touch-action: none; }
     window.addEventListener('focus', render);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) render(); });
     setInterval(render, 30 * 1000);
+
+    // When running inside the shell iframe, intercept tab clicks and
+    // postMessage to the shell instead of navigating (instant switching).
+    if (isEmbedded()) {
+      document.addEventListener('click', (e) => {
+        const link = e.target.closest('[data-tab]');
+        if (!link) return;
+        e.preventDefault();
+        window.parent.postMessage({ type: 'switchTab', tab: link.dataset.tab }, '*');
+      });
+    }
   }
 
   if (document.readyState === 'loading') {
