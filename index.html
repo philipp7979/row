@@ -1214,6 +1214,18 @@ body::after {
     el._t = setTimeout(() => { el.textContent = ''; el.classList.remove('gm-status-error'); }, 3500);
   }
 
+  function localPolish(text) {
+    // Ensure starts with capital, ends with period, trimmed to 60 chars
+    let t = text.trim();
+    // Capitalize first letter
+    t = t.charAt(0).toUpperCase() + t.slice(1);
+    // Strip trailing punctuation then add period
+    t = t.replace(/[.!?,;]+$/, '') + '.';
+    // Trim to 60 chars at word boundary
+    if (t.length > 60) t = t.slice(0, 57).replace(/\s\S*$/, '…');
+    return t;
+  }
+
   async function polishOne(text, key) {
     const res = await fetch(
       'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + key,
@@ -1228,12 +1240,9 @@ body::after {
       }
     );
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      const msg = data?.error?.message || ('API error ' + res.status);
-      throw new Error(msg);
-    }
+    if (!res.ok) throw new Error(data?.error?.message || 'API error ' + res.status);
     const content = (data?.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
-    if (!content) throw new Error('empty response from Gemini');
+    if (!content) throw new Error('empty response');
     return content.replace(/^["'`]|["'`]$/g, '').trim();
   }
 
@@ -1256,28 +1265,32 @@ body::after {
     polishBtn.addEventListener('click', async () => {
       const text = input.value.trim();
       if (!text) return;
-      let key = getGeminiKey();
-      if (!key) key = promptGeminiKey();
-      if (!key) { plainAdd(text); return; }
       polishBtn.disabled = true;
       polishBtn.textContent = '…';
-      try {
-        const polished = await polishOne(text, key);
-        plainAdd(polished);
-      } catch (e) {
-        plainAdd(text);
-        const msg = e.message || 'unknown error';
-        // quota/key errors — clear key and offer to re-enter
-        if (msg.includes('quota') || msg.includes('429') || msg.includes('API key') || msg.includes('invalid')) {
-          localStorage.removeItem('gemini_api_key');
-          showStatus(statusEl, 'Key error: ' + msg + ' — key cleared, tap Polish to re-enter.', true);
-        } else {
-          showStatus(statusEl, 'Polish failed: ' + msg, true);
+      const apiKey = getGeminiKey();
+      if (apiKey) {
+        try {
+          const polished = await polishOne(text, apiKey);
+          plainAdd(polished);
+          showStatus(statusEl, '✓ AI polished', false);
+          return;
+        } catch (e) {
+          const msg = e.message || '';
+          if (msg.includes('quota') || msg.includes('429') || msg.includes('limit') || msg.includes('RESOURCE_EXHAUSTED')) {
+            localStorage.removeItem('gemini_api_key');
+            showStatus(statusEl, 'Gemini quota exceeded — using local polish. Get a new key at aistudio.google.com', true);
+          }
+          // fall through to local polish
+        } finally {
+          polishBtn.disabled = false;
+          polishBtn.textContent = '✨ Polish';
         }
-      } finally {
-        polishBtn.disabled = false;
-        polishBtn.textContent = '✨ Polish';
       }
+      // Local polish fallback — always works
+      plainAdd(localPolish(text));
+      if (!apiKey) showStatus(statusEl, 'Locally polished. Add Gemini key at aistudio.google.com for AI.', false);
+      polishBtn.disabled = false;
+      polishBtn.textContent = '✨ Polish';
     });
   }
 
