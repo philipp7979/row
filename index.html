@@ -1227,10 +1227,13 @@ body::after {
         })
       }
     );
-    const data = await res.json();
-    if (!res.ok) throw new Error(data?.error?.message || 'API error ' + res.status);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const msg = data?.error?.message || ('API error ' + res.status);
+      throw new Error(msg);
+    }
     const content = (data?.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
-    if (!content) throw new Error('empty response');
+    if (!content) throw new Error('empty response from Gemini');
     return content.replace(/^["'`]|["'`]$/g, '').trim();
   }
 
@@ -1254,14 +1257,8 @@ body::after {
       const text = input.value.trim();
       if (!text) return;
       let key = getGeminiKey();
-      if (!key) {
-        key = promptGeminiKey();
-        if (!key) {
-          showStatus(statusEl, 'No API key — goal added as-typed.', false);
-          plainAdd(text);
-          return;
-        }
-      }
+      if (!key) key = promptGeminiKey();
+      if (!key) { plainAdd(text); return; }
       polishBtn.disabled = true;
       polishBtn.textContent = '…';
       try {
@@ -1269,7 +1266,14 @@ body::after {
         plainAdd(polished);
       } catch (e) {
         plainAdd(text);
-        showStatus(statusEl, 'Polish failed: ' + (e.message || 'unknown error'), true);
+        const msg = e.message || 'unknown error';
+        // quota/key errors — clear key and offer to re-enter
+        if (msg.includes('quota') || msg.includes('429') || msg.includes('API key') || msg.includes('invalid')) {
+          localStorage.removeItem('gemini_api_key');
+          showStatus(statusEl, 'Key error: ' + msg + ' — key cleared, tap Polish to re-enter.', true);
+        } else {
+          showStatus(statusEl, 'Polish failed: ' + msg, true);
+        }
       } finally {
         polishBtn.disabled = false;
         polishBtn.textContent = '✨ Polish';
