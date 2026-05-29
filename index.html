@@ -175,6 +175,7 @@ html,body{
   <iframe src="main.html"   id="frame-main"    class="sh-frame active" allow="camera;microphone"></iframe>
   <iframe src="health.html" id="frame-health"  class="sh-frame" allow="camera"></iframe>
   <iframe src="gym.html"    id="frame-fitness" class="sh-frame"></iframe>
+  <iframe src="food.html"   id="frame-food"    class="sh-frame" allow="camera;microphone"></iframe>
 </div>
 
 <!-- BOTTOMBAR -->
@@ -208,12 +209,18 @@ let curTab = 'main';
 
 function switchTab(tab) {
   if (tab === curTab) return;
-  TABS.forEach(t => {
+  // food is a sub-view of health — no tab button, just show/hide frame
+  const allFrames = ['main','health','fitness','food'];
+  allFrames.forEach(t => {
     document.getElementById('frame-'+t).classList.toggle('active', t===tab);
-    document.getElementById('tab-'+t).classList.toggle('active', t===tab);
+  });
+  // bottom tab highlight: food counts as health
+  const botTab = tab === 'food' ? 'health' : tab;
+  TABS.forEach(t => {
+    document.getElementById('tab-'+t).classList.toggle('active', t===botTab);
   });
   curTab = tab;
-  const urls = {main:'main.html', health:'health.html', fitness:'gym.html'};
+  const urls = {main:'main.html', health:'health.html', fitness:'gym.html', food:'food.html'};
   history.replaceState({tab}, '', urls[tab]);
 }
 

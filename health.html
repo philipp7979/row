@@ -903,8 +903,8 @@ main {
 
   <!-- Nutrition -->
   <div class="section-title">Nutrition</div>
-  <a href="food.html" style="display:block;text-decoration:none;margin-bottom:32px">
-    <div style="padding:20px 22px;background:rgba(255,255,255,0.025);border:1px solid transparent;border-radius:22px;box-shadow:0 1px 0 0 rgba(255,255,255,0.06) inset,0 12px 40px rgba(0,0,0,0.45);display:flex;align-items:center;gap:16px">
+  <div onclick="window.top.postMessage({type:'switchTab',tab:'food'},'*')" style="cursor:pointer;display:block;margin-bottom:32px">
+    <div style="padding:20px 22px;background:rgba(255,255,255,0.025);border:1px solid transparent;border-radius:22px;box-shadow:0 1px 0 0 rgba(255,255,255,0.06) inset,0 12px 40px rgba(0,0,0,0.45);display:flex;align-items:center;gap:16px;transition:background .15s" onpointerdown="this.style.background='rgba(255,255,255,0.05)'" onpointerup="this.style.background=''" onpointercancel="this.style.background=''">
       <div style="width:48px;height:48px;border-radius:14px;background:rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0">🥗</div>
       <div style="flex:1;min-width:0">
         <div style="font-size:16px;font-weight:700;color:var(--text-primary);margin-bottom:4px">Food Log</div>
@@ -912,7 +912,7 @@ main {
       </div>
       <div style="color:var(--text-tertiary);font-size:20px">›</div>
     </div>
-  </a>
+  </div>
 
   <div class="section-title">Daily Stack</div>
 

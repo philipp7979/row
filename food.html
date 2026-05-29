@@ -1177,7 +1177,7 @@ let scanStream=null, scanMode='barcode', scanData=null;
 
 function goBack(){
   if(window.self!==window.top){
-    window.parent.postMessage({type:'switchTab',tab:'health'},'*');
+    window.top.postMessage({type:'switchTab',tab:'health'},'*');
   } else {
     history.back();
   }
