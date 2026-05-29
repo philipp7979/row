@@ -85,6 +85,11 @@ html, body {
   min-height: 100vh;
   overflow-x: hidden;
 }
+/* When embedded as an iframe, prevent internal scrolling */
+html.embedded, html.embedded body {
+  overflow: hidden !important;
+  height: auto !important;
+}
 .shell { max-width: 720px; margin: 0 auto; padding: 24px max(16px, env(safe-area-inset-right)) 80px max(16px, env(safe-area-inset-left)); }
 
 /* ----- Top day pill + header ----- */
@@ -1118,6 +1123,11 @@ html, body {
 }
 </style>
 <script>
+(function () {
+  var embedded = false;
+  try { embedded = window.self !== window.top; } catch (e) { embedded = true; }
+  if (embedded) document.documentElement.classList.add('embedded');
+})();
 document.addEventListener('DOMContentLoaded', function () {
   try { if (window.self !== window.top) return; } catch (e) { return; }
   if (typeof initCloudSync !== 'function') return;
