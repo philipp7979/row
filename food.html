@@ -1469,7 +1469,34 @@ async function geminiDescribe(desc){
 // BOOT
 // ═══════════════════════════════════════════════════════
 (function boot(){
-  const p=FL.profile();
+  // Set up cloud sync for food logger data
+  if(window.initCloudSync){
+    window.initCloudSync({
+      appKey:'food-logger',
+      syncedKeys:['fl_profile'],
+      syncedPrefixes:['fl_log_','fl_lib'],
+      onApplied:()=>{
+        const p=FL.profile();
+        if(p&&p.setup_done){
+          renderMacroBars();
+          renderFoodLog();
+        }
+      }
+    });
+  }
+
+  let p=FL.profile();
+
+  // Ensure profile has all required default fields
+  if(p&&!p.daily_kcal){
+    const targets=calcTargets(p);
+    p.daily_kcal=targets.kcal;
+    p.daily_protein=targets.protein;
+    p.daily_fat=targets.fat;
+    p.daily_carbs=targets.carbs;
+    FL.saveProfile(p);
+  }
+
   if(p&&p.setup_done){
     document.getElementById('ob').classList.add('gone');
     document.getElementById('app').classList.add('vis');
@@ -1477,6 +1504,7 @@ async function geminiDescribe(desc){
   } else {
     obRender();
   }
+
   // Set up add button (FAB via search bar)
   document.getElementById('srchInput')&&document.getElementById('srchInput').addEventListener('focus',()=>openAddSheet('search',''));
 })();
