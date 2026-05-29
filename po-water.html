@@ -83,6 +83,7 @@ html, body {
   font-family: var(--font);
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
+  overflow-x: hidden;
 }
 .shell { max-width: 720px; margin: 0 auto; padding: 24px max(16px, env(safe-area-inset-right)) 80px max(16px, env(safe-area-inset-left)); }
 
@@ -391,7 +392,7 @@ html, body {
   border-radius: 10px;
   flex-wrap: wrap;
 }
-.sub-row-info { flex: 1; min-width: 140px; }
+.sub-row-info { flex: 1; min-width: 0; }
 .sub-row-name { font-size: 13px; font-weight: 600; color: var(--text-1); }
 .sub-row-meta {
   font-size: 11px; color: var(--text-3);
