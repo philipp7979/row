@@ -512,7 +512,7 @@ const FL = {
   saveLog: (d,l) => localStorage.setItem('fl_log_'+d, JSON.stringify(l)),
   lib: () => { try{return JSON.parse(localStorage.getItem('fl_lib'))||{recent:[],foods:[],recipes:[]}}catch{return{recent:[],foods:[],recipes:[]}} },
   saveLib: l => localStorage.setItem('fl_lib', JSON.stringify(l)),
-  gemini: () => localStorage.getItem('gemini_api_key')||'',
+  groq: () => localStorage.getItem('groq_api_key')||'',
 };
 
 function dateKey(d){ const y=d.getFullYear(),m=d.getMonth()+1,dd=d.getDate(); return `${y}-${String(m).padStart(2,'0')}-${String(dd).padStart(2,'0')}`}
@@ -1376,14 +1376,14 @@ function renderLibrary(){
 // ── AI DESCRIBE ──
 function checkAiKey(){
   const btn=document.getElementById('aiFindBtn');if(!btn)return;
-  const hasKey=!!FL.gemini(), hasText=!!(document.getElementById('aiDescText')||{}).value?.trim();
+  const hasKey=!!FL.groq(), hasText=!!(document.getElementById('aiDescText')||{}).value?.trim();
   btn.classList.toggle('active-key', hasKey&&hasText);
 }
 async function runAiDescribe(){
   const text=document.getElementById('aiDescText').value.trim();
   if(!text)return;
-  const key=FL.gemini();
-  if(!key){document.getElementById('aiDescResult').innerHTML='<div style="color:#ef4444;font-size:14px">Set your Gemini API key first:<br><code>localStorage.setItem(\'gemini_api_key\',\'YOUR_KEY\')</code></div>';return;}
+  const key=FL.groq();
+  if(!key){document.getElementById('aiDescResult').innerHTML='<div style="color:#f87171;font-size:14px;padding:12px;background:#2c2c2e;border-radius:10px">Add your Groq API key in Settings ⚙ to use AI features.<br><br>Free key at <strong>console.groq.com</strong></div>';return;}
   const btn=document.getElementById('aiFindBtn');
   btn.textContent='Analysing… '; btn.classList.add('loading');
   btn.insertAdjacentHTML('beforeend','<span class="spinner-inline"></span>');
@@ -1478,22 +1478,49 @@ function parseOFF(p){
   return{name:[p.product_name,p.brands].filter(Boolean).join(' – '),kcal:Math.round(n['energy-kcal_100g']||n['energy_100g']/4.18||0),protein:Math.round((n['proteins_100g']||0)*10)/10,fat:Math.round((n['fat_100g']||0)*10)/10,carbs:Math.round((n['carbohydrates_100g']||0)*10)/10,qty:100,unit:'g',image:p.image_small_url||null};
 }
 
-async function geminiCall(parts){
-  const key=FL.gemini();
-  if(!key)throw new Error('No Gemini API key');
-  const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts}]})});
+async function groqText(prompt){
+  const key=FL.groq();
+  if(!key)throw new Error('No Groq API key — add it in Settings ⚙');
+  const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+    body:JSON.stringify({model:'llama-3.3-70b-versatile',messages:[{role:'user',content:prompt}],max_tokens:300,temperature:0.3})
+  });
   const data=await r.json();
-  const text=data?.candidates?.[0]?.content?.parts?.[0]?.text||'';
+  if(!r.ok)throw new Error(data?.error?.message||'Groq error '+r.status);
+  const text=(data?.choices?.[0]?.message?.content||'').trim();
+  if(!text)throw new Error('Empty response');
+  return JSON.parse(text.replace(/```json|```/g,'').trim());
+}
+async function groqVision(b64,prompt){
+  const key=FL.groq();
+  if(!key)throw new Error('No Groq API key — add it in Settings ⚙');
+  const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+    body:JSON.stringify({
+      model:'llama-3.2-90b-vision-preview',
+      messages:[{role:'user',content:[
+        {type:'image_url',image_url:{url:'data:image/jpeg;base64,'+b64}},
+        {type:'text',text:prompt}
+      ]}],
+      max_tokens:300,temperature:0.3
+    })
+  });
+  const data=await r.json();
+  if(!r.ok)throw new Error(data?.error?.message||'Groq error '+r.status);
+  const text=(data?.choices?.[0]?.message?.content||'').trim();
+  if(!text)throw new Error('Empty response');
   return JSON.parse(text.replace(/```json|```/g,'').trim());
 }
 async function geminiMeal(b64){
-  return geminiCall([{inline_data:{mime_type:'image/jpeg',data:b64}},{text:'Analyze this food photo. Estimate macros for the visible portion.\nReturn ONLY valid JSON: {"name":"Food Name","kcal":0,"protein":0,"fat":0,"carbs":0,"qty":1,"unit":"serving"}\nBe realistic and accurate.'}]);
+  return groqVision(b64,'Analyze this food photo. Estimate macros for what you see.\nReturn ONLY valid JSON (no markdown): {"name":"Food Name","kcal":0,"protein":0,"fat":0,"carbs":0,"qty":1,"unit":"serving"}');
 }
 async function geminiLabel(b64){
-  return geminiCall([{inline_data:{mime_type:'image/jpeg',data:b64}},{text:'Read this nutrition label. Extract the nutritional info per serving.\nReturn ONLY valid JSON: {"name":"Product Name","kcal":0,"protein":0,"fat":0,"carbs":0,"qty":100,"unit":"g"}'}]);
+  return groqVision(b64,'Read this nutrition label photo. Extract per-serving nutrition.\nReturn ONLY valid JSON (no markdown): {"name":"Product Name","kcal":0,"protein":0,"fat":0,"carbs":0,"qty":100,"unit":"g"}');
 }
 async function geminiDescribe(desc){
-  return geminiCall([{text:`Estimate macronutrients for this meal description: "${desc}"\nReturn ONLY valid JSON: {"name":"Meal Name","kcal":0,"protein":0,"fat":0,"carbs":0,"qty":1,"unit":"serving"}`}]);
+  return groqText(`Estimate macronutrients for this meal: "${desc}"\nReturn ONLY valid JSON (no markdown): {"name":"Meal Name","kcal":0,"protein":0,"fat":0,"carbs":0,"qty":1,"unit":"serving"}`);
 }
 
 // ═══════════════════════════════════════════════════════

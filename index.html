@@ -153,13 +153,13 @@ html,body{
 <div class="sh-modal" id="settingsModal">
   <div class="sh-modal-handle"></div>
   <h2>Settings</h2>
-  <div class="sh-modal-sub">Your API keys are stored locally on this device only.</div>
+  <div class="sh-modal-sub">Keys are stored locally on this device only.</div>
 
   <div class="sh-key-row">
-    <span class="sh-key-icon">🤖</span>
+    <span class="sh-key-icon">⚡</span>
     <div class="sh-key-body">
-      <div class="sh-key-label">Gemini API Key</div>
-      <input class="sh-key-input" id="geminiKeyInput" type="password" placeholder="Paste your key from aistudio.google.com" autocomplete="off" spellcheck="false">
+      <div class="sh-key-label">Groq API Key</div>
+      <input class="sh-key-input" id="groqKeyInput" type="password" placeholder="gsk_… — get free key at console.groq.com" autocomplete="off" spellcheck="false">
     </div>
     <button onclick="toggleKeyVisibility()" id="keyToggleBtn" style="background:none;border:none;color:#8e8e93;font-size:16px;padding:4px;cursor:pointer;flex-shrink:0">👁</button>
   </div>
@@ -303,9 +303,8 @@ setInterval(renderWater, 30000);
 
 // ── SETTINGS ──
 function openSettings() {
-  const inp = document.getElementById('geminiKeyInput');
-  const existing = localStorage.getItem('gemini_api_key') || '';
-  inp.value = existing;
+  const inp = document.getElementById('groqKeyInput');
+  inp.value = localStorage.getItem('groq_api_key') || '';
   inp.type = 'password';
   document.getElementById('keyToggleBtn').textContent = '👁';
   setKeyStatus('', '');
@@ -317,7 +316,7 @@ function closeSettings() {
   document.getElementById('settingsModal').classList.remove('show');
 }
 function toggleKeyVisibility() {
-  const inp = document.getElementById('geminiKeyInput');
+  const inp = document.getElementById('groqKeyInput');
   const btn = document.getElementById('keyToggleBtn');
   if (inp.type === 'password') { inp.type = 'text'; btn.textContent = '🙈'; }
   else { inp.type = 'password'; btn.textContent = '👁'; }
@@ -326,43 +325,46 @@ function setKeyStatus(type, msg) {
   const el = document.getElementById('keyStatus');
   el.className = 'sh-key-status' + (type ? ' ' + type : '');
   el.textContent = msg;
-  if (!type) el.style.display = 'none';
+  el.style.display = type ? 'block' : 'none';
 }
 function saveKey() {
-  const key = document.getElementById('geminiKeyInput').value.trim();
+  const key = document.getElementById('groqKeyInput').value.trim();
   if (!key) { setKeyStatus('err', 'Please paste a key first.'); return; }
-  if (!key.startsWith('AIza')) {
-    setKeyStatus('err', 'This doesn\'t look like a valid Gemini key. Keys start with "AIza".');
+  if (!key.startsWith('gsk_')) {
+    setKeyStatus('err', 'Invalid key format. Groq keys start with "gsk_". Get yours free at console.groq.com');
     return;
   }
-  localStorage.setItem('gemini_api_key', key);
-  setKeyStatus('ok', '✓ Key saved — AI features are now enabled across the whole app.');
+  localStorage.setItem('groq_api_key', key);
+  setKeyStatus('ok', '✓ Key saved — AI features enabled across all tabs.');
 }
 async function testKey() {
-  const key = document.getElementById('geminiKeyInput').value.trim() || localStorage.getItem('gemini_api_key') || '';
+  const key = document.getElementById('groqKeyInput').value.trim() || localStorage.getItem('groq_api_key') || '';
   if (!key) { setKeyStatus('err', 'No key to test. Paste your key first.'); return; }
   setKeyStatus('', '');
-  document.getElementById('keyStatus').style.display = 'block';
-  document.getElementById('keyStatus').className = 'sh-key-status';
-  document.getElementById('keyStatus').textContent = 'Testing…';
+  const el = document.getElementById('keyStatus');
+  el.style.display = 'block'; el.className = 'sh-key-status'; el.textContent = 'Testing connection…';
   try {
-    const res = await fetch(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + key,
-      { method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({contents:[{parts:[{text:'Say "OK" in one word.'}]}]}) }
-    );
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+      body: JSON.stringify({
+        model: 'llama-3.1-8b-instant',
+        messages: [{ role: 'user', content: 'Reply with just the word OK.' }],
+        max_tokens: 5
+      })
+    });
     const data = await res.json();
     if (!res.ok) throw new Error(data?.error?.message || 'Error ' + res.status);
-    const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    setKeyStatus('ok', '✓ Connection working! Gemini replied: "' + reply.trim() + '"');
-    if (key) localStorage.setItem('gemini_api_key', key);
+    const reply = data?.choices?.[0]?.message?.content || '';
+    setKeyStatus('ok', '✓ Working! Groq replied: "' + reply.trim() + '"');
+    localStorage.setItem('groq_api_key', key);
   } catch(e) {
-    setKeyStatus('err', '✗ Failed: ' + e.message);
+    setKeyStatus('err', '✗ ' + e.message);
   }
 }
 function clearKey() {
-  localStorage.removeItem('gemini_api_key');
-  document.getElementById('geminiKeyInput').value = '';
+  localStorage.removeItem('groq_api_key');
+  document.getElementById('groqKeyInput').value = '';
   setKeyStatus('ok', 'Key removed.');
 }
 </script>
