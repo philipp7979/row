@@ -910,7 +910,7 @@ main {
     function todayKey(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
     function flProfile(){try{return JSON.parse(localStorage.getItem('fl_profile'));}catch(e){return null}}
     function flLog(k){try{return JSON.parse(localStorage.getItem('fl_log_'+k))||[];}catch(e){return[]}}
-    function openFoodLog(){window.top.postMessage({type:'switchTab',tab:'food'},'*')}
+    window.openFoodLog=function(){window.top.postMessage({type:'switchTab',tab:'food'},'*');}
 
     function render(){
       const el=document.getElementById('nutritionModule');
