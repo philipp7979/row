@@ -88,6 +88,41 @@ html,body{
 .sh-tab.active{color:#FAFAFA}
 .sh-tab.active svg{opacity:1}
 .sh-tab:active svg{transform:scale(0.88)}
+
+/* ── SETTINGS MODAL ── */
+.sh-settings-btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:40px;height:40px;border-radius:12px;
+  border:1px solid rgba(255,255,255,0.10);background:rgba(255,255,255,0.04);
+  color:rgba(255,255,255,0.6);font-size:17px;cursor:pointer;
+  transition:background .15s;
+}
+.sh-settings-btn:active{background:rgba(255,255,255,0.10)}
+.sh-modal-scrim{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:300;opacity:0;pointer-events:none;transition:opacity .2s}
+.sh-modal-scrim.show{opacity:1;pointer-events:all}
+.sh-modal{
+  position:fixed;bottom:0;left:0;right:0;z-index:301;
+  background:#1c1c1e;border-radius:20px 20px 0 0;
+  padding:0 20px 20px;
+  padding-bottom:max(20px,env(safe-area-inset-bottom));
+  transform:translateY(100%);transition:transform .3s cubic-bezier(.32,0,.67,0);
+}
+.sh-modal.show{transform:translateY(0);transition:transform .35s cubic-bezier(.33,1,.68,1)}
+.sh-modal-handle{width:36px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;margin:12px auto 20px}
+.sh-modal h2{font-size:20px;font-weight:700;color:#fff;margin-bottom:4px}
+.sh-modal-sub{font-size:14px;color:#8e8e93;margin-bottom:24px}
+.sh-key-row{display:flex;align-items:center;gap:10px;background:#2c2c2e;border-radius:14px;padding:14px 16px;margin-bottom:12px}
+.sh-key-icon{font-size:20px;flex-shrink:0}
+.sh-key-body{flex:1;min-width:0}
+.sh-key-label{font-size:12px;color:#8e8e93;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+.sh-key-input{width:100%;background:none;border:none;font-size:15px;color:#fff;outline:none;font-family:ui-monospace,'SF Mono',monospace;letter-spacing:.02em}
+.sh-key-input::placeholder{color:#48484a;font-family:-apple-system,sans-serif;letter-spacing:0}
+.sh-key-status{font-size:13px;margin-bottom:16px;padding:10px 14px;border-radius:10px;display:none}
+.sh-key-status.ok{background:rgba(52,211,153,.12);color:#34d399;border:1px solid rgba(52,211,153,.2);display:block}
+.sh-key-status.err{background:rgba(248,113,113,.12);color:#f87171;border:1px solid rgba(248,113,113,.2);display:block}
+.sh-modal-btn{width:100%;padding:15px;border:none;border-radius:14px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit}
+.sh-modal-btn.pri{background:#fff;color:#000}
+.sh-modal-btn.sec{background:#2c2c2e;color:rgba(255,255,255,.7);margin-top:10px}
 </style>
 </head>
 <body>
@@ -106,7 +141,34 @@ html,body{
       <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
     </svg>
   </a>
+  <button class="sh-settings-btn" onclick="openSettings()" aria-label="Settings">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+    </svg>
+  </button>
 </header>
+
+<!-- SETTINGS MODAL -->
+<div class="sh-modal-scrim" id="settingsScrim" onclick="closeSettings()"></div>
+<div class="sh-modal" id="settingsModal">
+  <div class="sh-modal-handle"></div>
+  <h2>Settings</h2>
+  <div class="sh-modal-sub">Your API keys are stored locally on this device only.</div>
+
+  <div class="sh-key-row">
+    <span class="sh-key-icon">🤖</span>
+    <div class="sh-key-body">
+      <div class="sh-key-label">Gemini API Key</div>
+      <input class="sh-key-input" id="geminiKeyInput" type="password" placeholder="Paste your key from aistudio.google.com" autocomplete="off" spellcheck="false">
+    </div>
+    <button onclick="toggleKeyVisibility()" id="keyToggleBtn" style="background:none;border:none;color:#8e8e93;font-size:16px;padding:4px;cursor:pointer;flex-shrink:0">👁</button>
+  </div>
+  <div class="sh-key-status" id="keyStatus"></div>
+
+  <button class="sh-modal-btn pri" onclick="saveKey()">Save Key</button>
+  <button class="sh-modal-btn sec" onclick="testKey()">Test Connection</button>
+  <button class="sh-modal-btn sec" onclick="clearKey()" style="margin-top:8px;color:#f87171">Remove Key</button>
+</div>
 
 <!-- FRAMES -->
 <div class="sh-frames">
@@ -238,6 +300,71 @@ setInterval(renderWater, 30000);
   if (p.endsWith('health.html')) switchTab('health');
   else if (p.endsWith('gym.html')) switchTab('fitness');
 })();
+
+// ── SETTINGS ──
+function openSettings() {
+  const inp = document.getElementById('geminiKeyInput');
+  const existing = localStorage.getItem('gemini_api_key') || '';
+  inp.value = existing;
+  inp.type = 'password';
+  document.getElementById('keyToggleBtn').textContent = '👁';
+  setKeyStatus('', '');
+  document.getElementById('settingsScrim').classList.add('show');
+  document.getElementById('settingsModal').classList.add('show');
+}
+function closeSettings() {
+  document.getElementById('settingsScrim').classList.remove('show');
+  document.getElementById('settingsModal').classList.remove('show');
+}
+function toggleKeyVisibility() {
+  const inp = document.getElementById('geminiKeyInput');
+  const btn = document.getElementById('keyToggleBtn');
+  if (inp.type === 'password') { inp.type = 'text'; btn.textContent = '🙈'; }
+  else { inp.type = 'password'; btn.textContent = '👁'; }
+}
+function setKeyStatus(type, msg) {
+  const el = document.getElementById('keyStatus');
+  el.className = 'sh-key-status' + (type ? ' ' + type : '');
+  el.textContent = msg;
+  if (!type) el.style.display = 'none';
+}
+function saveKey() {
+  const key = document.getElementById('geminiKeyInput').value.trim();
+  if (!key) { setKeyStatus('err', 'Please paste a key first.'); return; }
+  if (!key.startsWith('AIza')) {
+    setKeyStatus('err', 'This doesn\'t look like a valid Gemini key. Keys start with "AIza".');
+    return;
+  }
+  localStorage.setItem('gemini_api_key', key);
+  setKeyStatus('ok', '✓ Key saved — AI features are now enabled across the whole app.');
+}
+async function testKey() {
+  const key = document.getElementById('geminiKeyInput').value.trim() || localStorage.getItem('gemini_api_key') || '';
+  if (!key) { setKeyStatus('err', 'No key to test. Paste your key first.'); return; }
+  setKeyStatus('', '');
+  document.getElementById('keyStatus').style.display = 'block';
+  document.getElementById('keyStatus').className = 'sh-key-status';
+  document.getElementById('keyStatus').textContent = 'Testing…';
+  try {
+    const res = await fetch(
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + key,
+      { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({contents:[{parts:[{text:'Say "OK" in one word.'}]}]}) }
+    );
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error?.message || 'Error ' + res.status);
+    const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    setKeyStatus('ok', '✓ Connection working! Gemini replied: "' + reply.trim() + '"');
+    if (key) localStorage.setItem('gemini_api_key', key);
+  } catch(e) {
+    setKeyStatus('err', '✗ Failed: ' + e.message);
+  }
+}
+function clearKey() {
+  localStorage.removeItem('gemini_api_key');
+  document.getElementById('geminiKeyInput').value = '';
+  setKeyStatus('ok', 'Key removed.');
+}
 </script>
 </body>
 </html>
