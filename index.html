@@ -1221,20 +1221,17 @@ body::after {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: 'Rewrite this single goal so it is concrete, action-oriented, and under 60 characters. ' +
-                    'Return ONLY a JSON array with exactly one string, no preamble, no code fences.\n\nGoal: ' + text
-            }]
-          }]
+          contents: [{ parts: [{ text:
+            'Rewrite this goal to be concrete and action-oriented, max 60 characters. Reply with only the rewritten goal — no quotes, no explanation.\n\nGoal: ' + text
+          }] }]
         })
       }
     );
     const data = await res.json();
-    const content = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    const arr = JSON.parse(content.replace(/```json|```/g, '').trim());
-    if (!Array.isArray(arr) || arr.length < 1 || typeof arr[0] !== 'string') throw new Error('bad response');
-    return arr[0].trim();
+    if (!res.ok) throw new Error(data?.error?.message || 'API error ' + res.status);
+    const content = (data?.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
+    if (!content) throw new Error('empty response');
+    return content.replace(/^["'`]|["'`]$/g, '').trim();
   }
 
   function makeAddHandlers(input, addBtn, polishBtn, key, statusEl, reload) {
@@ -1272,7 +1269,7 @@ body::after {
         plainAdd(polished);
       } catch (e) {
         plainAdd(text);
-        showStatus(statusEl, 'Polish failed — added as-typed.', true);
+        showStatus(statusEl, 'Polish failed: ' + (e.message || 'unknown error'), true);
       } finally {
         polishBtn.disabled = false;
         polishBtn.textContent = '✨ Polish';
