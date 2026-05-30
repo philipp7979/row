@@ -639,8 +639,7 @@ body::after {
     </div>
   </div>
 
-  <!-- ══════════════ CALENDAR ══════════════ -->
-  <div id="cal-root"></div>
+  <!-- ══════════════ CALENDAR — rendered into #cal-root (placed below To Do List) ══════════════ -->
   <style>
   /* ─ Calendar CSS ─ */
   #cal-root { margin: 0 0 4px; }
@@ -1393,7 +1392,9 @@ body::after {
   // ─────────────────────────────────────
   // BOOT
   // ─────────────────────────────────────
-  render();
+  function calBoot(){ render(); }
+  if(document.getElementById('cal-root')) calBoot();
+  else document.addEventListener('DOMContentLoaded', calBoot);
   const state=load();
   checkMorningReminder(state);
   checkEventReminders(state);
@@ -1466,6 +1467,9 @@ body::after {
       </div>
     </div>
   </div>
+
+  <!-- ══════════════ CALENDAR (moved below To Do List) ══════════════ -->
+  <div id="cal-root"></div>
 
 </div>
 
