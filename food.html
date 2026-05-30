@@ -1024,14 +1024,36 @@ function buildRuler(outerId,trackId,lo,hi,step,initVal,valId,unit,onChange){
 let curDate = todayKey();
 let editingEntry = null;
 
-function initApp(){
-  // hide back button when embedded in health.html
-  if(IS_EMBED){
-    const back=document.querySelector('.app-back');
-    if(back) back.style.display='none';
-    // remove extra bottom padding — health.html provides scroll
-    document.getElementById('appScroll').style.paddingBottom='120px';
+function applyEmbedLayout(){
+  // Switch from fixed full-screen app to natural document flow
+  // so health.html can scroll over it without iframe scroll issues.
+  const style = document.createElement('style');
+  style.textContent = `
+    html, body { height: auto !important; overflow: visible !important; overscroll-behavior: auto !important; }
+    #app { position: relative !important; height: auto !important; display: flex !important; flex-direction: column !important; }
+    .app-header { position: sticky !important; top: 0 !important; z-index: 20 !important; }
+    .app-scroll { overflow: visible !important; height: auto !important; padding-bottom: 0 !important; flex: none !important; }
+    .app-sbar { position: sticky !important; bottom: 0 !important; z-index: 20 !important; }
+    .app-back { display: none !important; }
+    #add-sheet { position: fixed !important; }
+    #food-detail { position: fixed !important; }
+    #settings-modal { position: fixed !important; }
+  `;
+  document.head.appendChild(style);
+
+  // Auto-report height to parent so iframe auto-sizes
+  function reportH(){
+    const h = document.body.scrollHeight;
+    window.parent.postMessage({type:'foodEmbedHeight', height: h}, '*');
   }
+  // Report after renders settle
+  setTimeout(reportH, 400);
+  new MutationObserver(reportH).observe(document.getElementById('foodLog')||document.body, {childList:true,subtree:true});
+  window.addEventListener('resize', reportH);
+}
+
+function initApp(){
+  if(IS_EMBED) applyEmbedLayout();
   renderWeekStrip();
   renderMacroBars();
   renderFoodLog();
