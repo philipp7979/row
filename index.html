@@ -175,6 +175,7 @@ html,body{
   <iframe src="main.html"   id="frame-main"    class="sh-frame active" allow="camera;microphone"></iframe>
   <iframe src="health.html" id="frame-health"  class="sh-frame" allow="camera"></iframe>
   <iframe src="gym.html"    id="frame-fitness" class="sh-frame"></iframe>
+  <iframe src="bible.html"  id="frame-other"   class="sh-frame"></iframe>
 </div>
 
 <!-- BOTTOMBAR -->
@@ -197,13 +198,19 @@ html,body{
     </svg>
     Fitness
   </button>
+  <button class="sh-tab" id="tab-other" onclick="switchTab('other')">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+    </svg>
+    Other
+  </button>
 </nav>
 
 <script>
 'use strict';
 
 // ── TAB SWITCHING ──
-const TABS = ['main','health','fitness'];
+const TABS = ['main','health','fitness','other'];
 let curTab = 'main';
 
 function switchTab(tab) {
@@ -213,8 +220,8 @@ function switchTab(tab) {
     document.getElementById('tab-'+t).classList.toggle('active', t===tab);
   });
   curTab = tab;
-  const urls = {main:'main.html', health:'health.html', fitness:'gym.html'};
-  history.replaceState({tab}, '', urls[tab]);
+  const urls = {main:'main.html', health:'health.html', fitness:'gym.html', other:'bible.html'};
+  history.replaceState({tab}, '', urls[tab] || 'index.html');
 }
 
 // Listen for tab-switch requests from iframes
