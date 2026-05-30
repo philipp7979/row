@@ -133,13 +133,21 @@ button{font-family:var(--font);cursor:pointer}
 .wday-dot{width:5px;height:5px;border-radius:50%;background:#8e8e93;opacity:0}
 .wday.logged .wday-dot{opacity:1}
 /* 4 stacked full-width macro bars */
-.macro-bars{padding:8px 16px 10px;border-bottom:.5px solid rgba(255,255,255,.08);flex-shrink:0;display:flex;flex-direction:column;gap:5px}
-.mbar{display:flex;align-items:center;gap:8px;font-size:12px;font-variant-numeric:tabular-nums}
-.mbar-icon{width:14px;text-align:center;font-size:11px;flex-shrink:0}
-.mbar-label{width:10px;font-weight:700;font-size:11px;flex-shrink:0}
-.mbar-track{flex:1;height:5px;background:rgba(255,255,255,.10);border-radius:3px;overflow:hidden}
-.mbar-fill{height:100%;border-radius:3px;transition:width .5s;max-width:100%}
-.mbar-val{width:80px;text-align:right;color:#8e8e93;font-size:11px;font-variant-numeric:tabular-nums}
+.macro-bars{padding:12px 16px 14px;border-bottom:.5px solid rgba(255,255,255,.08);flex-shrink:0}
+/* circular macro rings */
+.mrings{display:flex;align-items:center;gap:14px}
+.mrings-main{flex-shrink:0}
+.mrings-side{flex:1;display:flex;justify-content:space-around;gap:4px}
+.mring{display:flex;flex-direction:column;align-items:center}
+.mring-svg-wrap{position:relative}
+.mring svg{display:block}
+.mring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
+.mring-num{font-weight:800;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.5px}
+.mring-goal{color:#8e8e93;font-variant-numeric:tabular-nums;margin-top:1px}
+.mring-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-top:5px}
+/* legacy bar (unused, kept for safety) */
+.mbar{display:flex;align-items:center;gap:8px;font-size:12px}
+.mbar-fill{height:100%;border-radius:3px}
 .app-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(88px + env(safe-area-inset-bottom))}
 
 /* food log */
@@ -166,13 +174,13 @@ button{font-family:var(--font);cursor:pointer}
   display:flex;align-items:center;gap:10px;z-index:5;
 }
 .app-sbar-wrap{
-  flex:1;display:flex;align-items:center;gap:8px;
+  flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:8px;
   background:#1c1c1e;border-radius:12px;padding:10px 14px;
 }
-.app-sbar-wrap input{flex:1;border:none;background:none;font-size:16px;color:#fff;outline:none}
+.app-sbar-wrap input{flex:1;min-width:0;border:none;background:none;font-size:16px;color:#fff;outline:none}
 .app-sbar-wrap input::placeholder{color:#8e8e93}
 .app-add-btn{
-  height:48px;padding:0 20px;
+  height:48px;padding:0 16px;
   background:#fff;color:#000;border:none;border-radius:14px;
   font-size:15px;font-weight:700;white-space:nowrap;
   display:flex;align-items:center;gap:6px;flex-shrink:0;
@@ -1025,31 +1033,19 @@ let curDate = todayKey();
 let editingEntry = null;
 
 function applyEmbedLayout(){
-  // Switch from fixed full-screen app to natural document flow
-  // so health.html can scroll over it without iframe scroll issues.
+  // Contained fixed-height layout: header fixed at top, scroll in the
+  // middle, search/add bar pinned at bottom — all within the iframe.
   const style = document.createElement('style');
   style.textContent = `
-    html, body { height: auto !important; overflow: visible !important; overscroll-behavior: auto !important; }
-    #app { position: relative !important; height: auto !important; display: flex !important; flex-direction: column !important; }
-    .app-header { position: sticky !important; top: 0 !important; z-index: 20 !important; }
-    .app-scroll { overflow: visible !important; height: auto !important; padding-bottom: 0 !important; flex: none !important; }
-    .app-sbar { position: sticky !important; bottom: 0 !important; z-index: 20 !important; }
+    html, body { height: 100% !important; overflow: hidden !important; overscroll-behavior: contain !important; }
+    #app { position: absolute !important; inset: 0 !important; height: 100% !important; display: flex !important; flex-direction: column !important; }
+    .app-header { flex-shrink: 0 !important; }
+    .app-scroll { flex: 1 1 auto !important; overflow-y: auto !important; height: auto !important; padding-bottom: 12px !important; }
+    .app-sbar { position: relative !important; flex-shrink: 0 !important; }
     .app-back { display: none !important; }
-    #add-sheet { position: fixed !important; }
-    #food-detail { position: fixed !important; }
-    #settings-modal { position: fixed !important; }
+    .app-nav { justify-content: center !important; }
   `;
   document.head.appendChild(style);
-
-  // Auto-report height to parent so iframe auto-sizes
-  function reportH(){
-    const h = document.body.scrollHeight;
-    window.parent.postMessage({type:'foodEmbedHeight', height: h}, '*');
-  }
-  // Report after renders settle
-  setTimeout(reportH, 400);
-  new MutationObserver(reportH).observe(document.getElementById('foodLog')||document.body, {childList:true,subtree:true});
-  window.addEventListener('resize', reportH);
 }
 
 function initApp(){
@@ -1101,21 +1097,41 @@ function renderMacroBars(){
   const tgt={kcal:p.daily_kcal||2000,protein:p.daily_protein||150,fat:p.daily_fat||65,carbs:p.daily_carbs||200};
   const log=FL.log(curDate);
   const tot=log.reduce((a,e)=>({kcal:a.kcal+(e.kcal||0),protein:a.protein+(e.protein||0),fat:a.fat+(e.fat||0),carbs:a.carbs+(e.carbs||0)}),{kcal:0,protein:0,fat:0,carbs:0});
-  const mbar=(ico,lbl,key,color)=>{
-    const pct=Math.min(100,tgt[key]>0?tot[key]/tgt[key]*100:0);
-    const over=tot[key]>tgt[key];
-    return`<div class="mbar">
-      <span style="width:16px;font-size:12px;flex-shrink:0">${ico}</span>
-      <span style="width:12px;font-size:11px;font-weight:700;color:${color};flex-shrink:0">${lbl}</span>
-      <div class="mbar-track"><div class="mbar-fill" style="width:${pct}%;background:${over?'#f87171':color}"></div></div>
-      <span class="mbar-val" style="color:${over?'#f87171':'#8e8e93'}">${Math.round(tot[key])} / ${tgt[key]}</span>
+
+  // Circular ring helper
+  function ring(key,label,color,size){
+    const cur=Math.round(tot[key]), goal=tgt[key];
+    const pct=Math.min(1,goal>0?tot[key]/goal:0);
+    const over=tot[key]>goal;
+    const r=size/2-6, circ=2*Math.PI*r;
+    const off=circ*(1-pct);
+    const numFont=size>=92?22:16, labFont=11;
+    return`<div class="mring">
+      <div class="mring-svg-wrap" style="width:${size}px;height:${size}px">
+        <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+          <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="6"/>
+          <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${over?'#f87171':color}" stroke-width="6" stroke-linecap="round"
+            stroke-dasharray="${circ.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}"
+            transform="rotate(-90 ${size/2} ${size/2})" style="transition:stroke-dashoffset .6s cubic-bezier(.22,1,.36,1)"/>
+        </svg>
+        <div class="mring-center">
+          <div class="mring-num" style="font-size:${numFont}px;color:${over?'#f87171':'#fff'}">${cur}</div>
+          <div class="mring-goal" style="font-size:${size>=92?11:9}px">/ ${goal}</div>
+        </div>
+      </div>
+      <div class="mring-label" style="color:${color}">${label}</div>
     </div>`;
-  };
-  bars.innerHTML=
-    mbar('🔥','','kcal','#3b82f6')+
-    mbar('','P','protein','#f87171')+
-    mbar('','F','fat','#fbbf24')+
-    mbar('','C','carbs','#34d399');
+  }
+
+  bars.innerHTML=`
+    <div class="mrings">
+      <div class="mrings-main">${ring('kcal','Calories','#3b82f6',104)}</div>
+      <div class="mrings-side">
+        ${ring('protein','Protein','#f87171',72)}
+        ${ring('carbs','Carbs','#34d399',72)}
+        ${ring('fat','Fat','#fbbf24',72)}
+      </div>
+    </div>`;
 }
 
 function renderFoodLog(){
