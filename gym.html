@@ -1283,6 +1283,9 @@ img, video, canvas, svg { max-width: 100%; }
     <span class="po-day-split" id="dayPillSplit">—</span>
   </button>
 
+  <!-- ════════ COACH+ FEATURE PANEL ════════ -->
+  <div id="gxRoot"></div>
+
   <!-- WEIGHT + PROGRESS PHOTOS -->
   <div class="wt-section">
     <div class="wt-divider"><span>WEIGHT</span></div>
@@ -1507,6 +1510,21 @@ img, video, canvas, svg { max-width: 100%; }
             <button type="button" class="po-reps-pill" data-v="11">11</button>
             <button type="button" class="po-reps-pill" data-v="12">12</button>
           </div>
+        </div>
+      </div>
+      <!-- Warm-up + RPE row -->
+      <div style="display:flex;align-items:center;gap:12px;margin:10px 0 4px;flex-wrap:wrap">
+        <label style="display:flex;align-items:center;gap:7px;font-size:13px;color:rgba(255,255,255,.7);cursor:pointer">
+          <input type="checkbox" id="gxWarmup" style="width:18px;height:18px;accent-color:#fbbf24">
+          Warm-up set
+        </label>
+        <div style="display:flex;align-items:center;gap:6px;margin-left:auto">
+          <span style="font-size:13px;color:rgba(255,255,255,.5)">RPE</span>
+          <select id="gxRpe" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:5px 8px;color:#fff;font-family:inherit;font-size:13px">
+            <option value="">—</option>
+            <option>6</option><option>6.5</option><option>7</option><option>7.5</option>
+            <option>8</option><option>8.5</option><option>9</option><option>9.5</option><option>10</option>
+          </select>
         </div>
       </div>
       <button class="po-btn-primary" id="logBtn">Log set</button>
@@ -2288,9 +2306,19 @@ img, video, canvas, svg { max-width: 100%; }
     const w = ex.bw ? 0 : (parseFloat($('weightInput').value) || 0);
     if (!ex.bw && w <= 0) { alert('Enter a weight.'); return; }
     const arr = state.logs[ex.id] || [];
-    arr.push({ weight: w, reps: reps, date: new Date().toISOString() });
+    const warmupEl = $('gxWarmup'), rpeEl = $('gxRpe');
+    const entry = { weight: w, reps: reps, date: new Date().toISOString() };
+    if (warmupEl && warmupEl.checked) entry.warmup = true;
+    if (rpeEl && rpeEl.value) entry.rpe = parseFloat(rpeEl.value);
+    arr.push(entry);
     state.logs[ex.id] = arr;
     saveState(); renderAll();
+    // reset warm-up toggle, auto-start rest timer (working sets only)
+    if (warmupEl) warmupEl.checked = false;
+    if (rpeEl) rpeEl.value = '';
+    if (!entry.warmup && typeof window.gxStartRest === 'function') {
+      try { const gs = JSON.parse(localStorage.getItem('gym_v1') || '{}'); window.gxStartRest(gs.restDefault || 90); } catch (e) { window.gxStartRest(90); }
+    }
     // Strength changed → composition estimate may shift
     if (typeof wtRender === 'function') wtRender();
     // Tiny pulse on the button so the user feels the save
@@ -3528,6 +3556,705 @@ img, video, canvas, svg { max-width: 100%; }
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) pcFlushPushOnUnload();
   });
+})();
+</script>
+
+<!-- ════════════════ COACH+ MODULE ════════════════ -->
+<script src="sync.js" defer></script>
+<style>
+.gx-card{background:#111113;border:1px solid rgba(255,255,255,.06);border-radius:18px;padding:18px;margin-bottom:16px;box-shadow:0 12px 40px rgba(0,0,0,.45)}
+.gx-title{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.gx-title .gx-flag{margin-left:auto;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:700;letter-spacing:.02em;text-transform:none}
+/* Radar */
+.gx-radar-wrap{display:flex;flex-direction:column;align-items:center}
+.gx-radar{width:100%;max-width:300px}
+.gx-radar-legend{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px 14px;margin-top:14px;width:100%}
+.gx-leg{display:flex;align-items:center;gap:7px;font-size:12px}
+.gx-leg-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.gx-leg-name{color:rgba(255,255,255,.7);font-weight:500}
+.gx-leg-val{margin-left:auto;font-variant-numeric:tabular-nums;font-weight:700}
+.gx-warn{display:flex;align-items:flex-start;gap:10px;padding:11px 14px;border-radius:12px;font-size:13px;line-height:1.5;margin-top:12px}
+.gx-warn.orange{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.25);color:#fbbf24}
+.gx-warn.red{background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.25);color:#ff8a8a}
+.gx-warn.green{background:rgba(110,231,183,.08);border:1px solid rgba(110,231,183,.2);color:#6ee7b7}
+/* AI section */
+.gx-ai-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.gx-ai-btn{padding:12px 10px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);border-radius:12px;color:#fff;font-size:13px;font-weight:600;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;transition:background .15s}
+.gx-ai-btn:active{background:rgba(255,255,255,.1)}
+.gx-ai-btn .ico{font-size:20px}
+.gx-ai-out{margin-top:12px;padding:14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:12px;font-size:14px;line-height:1.6;color:rgba(255,255,255,.85);white-space:pre-wrap;display:none}
+.gx-ai-out.show{display:block}
+.gx-ai-out h4{font-size:15px;color:#fff;margin:0 0 6px}
+/* badges */
+.gx-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px}
+.gx-badge.up{background:rgba(110,231,183,.15);color:#6ee7b7}
+.gx-badge.hold{background:rgba(251,191,36,.15);color:#fbbf24}
+.gx-badge.down{background:rgba(248,113,113,.15);color:#ff8a8a}
+/* PR toast */
+#gxPrToast{position:fixed;top:max(14px,env(safe-area-inset-top));left:50%;transform:translateX(-50%) translateY(-120px);z-index:9000;background:linear-gradient(135deg,#FFD700,#FFA500);color:#1a1a00;padding:12px 22px;border-radius:30px;font-weight:800;font-size:15px;display:flex;align-items:center;gap:8px;box-shadow:0 8px 32px rgba(255,180,0,.5);transition:transform .5s cubic-bezier(.18,.89,.32,1.28);pointer-events:none}
+#gxPrToast.show{transform:translateX(-50%) translateY(0)}
+@keyframes gxStarSpin{0%{transform:rotate(0) scale(1)}50%{transform:rotate(180deg) scale(1.4)}100%{transform:rotate(360deg) scale(1)}}
+#gxPrToast .star{display:inline-block;animation:gxStarSpin 1s ease}
+/* Rest timer pill */
+#gxRestPill{position:fixed;top:max(12px,env(safe-area-inset-top));left:50%;transform:translateX(-50%) translateY(-100px);z-index:8000;background:#1c1c1e;border:1px solid rgba(255,255,255,.15);border-radius:30px;padding:8px 8px 8px 18px;display:flex;align-items:center;gap:12px;box-shadow:0 8px 30px rgba(0,0,0,.5);transition:transform .35s cubic-bezier(.33,1,.68,1)}
+#gxRestPill.show{transform:translateX(-50%) translateY(0)}
+.gx-rest-time{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;color:#fff;min-width:54px}
+.gx-rest-time.done{color:#6ee7b7;animation:gxPulse .6s ease infinite}
+@keyframes gxPulse{50%{opacity:.4}}
+.gx-rest-x{width:34px;height:34px;border-radius:50%;border:none;background:rgba(255,255,255,.1);color:#fff;font-size:16px;cursor:pointer}
+.gx-rest-add{width:34px;height:34px;border-radius:50%;border:none;background:rgba(255,255,255,.1);color:#fff;font-size:13px;font-weight:700;cursor:pointer}
+/* Floating action buttons */
+.gx-fabs{position:fixed;right:max(14px,env(safe-area-inset-right));bottom:calc(20px + env(safe-area-inset-bottom));z-index:7000;display:flex;flex-direction:column;gap:10px}
+.gx-fab{width:52px;height:52px;border-radius:50%;border:1px solid rgba(255,255,255,.12);background:#1c1c1e;color:#fff;font-size:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.5);transition:transform .12s}
+.gx-fab:active{transform:scale(.9)}
+/* Modals */
+.gx-modal{position:fixed;inset:0;z-index:7500;display:none}
+.gx-modal.open{display:flex;flex-direction:column;justify-content:flex-end}
+.gx-modal-scrim{position:fixed;inset:0;background:rgba(0,0,0,.7)}
+.gx-modal-panel{position:relative;background:#1c1c1e;border-radius:22px 22px 0 0;padding:20px;padding-bottom:max(24px,env(safe-area-inset-bottom));max-height:90vh;overflow-y:auto}
+.gx-modal-handle{width:36px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;margin:0 auto 18px}
+.gx-modal-title{font-size:19px;font-weight:700;margin-bottom:16px;color:#fff}
+.gx-field{margin-bottom:12px}
+.gx-field label{display:block;font-size:12px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.gx-field input,.gx-field select,.gx-field textarea{width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:12px 14px;font-size:16px;color:#fff;font-family:inherit;outline:none}
+.gx-field textarea{resize:none;min-height:60px}
+.gx-mbtn{width:100%;padding:14px;border:none;border-radius:14px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:6px}
+.gx-mbtn.pri{background:#fff;color:#000}
+.gx-mbtn.sec{background:rgba(255,255,255,.08);color:rgba(255,255,255,.7)}
+.gx-chips{display:flex;gap:8px;flex-wrap:wrap}
+.gx-chip{padding:9px 16px;border:1.5px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);border-radius:30px;font-size:14px;font-weight:600;color:rgba(255,255,255,.7);cursor:pointer}
+.gx-chip.on{border-color:#fff;background:rgba(255,255,255,.14);color:#fff}
+/* Plate visual */
+.gx-plate-bar{display:flex;align-items:center;justify-content:center;gap:2px;padding:20px 0;min-height:80px}
+.gx-plate{border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#000;writing-mode:vertical-rl}
+.gx-plate-rod{width:40px;height:8px;background:linear-gradient(#888,#ccc,#888);border-radius:2px}
+.gx-plate-empty{text-align:center;color:rgba(255,255,255,.4);padding:20px;font-size:14px}
+.gx-plate-list{font-size:14px;color:rgba(255,255,255,.85);text-align:center;margin-top:8px;line-height:1.6}
+/* progress chart */
+.gx-prog-chart{width:100%;height:140px}
+.gx-prog-empty{text-align:center;color:rgba(255,255,255,.4);padding:30px;font-size:14px}
+.gx-ex-pick{width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:10px 12px;font-size:15px;color:#fff;font-family:inherit;margin-bottom:12px}
+.gx-1rm{display:flex;justify-content:space-between;align-items:baseline;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:14px}
+.gx-1rm-name{color:rgba(255,255,255,.8)}
+.gx-1rm-val{font-weight:800;font-variant-numeric:tabular-nums}
+/* Muscle map */
+.gx-bodies{display:flex;justify-content:center;gap:20px}
+.gx-body svg{height:200px;width:auto}
+.gx-musc{fill:rgba(255,255,255,.08);stroke:rgba(255,255,255,.15);stroke-width:.5;transition:fill .3s}
+.gx-musc.active{fill:#6ee7b7}
+/* measurements */
+.gx-meas-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.gx-meas-name{width:90px;font-size:14px;color:rgba(255,255,255,.8)}
+.gx-meas-val{font-weight:700;font-variant-numeric:tabular-nums}
+.gx-meas-trend{font-size:12px;margin-left:auto}
+.gx-sub-tabs{display:flex;gap:4px;background:rgba(255,255,255,.05);border-radius:10px;padding:3px;margin-bottom:14px}
+.gx-sub-tab{flex:1;padding:8px;border:none;background:none;border-radius:7px;font-size:13px;font-weight:600;color:rgba(255,255,255,.5);cursor:pointer}
+.gx-sub-tab.on{background:rgba(255,255,255,.12);color:#fff}
+.gx-sub-pane{display:none}
+.gx-sub-pane.on{display:block}
+</style>
+
+<div id="gxPrToast"><span class="star">⭐</span><span id="gxPrText">New PR!</span></div>
+
+<div id="gxRestPill">
+  <span class="gx-rest-time" id="gxRestTime">1:30</span>
+  <button class="gx-rest-add" onclick="gxRestAdd(15)">+15</button>
+  <button class="gx-rest-x" onclick="gxRestStop()">✕</button>
+</div>
+
+<div class="gx-fabs">
+  <button class="gx-fab" onclick="gxOpenRestSetup()" title="Rest timer">⏱</button>
+  <button class="gx-fab" onclick="gxOpenPlate()" title="Plate calculator">🏋️</button>
+</div>
+
+<!-- Plate calculator modal -->
+<div class="gx-modal" id="gxPlateModal">
+  <div class="gx-modal-scrim" onclick="gxCloseModal('gxPlateModal')"></div>
+  <div class="gx-modal-panel">
+    <div class="gx-modal-handle"></div>
+    <div class="gx-modal-title">Plate Calculator</div>
+    <div class="gx-field"><label>Target weight</label><input type="number" id="gxPlateTarget" placeholder="100" oninput="gxCalcPlates()"></div>
+    <div class="gx-field"><label>Bar weight</label><input type="number" id="gxPlateBar" value="20" oninput="gxCalcPlates()"></div>
+    <div class="gx-plate-bar" id="gxPlateVisual"><div class="gx-plate-empty">Enter a target weight</div></div>
+    <div class="gx-plate-list" id="gxPlateList"></div>
+    <div class="gx-field" style="margin-top:14px"><label>Available plates (each side)</label>
+      <div class="gx-chips" id="gxPlateChips"></div>
+    </div>
+    <button class="gx-mbtn sec" onclick="gxCloseModal('gxPlateModal')">Close</button>
+  </div>
+</div>
+
+<!-- Rest timer setup modal -->
+<div class="gx-modal" id="gxRestModal">
+  <div class="gx-modal-scrim" onclick="gxCloseModal('gxRestModal')"></div>
+  <div class="gx-modal-panel">
+    <div class="gx-modal-handle"></div>
+    <div class="gx-modal-title">Rest Timer</div>
+    <div class="gx-chips" style="margin-bottom:16px">
+      <div class="gx-chip" onclick="gxStartRest(30)">30s</div>
+      <div class="gx-chip" onclick="gxStartRest(60)">60s</div>
+      <div class="gx-chip" onclick="gxStartRest(90)">90s</div>
+      <div class="gx-chip" onclick="gxStartRest(120)">120s</div>
+    </div>
+    <button class="gx-mbtn sec" onclick="gxCloseModal('gxRestModal')">Cancel</button>
+  </div>
+</div>
+
+<!-- Measurement add modal -->
+<div class="gx-modal" id="gxMeasModal">
+  <div class="gx-modal-scrim" onclick="gxCloseModal('gxMeasModal')"></div>
+  <div class="gx-modal-panel">
+    <div class="gx-modal-handle"></div>
+    <div class="gx-modal-title">Log Measurements (cm)</div>
+    <div class="gx-field"><label>Chest</label><input type="number" id="gxMeasChest" step="0.1"></div>
+    <div class="gx-field"><label>Arms</label><input type="number" id="gxMeasArms" step="0.1"></div>
+    <div class="gx-field"><label>Waist</label><input type="number" id="gxMeasWaist" step="0.1"></div>
+    <div class="gx-field"><label>Legs</label><input type="number" id="gxMeasLegs" step="0.1"></div>
+    <div class="gx-field"><label>Shoulders</label><input type="number" id="gxMeasShoulders" step="0.1"></div>
+    <button class="gx-mbtn pri" onclick="gxSaveMeas()">Save</button>
+    <button class="gx-mbtn sec" onclick="gxCloseModal('gxMeasModal')">Cancel</button>
+  </div>
+</div>
+
+<!-- Mesocycle modal -->
+<div class="gx-modal" id="gxMesoModal">
+  <div class="gx-modal-scrim" onclick="gxCloseModal('gxMesoModal')"></div>
+  <div class="gx-modal-panel">
+    <div class="gx-modal-handle"></div>
+    <div class="gx-modal-title">Plan Mesocycle</div>
+    <div class="gx-field"><label>Goal</label>
+      <select id="gxMesoGoal"><option value="hypertrophy">Hypertrophy</option><option value="strength">Strength</option><option value="peaking">Peaking</option></select>
+    </div>
+    <div class="gx-field"><label>Length (weeks)</label>
+      <select id="gxMesoWeeks"><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option></select>
+    </div>
+    <div class="gx-field"><label>Start date</label><input type="date" id="gxMesoStart"></div>
+    <button class="gx-mbtn pri" onclick="gxSaveMeso()">Start Block</button>
+    <button class="gx-mbtn sec" onclick="gxCloseModal('gxMesoModal')">Cancel</button>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+// ════════ STORAGE ════════
+const GK='gym_v1', PO='po_coach_v1';
+function gload(){try{return JSON.parse(localStorage.getItem(GK))||gdef();}catch{return gdef();}}
+function gdef(){return{measurements:[],mesocycle:null,plates:[20,15,10,5,2.5,1.25],restDefault:90,prs:{},exerciseMeta:{},muscleTargets:{Chest:12,Back:14,Legs:14,Shoulders:10,Core:8,Arms:10}};}
+function gsave(s){localStorage.setItem(GK,JSON.stringify(s));}
+function po(){try{return JSON.parse(localStorage.getItem(PO))||{};}catch{return{};}}
+function groqKey(){return localStorage.getItem('groq_api_key')||'';}
+function todayK(){return new Date().toISOString().slice(0,10);}
+function unit(){const p=po();return p.units||'kg';}
+
+// ════════ MUSCLE MAPPING ════════
+const MUSCLES=['Chest','Back','Legs','Shoulders','Core','Arms'];
+const MUSCLE_COLORS={Chest:'#f87171',Back:'#3b82f6',Legs:'#34d399',Shoulders:'#fbbf24',Core:'#a78bfa',Arms:'#fb923c'};
+function muscleOf(name){
+  const n=(name||'').toLowerCase();
+  if(/bench|chest|pec|fly|dip|push.?up|incline|decline/.test(n))return'Chest';
+  if(/row|pull.?up|pull.?down|lat|chin|deadlift|rdl|romanian|shrug|back/.test(n))return'Back';
+  if(/squat|leg|lunge|calf|hamstring|quad|glute|hip thrust|leg press|leg curl|leg ext/.test(n))return'Legs';
+  if(/overhead|ohp|shoulder|lateral|delt|press.*shoulder|military|upright|rear delt|face pull/.test(n))return'Shoulders';
+  if(/ab|core|plank|crunch|sit.?up|leg raise|rollout|oblique/.test(n))return'Core';
+  if(/curl|tricep|bicep|pushdown|extension|skull|hammer|preacher|arm/.test(n))return'Arms';
+  return'Other';
+}
+// week range (Mon-Sun)
+function weekStart(d){d=d||new Date();const x=new Date(d);const dow=(x.getDay()+6)%7;x.setDate(x.getDate()-dow);x.setHours(0,0,0,0);return x;}
+function inThisWeek(dateStr){const d=new Date(dateStr);const ws=weekStart();const we=new Date(ws);we.setDate(ws.getDate()+7);return d>=ws&&d<we;}
+
+// Working sets per muscle this week
+function weeklyVolume(){
+  const p=po(); const vol={}; MUSCLES.forEach(m=>vol[m]=0);
+  const exMap={}; (p.exercises||[]).forEach(e=>exMap[e.id]=e);
+  const meta=gload().exerciseMeta;
+  Object.keys(p.logs||{}).forEach(exId=>{
+    const ex=exMap[exId]; if(!ex)return;
+    const m=muscleOf(ex.name); if(!MUSCLES.includes(m))return;
+    (p.logs[exId]||[]).forEach(set=>{
+      if(set.warmup)return; // warm-ups don't count
+      if(inThisWeek(set.date))vol[m]++;
+    });
+  });
+  return vol;
+}
+// 1RM Epley
+function epley(w,r){if(!w||r<1)return 0;if(r===1)return w;return Math.round(w*(1+r/30));}
+function best1RM(){
+  const p=po(); const exMap={}; (p.exercises||[]).forEach(e=>exMap[e.id]=e);
+  const out=[];
+  Object.keys(p.logs||{}).forEach(exId=>{
+    const ex=exMap[exId]; if(!ex||ex.bw)return;
+    let max=0;
+    (p.logs[exId]||[]).forEach(s=>{const e=epley(s.weight,s.reps);if(e>max)max=e;});
+    if(max>0)out.push({name:ex.name,val:max});
+  });
+  return out.sort((a,b)=>b.val-a.val);
+}
+
+// ════════ RENDER MAIN PANEL ════════
+let gxSubTab='overview';
+function gxRender(){
+  const root=document.getElementById('gxRoot'); if(!root)return;
+  const s=gload();
+  const vol=weeklyVolume();
+  const targets=s.muscleTargets;
+
+  // balance warnings
+  const push=(vol.Chest||0)+(vol.Shoulders||0)+(vol.Arms||0)*0.5;
+  const pull=(vol.Back||0)+(vol.Arms||0)*0.5;
+  let balanceWarn='';
+  if(push+pull>=6){
+    const ratio=pull>0?push/pull:99;
+    if(ratio>1.5)balanceWarn=`<div class="gx-warn orange"><span>⚠️</span><div><b>Push:Pull imbalance.</b> You're doing ${push.toFixed(0)} push vs ${pull.toFixed(0)} pull sets. Add more back work to balance.</div></div>`;
+    else if(ratio<0.6)balanceWarn=`<div class="gx-warn orange"><span>⚠️</span><div><b>Pull-heavy week.</b> ${pull.toFixed(0)} pull vs ${push.toFixed(0)} push. Add pressing volume.</div></div>`;
+  }
+
+  root.innerHTML=`
+    <div class="gx-card">
+      <div class="gx-title">Muscle Volume · This Week ${gxBalanceFlag(vol,targets)}</div>
+      <div class="gx-radar-wrap">${gxRadarSVG(vol,targets)}
+        <div class="gx-radar-legend">${MUSCLES.map(m=>{
+          const v=vol[m]||0,t=targets[m]||10;
+          const col=v>=t?'#6ee7b7':v>=t*0.5?'#fbbf24':'#ff8a8a';
+          return`<div class="gx-leg"><span class="gx-leg-dot" style="background:${MUSCLE_COLORS[m]}"></span><span class="gx-leg-name">${m}</span><span class="gx-leg-val" style="color:${col}">${v}/${t}</span></div>`;
+        }).join('')}</div>
+      </div>
+      ${balanceWarn}
+      ${gxDeloadBanner(s)}
+    </div>
+
+    <div class="gx-card">
+      <div class="gx-title">AI Coach <span class="gx-flag" style="background:rgba(255,255,255,.08);color:rgba(255,255,255,.5)">Groq</span></div>
+      <div class="gx-ai-btns">
+        <button class="gx-ai-btn" onclick="gxAiPlan()"><span class="ico">🧠</span>Generate Plan</button>
+        <button class="gx-ai-btn" onclick="gxAiWeight()"><span class="ico">⚖️</span>Weight Suggestion</button>
+        <button class="gx-ai-btn" onclick="gxAiPlateau()"><span class="ico">📊</span>Plateau Check</button>
+        <button class="gx-ai-btn" onclick="gxAiAlternatives()"><span class="ico">🔁</span>Pain → Swap</button>
+      </div>
+      <div class="gx-ai-out" id="gxAiOut"></div>
+    </div>
+
+    <div class="gx-card">
+      <div class="gx-sub-tabs">
+        <button class="gx-sub-tab ${gxSubTab==='overview'?'on':''}" onclick="gxSetSub('overview')">Strength</button>
+        <button class="gx-sub-tab ${gxSubTab==='progress'?'on':''}" onclick="gxSetSub('progress')">Progress</button>
+        <button class="gx-sub-tab ${gxSubTab==='body'?'on':''}" onclick="gxSetSub('body')">Body</button>
+        <button class="gx-sub-tab ${gxSubTab==='plan'?'on':''}" onclick="gxSetSub('plan')">Plan</button>
+      </div>
+      <div class="gx-sub-pane ${gxSubTab==='overview'?'on':''}" id="gxPaneOverview">${gxRender1RM()}</div>
+      <div class="gx-sub-pane ${gxSubTab==='progress'?'on':''}" id="gxPaneProgress">${gxRenderProgress()}</div>
+      <div class="gx-sub-pane ${gxSubTab==='body'?'on':''}" id="gxPaneBody">${gxRenderBody(s)}</div>
+      <div class="gx-sub-pane ${gxSubTab==='plan'?'on':''}" id="gxPanePlan">${gxRenderPlan(s)}</div>
+    </div>`;
+
+  if(gxSubTab==='progress')setTimeout(gxDrawProgress,30);
+}
+
+function gxBalanceFlag(vol,targets){
+  const hit=MUSCLES.filter(m=>(vol[m]||0)>=(targets[m]||10)).length;
+  const col=hit>=5?'#6ee7b7':hit>=3?'#fbbf24':'#ff8a8a';
+  return`<span class="gx-flag" style="background:${col}22;color:${col}">${hit}/6 on target</span>`;
+}
+
+// Radar SVG
+function gxRadarSVG(vol,targets){
+  const cx=150,cy=140,R=110,n=6;
+  const maxV=Math.max(...MUSCLES.map(m=>Math.max((targets[m]||10)*1.3,(vol[m]||0))),12);
+  function pt(i,r){const ang=(Math.PI*2*i/n)-Math.PI/2;return[cx+r*Math.cos(ang),cy+r*Math.sin(ang)];}
+  // grid rings
+  let grid='';
+  [0.25,0.5,0.75,1].forEach(f=>{
+    const pts=MUSCLES.map((m,i)=>pt(i,R*f).join(',')).join(' ');
+    grid+=`<polygon points="${pts}" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="1"/>`;
+  });
+  // axes + labels
+  let axes='',labels='';
+  MUSCLES.forEach((m,i)=>{
+    const[x,y]=pt(i,R);axes+=`<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="rgba(255,255,255,.07)"/>`;
+    const[lx,ly]=pt(i,R+18);
+    labels+=`<text x="${lx}" y="${ly}" fill="rgba(255,255,255,.6)" font-size="11" font-weight="700" text-anchor="middle" dominant-baseline="middle">${m}</text>`;
+  });
+  // target ring (recommended min)
+  const tgtPts=MUSCLES.map((m,i)=>pt(i,R*Math.min(1,(targets[m]||10)/maxV)).join(',')).join(' ');
+  // current polygon
+  const curPts=MUSCLES.map((m,i)=>pt(i,R*Math.min(1,(vol[m]||0)/maxV)).join(',')).join(' ');
+  // overall color
+  const hit=MUSCLES.filter(m=>(vol[m]||0)>=(targets[m]||10)).length;
+  const fillCol=hit>=5?'#6ee7b7':hit>=3?'#fbbf24':'#ff8a8a';
+  // dots
+  let dots='';
+  MUSCLES.forEach((m,i)=>{const[x,y]=pt(i,R*Math.min(1,(vol[m]||0)/maxV));dots+=`<circle cx="${x}" cy="${y}" r="3.5" fill="${MUSCLE_COLORS[m]}"/>`;});
+  return`<svg class="gx-radar" viewBox="0 0 300 290">
+    ${grid}${axes}
+    <polygon points="${tgtPts}" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="1.5" stroke-dasharray="4 3"/>
+    <polygon points="${curPts}" fill="${fillCol}33" stroke="${fillCol}" stroke-width="2"/>
+    ${dots}${labels}
+  </svg>`;
+}
+
+// Deload banner — after 4 weeks progressive overload
+function gxDeloadBanner(s){
+  const p=po();
+  // count weeks with at least one logged set
+  const weeks=new Set();
+  Object.values(p.logs||{}).forEach(arr=>arr.forEach(set=>{
+    const d=new Date(set.date);const ws=weekStart(d);weeks.add(ws.toISOString().slice(0,10));
+  }));
+  // consecutive recent weeks
+  let streak=0;const now=weekStart();
+  for(let i=0;i<12;i++){const w=new Date(now);w.setDate(now.getDate()-7*i);if(weeks.has(w.toISOString().slice(0,10)))streak++;else break;}
+  if(streak>=4 && !(s.mesocycle&&s.mesocycle.deloadDone)){
+    return`<div class="gx-warn green"><span>🌱</span><div><b>${streak} weeks of training.</b> Consider a deload week — drop volume ~50% to recover and come back stronger. <span style="text-decoration:underline;cursor:pointer" onclick="gxAiDeload()">Get AI plan</span></div></div>`;
+  }
+  return'';
+}
+
+// 1RM list
+function gxRender1RM(){
+  const list=best1RM();
+  if(!list.length)return`<div class="gx-prog-empty">Log some sets to see estimated 1RMs.</div>`;
+  return list.slice(0,8).map(x=>`<div class="gx-1rm"><span class="gx-1rm-name">${x.name}</span><span class="gx-1rm-val">${x.val} ${unit()}</span></div>`).join('')
+    +`<div style="font-size:11px;color:rgba(255,255,255,.35);margin-top:10px">Estimated 1RM via Epley formula (weight × (1 + reps/30))</div>`;
+}
+
+// Progress chart
+function gxRenderProgress(){
+  const p=po();const exs=(p.exercises||[]).filter(e=>!e.bw&&(p.logs[e.id]||[]).length>1);
+  if(!exs.length)return`<div class="gx-prog-empty">Log an exercise at least twice to see a progress graph.</div>`;
+  const cur=window.gxProgEx||exs[0].id;
+  return`<select class="gx-ex-pick" id="gxProgPick" onchange="window.gxProgEx=this.value;gxDrawProgress()">
+    ${exs.map(e=>`<option value="${e.id}" ${e.id===cur?'selected':''}>${e.name}</option>`).join('')}
+  </select>
+  <svg class="gx-prog-chart" id="gxProgSvg" viewBox="0 0 320 140" preserveAspectRatio="none"></svg>
+  <div id="gxProgMeta" style="text-align:center;font-size:12px;color:rgba(255,255,255,.5);margin-top:6px"></div>`;
+}
+function gxDrawProgress(){
+  const svg=document.getElementById('gxProgSvg');if(!svg)return;
+  const p=po();const exId=window.gxProgEx||(document.getElementById('gxProgPick')||{}).value;
+  if(!exId)return;
+  const logs=(p.logs[exId]||[]).slice().sort((a,b)=>new Date(a.date)-new Date(b.date));
+  if(logs.length<2){svg.innerHTML='';return;}
+  const ws=logs.map(l=>l.weight);
+  const min=Math.min(...ws),max=Math.max(...ws),range=max-min||1;
+  const pad=10,W=320,H=140;
+  const pts=logs.map((l,i)=>{
+    const x=pad+(W-2*pad)*(i/(logs.length-1));
+    const y=H-pad-(H-2*pad)*((l.weight-min)/range);
+    return[x,y];
+  });
+  const path=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
+  const area=path+` L ${pts[pts.length-1][0].toFixed(1)} ${H-pad} L ${pts[0][0].toFixed(1)} ${H-pad} Z`;
+  svg.innerHTML=`
+    <defs><linearGradient id="gxPg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#6ee7b7" stop-opacity=".3"/><stop offset="100%" stop-color="#6ee7b7" stop-opacity="0"/></linearGradient></defs>
+    <path d="${area}" fill="url(#gxPg)"/>
+    <path d="${path}" fill="none" stroke="#6ee7b7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    ${pts.map(p=>`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3" fill="#6ee7b7"/>`).join('')}`;
+  const meta=document.getElementById('gxProgMeta');
+  if(meta)meta.textContent=`${min}→${max} ${unit()} over ${logs.length} sessions`;
+}
+
+// Body tracking
+let gxBodyView='map';
+function gxRenderBody(s){
+  const trained=gxMusclesTrainedToday();
+  const meas=s.measurements||[];
+  const last=meas[meas.length-1];
+  const prev=meas[meas.length-2];
+  const fields=[['chest','Chest'],['arms','Arms'],['waist','Waist'],['legs','Legs'],['shoulders','Shoulders']];
+  let measHtml;
+  if(!last){
+    measHtml=`<div class="gx-prog-empty">No measurements yet.</div>`;
+  } else {
+    measHtml=fields.map(([k,n])=>{
+      const v=last[k];if(v==null)return'';
+      let trend='';
+      if(prev&&prev[k]!=null){const d=v-prev[k];trend=d>0?`<span style="color:#6ee7b7">▲ ${d.toFixed(1)}</span>`:d<0?`<span style="color:#ff8a8a">▼ ${Math.abs(d).toFixed(1)}</span>`:`<span style="color:rgba(255,255,255,.4)">—</span>`;}
+      return`<div class="gx-meas-row"><span class="gx-meas-name">${n}</span><span class="gx-meas-val">${v} cm</span><span class="gx-meas-trend">${trend}</span></div>`;
+    }).join('');
+  }
+  return`
+    <div class="gx-sub-tabs" style="margin-bottom:12px">
+      <button class="gx-sub-tab ${gxBodyView==='map'?'on':''}" onclick="gxBodyView='map';gxRender()">Muscle Map</button>
+      <button class="gx-sub-tab ${gxBodyView==='meas'?'on':''}" onclick="gxBodyView='meas';gxRender()">Measurements</button>
+    </div>
+    ${gxBodyView==='map'?`
+      <div class="gx-bodies">${gxBodySVG('front',trained)}${gxBodySVG('back',trained)}</div>
+      <div style="text-align:center;font-size:12px;color:rgba(255,255,255,.5);margin-top:10px">${trained.length?'Trained today: '+trained.join(', '):'No muscles trained today yet'}</div>
+    `:`
+      ${measHtml}
+      <button class="gx-mbtn pri" style="margin-top:14px" onclick="gxOpenMeas()">+ Log Measurements</button>
+    `}`;
+}
+function gxMusclesTrainedToday(){
+  const p=po();const exMap={};(p.exercises||[]).forEach(e=>exMap[e.id]=e);
+  const set=new Set();const t=todayK();
+  Object.keys(p.logs||{}).forEach(id=>{
+    const ex=exMap[id];if(!ex)return;
+    (p.logs[id]||[]).forEach(s=>{if(s.date&&s.date.slice(0,10)===t){const m=muscleOf(ex.name);if(MUSCLES.includes(m))set.add(m);}});
+  });
+  return[...set];
+}
+// Simplified body silhouette with muscle regions
+function gxBodySVG(side,trained){
+  const on=m=>trained.includes(m)?'active':'';
+  if(side==='front'){
+    return`<div class="gx-body"><svg viewBox="0 0 80 200">
+      <ellipse cx="40" cy="14" rx="9" ry="10" fill="rgba(255,255,255,.08)" stroke="rgba(255,255,255,.15)" stroke-width=".5"/>
+      <rect class="gx-musc ${on('Shoulders')}" x="20" y="28" width="40" height="9" rx="4"/>
+      <rect class="gx-musc ${on('Chest')}" x="24" y="40" width="32" height="16" rx="4"/>
+      <rect class="gx-musc ${on('Arms')}" x="14" y="40" width="8" height="34" rx="4"/>
+      <rect class="gx-musc ${on('Arms')}" x="58" y="40" width="8" height="34" rx="4"/>
+      <rect class="gx-musc ${on('Core')}" x="27" y="58" width="26" height="26" rx="4"/>
+      <rect class="gx-musc ${on('Legs')}" x="25" y="88" width="13" height="50" rx="5"/>
+      <rect class="gx-musc ${on('Legs')}" x="42" y="88" width="13" height="50" rx="5"/>
+      <text x="40" y="158" fill="rgba(255,255,255,.3)" font-size="8" text-anchor="middle">FRONT</text>
+    </svg></div>`;
+  }
+  return`<div class="gx-body"><svg viewBox="0 0 80 200">
+    <ellipse cx="40" cy="14" rx="9" ry="10" fill="rgba(255,255,255,.08)" stroke="rgba(255,255,255,.15)" stroke-width=".5"/>
+    <rect class="gx-musc ${on('Shoulders')}" x="20" y="28" width="40" height="9" rx="4"/>
+    <rect class="gx-musc ${on('Back')}" x="24" y="40" width="32" height="30" rx="4"/>
+    <rect class="gx-musc ${on('Arms')}" x="14" y="40" width="8" height="34" rx="4"/>
+    <rect class="gx-musc ${on('Arms')}" x="58" y="40" width="8" height="34" rx="4"/>
+    <rect class="gx-musc ${on('Legs')}" x="25" y="88" width="13" height="50" rx="5"/>
+    <rect class="gx-musc ${on('Legs')}" x="42" y="88" width="13" height="50" rx="5"/>
+    <text x="40" y="158" fill="rgba(255,255,255,.3)" font-size="8" text-anchor="middle">BACK</text>
+  </svg></div>`;
+}
+
+// Mesocycle planner
+function gxRenderPlan(s){
+  const m=s.mesocycle;
+  let mesoHtml;
+  if(!m){
+    mesoHtml=`<div class="gx-prog-empty">No active training block.</div>`;
+  } else {
+    const start=new Date(m.start);const now=new Date();
+    const weekNum=Math.max(1,Math.floor((now-start)/(7*864e5))+1);
+    const pct=Math.min(100,Math.round(weekNum/m.weeks*100));
+    const isTaper=weekNum>=m.weeks;
+    mesoHtml=`<div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+        <span style="font-size:16px;font-weight:700;text-transform:capitalize">${m.goal} Block</span>
+        <span style="font-size:13px;color:rgba(255,255,255,.5)">Week ${Math.min(weekNum,m.weeks)} of ${m.weeks}</span>
+      </div>
+      <div style="height:6px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden"><div style="height:100%;width:${pct}%;background:#6ee7b7;border-radius:3px"></div></div>
+      ${isTaper?`<div class="gx-warn green" style="margin-top:10px"><span>🎯</span><div><b>Final week — taper.</b> Reduce volume, keep intensity. Prepare to test or transition.</div></div>`:''}
+    </div>
+    <button class="gx-mbtn sec" onclick="gxClearMeso()">End Block</button>`;
+  }
+  // rotation suggestion
+  const rot=gxRotationSuggestion();
+  return mesoHtml
+    +`<button class="gx-mbtn pri" style="margin-top:10px" onclick="gxOpenMeso()">${m?'New Block':'+ Plan Mesocycle'}</button>`
+    +(rot?`<div class="gx-warn orange" style="margin-top:12px"><span>🔄</span><div>${rot}</div></div>`:'');
+}
+function gxRotationSuggestion(){
+  const p=po();const exMap={};(p.exercises||[]).forEach(e=>exMap[e.id]=e);
+  // find exercise trained for 6+ weeks continuously
+  for(const id of Object.keys(p.logs||{})){
+    const logs=p.logs[id]||[];if(logs.length<6)continue;
+    const first=new Date(logs[0].date);const wks=(Date.now()-first)/(7*864e5);
+    if(wks>=6){const ex=exMap[id];if(ex)return`<b>${ex.name}</b> has been in rotation 6+ weeks. Consider swapping it for variety.`;}
+  }
+  return'';
+}
+
+// ════════ SUB-TAB / MODAL CONTROLS ════════
+window.gxSetSub=function(t){gxSubTab=t;gxRender();};
+window.gxOpenPlate=function(){gxBuildPlateChips();gxCalcPlates();document.getElementById('gxPlateModal').classList.add('open');};
+window.gxOpenRestSetup=function(){document.getElementById('gxRestModal').classList.add('open');};
+window.gxOpenMeas=function(){document.getElementById('gxMeasModal').classList.add('open');};
+window.gxOpenMeso=function(){document.getElementById('gxMesoStart').value=todayK();document.getElementById('gxMesoModal').classList.add('open');};
+window.gxCloseModal=function(id){document.getElementById(id).classList.remove('open');};
+
+// ════════ PLATE CALCULATOR ════════
+window.gxBuildPlateChips=function(){
+  const s=gload();const all=[25,20,15,10,5,2.5,1.25];
+  document.getElementById('gxPlateChips').innerHTML=all.map(p=>
+    `<div class="gx-chip ${s.plates.includes(p)?'on':''}" onclick="gxTogglePlate(${p})">${p}</div>`).join('');
+};
+window.gxTogglePlate=function(p){
+  const s=gload();const i=s.plates.indexOf(p);
+  if(i>=0)s.plates.splice(i,1);else s.plates.push(p);
+  s.plates.sort((a,b)=>b-a);gsave(s);gxBuildPlateChips();gxCalcPlates();
+};
+window.gxCalcPlates=function(){
+  const s=gload();
+  const target=parseFloat(document.getElementById('gxPlateTarget').value)||0;
+  const bar=parseFloat(document.getElementById('gxPlateBar').value)||20;
+  const vis=document.getElementById('gxPlateVisual');
+  const list=document.getElementById('gxPlateList');
+  if(target<=bar){vis.innerHTML='<div class="gx-plate-empty">Enter weight above bar weight</div>';list.textContent='';return;}
+  let perSide=(target-bar)/2;
+  const plates=s.plates.slice().sort((a,b)=>b-a);const used=[];
+  plates.forEach(p=>{while(perSide>=p-.001){used.push(p);perSide-=p;}});
+  const colors={25:'#ef4444',20:'#3b82f6',15:'#fbbf24',10:'#22c55e',5:'#f8fafc',2.5:'#1e293b',1.25:'#94a3b8'};
+  let bars='<div class="gx-plate-rod"></div>';
+  used.forEach(p=>{const h=30+p*1.6;bars+=`<div class="gx-plate" style="height:${Math.min(h,70)}px;width:${Math.max(8,p*0.7)}px;background:${colors[p]||'#888'};color:${p===5?'#000':'#fff'}">${p}</div>`;});
+  vis.innerHTML=bars+'<div class="gx-plate-rod"></div>';
+  if(used.length)list.innerHTML='Per side: '+used.join(' + ')+(perSide>0.01?`<br><span style="color:#fbbf24">+${perSide.toFixed(2)} ${unit()} unreachable</span>`:'');
+  else list.textContent='No plates needed';
+};
+
+// ════════ REST TIMER ════════
+let gxRestInt=null,gxRestLeft=0;
+window.gxStartRest=function(sec){
+  gxCloseModal('gxRestModal');
+  const s=gload();s.restDefault=sec;gsave(s);
+  gxRestLeft=sec;
+  document.getElementById('gxRestPill').classList.add('show');
+  gxUpdateRest();
+  clearInterval(gxRestInt);
+  gxRestInt=setInterval(()=>{
+    gxRestLeft--;gxUpdateRest();
+    if(gxRestLeft<=0){
+      clearInterval(gxRestInt);
+      if(navigator.vibrate)navigator.vibrate([200,100,200]);
+      gxBeep();
+      document.getElementById('gxRestTime').classList.add('done');
+      setTimeout(gxRestStop,3000);
+    }
+  },1000);
+};
+window.gxRestAdd=function(s){gxRestLeft+=s;gxUpdateRest();document.getElementById('gxRestTime').classList.remove('done');};
+window.gxRestStop=function(){clearInterval(gxRestInt);document.getElementById('gxRestPill').classList.remove('show');document.getElementById('gxRestTime').classList.remove('done');};
+function gxUpdateRest(){const m=Math.floor(Math.max(0,gxRestLeft)/60),s=Math.max(0,gxRestLeft)%60;document.getElementById('gxRestTime').textContent=m+':'+String(s).padStart(2,'0');}
+function gxBeep(){try{const a=new(window.AudioContext||window.webkitAudioContext)();const o=a.createOscillator();const g=a.createGain();o.connect(g);g.connect(a.destination);o.frequency.value=880;o.start();g.gain.setValueAtTime(.3,a.currentTime);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+.5);o.stop(a.currentTime+.5);}catch(e){}}
+
+// ════════ MEASUREMENTS ════════
+window.gxSaveMeas=function(){
+  const s=gload();
+  const m={date:todayK()};
+  ['chest','arms','waist','legs','shoulders'].forEach(k=>{
+    const v=parseFloat(document.getElementById('gxMeas'+k.charAt(0).toUpperCase()+k.slice(1)).value);
+    if(!isNaN(v))m[k]=v;
+  });
+  s.measurements.push(m);gsave(s);gxCloseModal('gxMeasModal');gxRender();
+};
+
+// ════════ MESOCYCLE ════════
+window.gxSaveMeso=function(){
+  const s=gload();
+  s.mesocycle={goal:document.getElementById('gxMesoGoal').value,weeks:parseInt(document.getElementById('gxMesoWeeks').value),start:document.getElementById('gxMesoStart').value||todayK(),deloadDone:false};
+  gsave(s);gxCloseModal('gxMesoModal');gxRender();
+};
+window.gxClearMeso=function(){const s=gload();s.mesocycle=null;gsave(s);gxRender();};
+
+// ════════ PR DETECTION ════════
+function gxCheckPR(){
+  const p=po();const s=gload();const exMap={};(p.exercises||[]).forEach(e=>exMap[e.id]=e);
+  let newPR=null;
+  Object.keys(p.logs||{}).forEach(id=>{
+    const ex=exMap[id];if(!ex||ex.bw)return;
+    const logs=p.logs[id]||[];if(!logs.length)return;
+    let max=0,maxIdx=-1;
+    logs.forEach((l,i)=>{const e=epley(l.weight,l.reps);if(e>max){max=e;maxIdx=i;}});
+    const prev=s.prs[id]||0;
+    if(max>prev){
+      // is the record the most recent set? (just set a PR)
+      if(maxIdx===logs.length-1 && prev>0){newPR={name:ex.name,val:max};}
+      s.prs[id]=max;
+    }
+  });
+  gsave(s);
+  if(newPR)gxShowPR(newPR);
+}
+function gxShowPR(pr){
+  const t=document.getElementById('gxPrToast');
+  document.getElementById('gxPrText').textContent=`PR! ${pr.name} ${pr.val}${unit()}`;
+  t.classList.add('show');
+  if(navigator.vibrate)navigator.vibrate([100,50,100,50,200]);
+  setTimeout(()=>t.classList.remove('show'),3500);
+}
+
+// ════════ GROQ AI ════════
+async function groq(prompt,sys){
+  const key=groqKey();
+  if(!key)throw new Error('NO_KEY');
+  const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{
+    method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+    body:JSON.stringify({model:'llama-3.3-70b-versatile',messages:[{role:'system',content:sys||'You are an expert strength coach. Be concise and practical.'},{role:'user',content:prompt}],max_tokens:600,temperature:0.5})
+  });
+  const d=await r.json();
+  if(!r.ok)throw new Error(d?.error?.message||'Groq error');
+  return(d?.choices?.[0]?.message?.content||'').trim();
+}
+function gxAiOut(html){const o=document.getElementById('gxAiOut');o.innerHTML=html;o.classList.add('show');}
+function gxAiLoading(label){gxAiOut(`<div style="display:flex;align-items:center;gap:10px;color:rgba(255,255,255,.6)"><span class="po-spin" style="width:16px;height:16px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;display:inline-block;animation:gxSpin .7s linear infinite"></span>${label}</div>`);}
+function gxAiErr(e){
+  if(e.message==='NO_KEY')gxAiOut(`<div style="color:#ff8a8a">Add your Groq API key in the dashboard Settings (⚙) to use AI features.</div>`);
+  else gxAiOut(`<div style="color:#ff8a8a">AI failed: ${e.message}</div>`);
+}
+function exerciseSummary(){
+  const p=po();const exMap={};(p.exercises||[]).forEach(e=>exMap[e.id]=e);
+  const lines=[];
+  Object.keys(p.logs||{}).forEach(id=>{
+    const ex=exMap[id];if(!ex)return;const logs=(p.logs[id]||[]).slice(-3);
+    if(!logs.length)return;
+    lines.push(`${ex.name}: ${logs.map(l=>l.weight+(unit())+'×'+l.reps).join(', ')}`);
+  });
+  return lines.join('\n');
+}
+window.gxAiWeight=async function(){
+  gxAiLoading('Analyzing your last sessions…');
+  try{
+    const summary=exerciseSummary();
+    if(!summary)return gxAiOut('Log a few sessions first.');
+    const out=await groq(`Based on these recent sets (last 3 sessions per exercise), for each exercise say whether to INCREASE, KEEP, or DECREASE the weight next session and by how much. Be brief — one line each.\n\n${summary}`);
+    gxAiOut(`<h4>⚖️ Weight Suggestions</h4>${escapeHtml(out)}`);
+  }catch(e){gxAiErr(e);}
+};
+window.gxAiPlateau=async function(){
+  gxAiLoading('Checking for plateaus…');
+  try{
+    const summary=exerciseSummary();
+    if(!summary)return gxAiOut('Log a few sessions first.');
+    const out=await groq(`Here are recent sets. Identify any exercise that has plateaued (no weight/rep progress). For each plateaued lift, suggest ONE specific fix (add volume, change rep range, or deload). If none plateaued, say so.\n\n${summary}`);
+    gxAiOut(`<h4>📊 Plateau Analysis</h4>${escapeHtml(out)}`);
+  }catch(e){gxAiErr(e);}
+};
+window.gxAiDeload=async function(){
+  gxAiLoading('Building deload plan…');
+  try{
+    const out=await groq(`Design a 1-week deload for a lifter who just did 4+ weeks of progressive overload. Give concrete instructions: % of working weight, sets, reps, and what to avoid. Keep it under 120 words.`);
+    gxAiOut(`<h4>🌱 Deload Week</h4>${escapeHtml(out)}`);
+    const s=gload();if(s.mesocycle)s.mesocycle.deloadDone=true;gsave(s);
+  }catch(e){gxAiErr(e);}
+};
+window.gxAiAlternatives=async function(){
+  const p=po();const names=(p.exercises||[]).map(e=>e.name);
+  const ex=prompt('Which exercise causes pain? Enter the name:',names[0]||'');
+  if(!ex)return;
+  gxAiLoading('Finding safer alternatives…');
+  try{
+    const out=await groq(`A lifter feels pain doing "${ex}". Suggest 3 alternative exercises that train the same muscles with less joint stress. One line each with a brief why.`);
+    gxAiOut(`<h4>🔁 Alternatives to ${escapeHtml(ex)}</h4>${escapeHtml(out)}`);
+  }catch(e){gxAiErr(e);}
+};
+window.gxAiPlan=async function(){
+  const days=prompt('How many days per week can you train? (e.g. 4)','4');
+  if(!days)return;
+  const goal=prompt('Goal? (hypertrophy / strength / general)','hypertrophy');
+  const equip=prompt('Equipment? (full gym / dumbbells only / bodyweight)','full gym');
+  gxAiLoading('Generating your plan…');
+  try{
+    const out=await groq(`Create a ${days}-day/week ${goal} strength training plan for someone with: ${equip}. For each day give the split name and 4-6 exercises with sets×reps. Keep it clean and scannable.`,'You are an expert strength coach. Output a clear, well-formatted weekly plan.');
+    gxAiOut(`<h4>🧠 Your ${days}-Day ${goal} Plan</h4>${escapeHtml(out)}`);
+  }catch(e){gxAiErr(e);}
+};
+function escapeHtml(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+// ════════ BOOT + SYNC ════════
+const _origSet=localStorage.setItem.bind(localStorage);
+localStorage.setItem=function(k,v){_origSet(k,v);if(k===PO){try{gxCheckPR();gxRender();}catch(e){}}};
+gxCheckPR();
+gxRender();
+window.addEventListener('storage',e=>{if(e.key===PO||e.key===GK)gxRender();});
+if(window.initCloudSync){window.initCloudSync({appKey:'gym-extra',syncedKeys:[GK],onApplied:gxRender});}
+const _spin=document.createElement('style');_spin.textContent='@keyframes gxSpin{to{transform:rotate(360deg)}}';document.head.appendChild(_spin);
 })();
 </script>
 
