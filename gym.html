@@ -5388,5 +5388,78 @@ window.lwSaveClose=function(){
 })();
 </script>
 
+<!-- ════════════════ TRAINING SUB-TABS ════════════════ -->
+<style>
+.tr-tabbar{
+  position:sticky;top:0;z-index:30;
+  display:flex;gap:8px;
+  background:#0a0a0b;
+  padding:12px 0 14px;margin:-6px 0 10px;
+}
+.tr-tab{
+  flex:1;padding:12px;
+  border:1px solid var(--border);background:var(--bg-card);
+  border-radius:13px;color:var(--text-2);
+  font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:7px;
+  transition:background .18s,color .18s,border-color .18s;
+}
+.tr-tab.on{background:#fff;color:#000;border-color:#fff}
+.tr-tab:active{transform:scale(.98)}
+.tr-pane{display:none;animation:trFade .25s ease}
+.tr-pane.on{display:block}
+@keyframes trFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+</style>
+<script>
+(function(){
+  function init(){
+    const shell=document.querySelector('.po-shell');
+    if(!shell||document.getElementById('trTabBar'))return;
+    const enRoot=document.getElementById('enRoot');
+    if(!enRoot)return;
+
+    // Build sub-tab bar
+    const bar=document.createElement('div');
+    bar.id='trTabBar';bar.className='tr-tabbar';
+    bar.innerHTML='<button class="tr-tab on" data-pane="gym">💪 Gym</button>'+
+                  '<button class="tr-tab" data-pane="end">🏃 Endurance</button>';
+
+    // Panes
+    const gymPane=document.createElement('div');gymPane.id='trGymPane';gymPane.className='tr-pane on';
+    const endPane=document.createElement('div');endPane.id='trEndPane';endPane.className='tr-pane';
+
+    // Distribute existing children: enRoot → endurance, everything else → gym
+    const kids=Array.prototype.slice.call(shell.children);
+    kids.forEach(function(k){
+      if(k===enRoot)endPane.appendChild(k);
+      else gymPane.appendChild(k);
+    });
+    shell.appendChild(bar);
+    shell.appendChild(gymPane);
+    shell.appendChild(endPane);
+
+    function setPane(pane){
+      bar.querySelectorAll('.tr-tab').forEach(function(x){x.classList.toggle('on',x.dataset.pane===pane);});
+      gymPane.classList.toggle('on',pane==='gym');
+      endPane.classList.toggle('on',pane==='end');
+      const fabs=document.querySelector('.gx-fabs');
+      if(fabs)fabs.style.display=pane==='gym'?'':'none';
+      try{localStorage.setItem('tr_subtab',pane);}catch(e){}
+      window.scrollTo(0,0);
+    }
+    bar.querySelectorAll('.tr-tab').forEach(function(b){
+      b.addEventListener('click',function(){setPane(b.dataset.pane);});
+    });
+
+    // Restore last sub-tab
+    let saved='gym';
+    try{saved=localStorage.getItem('tr_subtab')||'gym';}catch(e){}
+    if(saved==='end')setPane('end');
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);
+  else init();
+})();
+</script>
+
 </body>
 </html>
