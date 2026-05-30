@@ -639,6 +639,782 @@ body::after {
     </div>
   </div>
 
+  <!-- ══════════════ CALENDAR ══════════════ -->
+  <div id="cal-root"></div>
+  <style>
+  /* ─ Calendar CSS ─ */
+  #cal-root { margin: 0 0 4px; }
+  .cal-section-title { font-family: var(--font-mono,monospace); font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--text-tertiary); margin: 20px 0 10px; display: flex; align-items: center; gap: 8px; }
+  .cal-section-title::after { content: ''; flex: 1; height: 1px; background: rgba(255,255,255,.06); }
+
+  /* Race countdown */
+  .cal-race-strip { display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.25); border-radius: 12px; margin-bottom: 10px; font-size: 14px; }
+  .cal-race-strip-icon { font-size: 18px; flex-shrink: 0; }
+  .cal-race-strip-name { font-weight: 700; color: #fca5a5; flex: 1; }
+  .cal-race-strip-countdown { font-size: 22px; font-weight: 800; color: #ef4444; font-variant-numeric: tabular-nums; }
+  .cal-race-strip-label { font-size: 11px; color: #f87171; }
+
+  /* Weekly training bar */
+  .cal-week-bar { display: flex; gap: 8px; margin-bottom: 10px; align-items: stretch; }
+  .cal-week-total { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.07); border-radius: 14px; padding: 10px 14px; flex-shrink: 0; display: flex; flex-direction: column; justify-content: center; min-width: 68px; }
+  .cal-week-total-num { font-size: 22px; font-weight: 800; color: var(--text-primary); line-height: 1; }
+  .cal-week-total-label { font-size: 10px; color: var(--text-tertiary); margin-top: 2px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+  .cal-rings-row { display: flex; gap: 6px; flex: 1; justify-content: space-around; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.07); border-radius: 14px; padding: 8px 10px; }
+  .cal-ring-item { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .cal-ring-svg { width: 40px; height: 40px; }
+  .cal-ring-track { fill: none; stroke: rgba(255,255,255,.08); stroke-width: 4; }
+  .cal-ring-fill { fill: none; stroke-width: 4; stroke-linecap: round; transition: stroke-dashoffset .6s cubic-bezier(.22,1,.36,1); }
+  .cal-ring-label { font-size: 9px; color: var(--text-tertiary); font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
+
+  /* Card wrapper */
+  .cal-card { background: rgba(255,255,255,.025); border: 1px solid transparent; border-radius: 22px; box-shadow: 0 1px 0 0 rgba(255,255,255,.06) inset, 0 12px 40px rgba(0,0,0,.45); overflow: hidden; }
+
+  /* View toggle + header */
+  .cal-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 10px; }
+  .cal-title { font-size: 18px; font-weight: 800; color: var(--text-primary); letter-spacing: -.02em; cursor: pointer; }
+  .cal-nav { display: flex; align-items: center; gap: 4px; }
+  .cal-nav-btn { width: 32px; height: 32px; border: none; background: rgba(255,255,255,.06); border-radius: 50%; color: var(--text-primary); font-size: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background .15s; }
+  .cal-nav-btn:active { background: rgba(255,255,255,.14); }
+  .cal-view-toggle { display: flex; background: rgba(255,255,255,.06); border-radius: 8px; padding: 2px; gap: 1px; }
+  .cal-view-btn { padding: 4px 10px; border: none; background: none; border-radius: 6px; font-size: 12px; font-weight: 600; color: var(--text-tertiary); cursor: pointer; transition: background .15s, color .15s; }
+  .cal-view-btn.on { background: rgba(255,255,255,.12); color: var(--text-primary); }
+
+  /* Day-of-week headers */
+  .cal-dow { display: grid; grid-template-columns: repeat(7,1fr); padding: 0 10px; }
+  .cal-dow-cell { text-align: center; font-size: 10px; font-weight: 700; color: var(--text-tertiary); letter-spacing: .08em; padding-bottom: 6px; text-transform: uppercase; }
+
+  /* Month grid */
+  .cal-grid-wrap { overflow: hidden; position: relative; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7,1fr); padding: 0 10px 12px; gap: 2px 0; transition: transform .3s cubic-bezier(.33,1,.68,1), opacity .25s; }
+  .cal-grid.anim-left { transform: translateX(-40px); opacity: 0; }
+  .cal-grid.anim-right { transform: translateX(40px); opacity: 0; }
+
+  .cal-cell { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 3px 1px; cursor: pointer; border-radius: 10px; transition: background .15s; min-height: 48px; position: relative; }
+  .cal-cell:active { background: rgba(255,255,255,.06); }
+  .cal-cell.race-day { background: rgba(239,68,68,.06); }
+  .cal-day-num { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 500; color: var(--text-primary); position: relative; transition: background .15s, color .15s; }
+  .cal-cell.other-month .cal-day-num { color: var(--text-tertiary); opacity: .4; }
+  .cal-cell.today .cal-day-num { box-shadow: 0 0 0 2px #fff; font-weight: 700; }
+  .cal-cell.selected .cal-day-num { background: #fff; color: #000; font-weight: 700; }
+  .cal-cell.selected.today .cal-day-num { background: #fff; box-shadow: none; }
+
+  /* Event dots */
+  .cal-dots { display: flex; gap: 2px; flex-wrap: wrap; justify-content: center; max-width: 32px; }
+  .cal-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+
+  /* Week view */
+  .cal-week-grid { display: grid; grid-template-columns: repeat(7,1fr); padding: 0 10px 12px; gap: 4px; }
+  .cal-week-cell { display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; padding: 4px 2px; border-radius: 10px; min-height: 60px; }
+  .cal-week-events { display: flex; flex-direction: column; gap: 2px; width: 100%; }
+  .cal-week-evt { font-size: 9px; font-weight: 600; border-radius: 3px; padding: 2px 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #fff; }
+
+  /* Day view */
+  .cal-day-timeline { padding: 0 16px 16px; max-height: 360px; overflow-y: auto; }
+  .cal-hour-row { display: flex; gap: 10px; align-items: flex-start; min-height: 36px; border-top: 1px solid rgba(255,255,255,.04); padding-top: 4px; }
+  .cal-hour-label { width: 36px; font-size: 10px; color: var(--text-tertiary); font-variant-numeric: tabular-nums; flex-shrink: 0; padding-top: 2px; }
+  .cal-hour-events { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+  .cal-hour-evt { border-radius: 6px; padding: 4px 8px; font-size: 12px; font-weight: 600; color: #fff; display: flex; align-items: center; gap: 6px; }
+
+  /* Day bottom sheet */
+  #calDaySheet { position: fixed; bottom: 0; left: 0; right: 0; z-index: 500; pointer-events: none; }
+  #calDaySheet.open { pointer-events: all; }
+  .cal-sheet-scrim { position: fixed; inset: 0; background: rgba(0,0,0,.6); opacity: 0; transition: opacity .3s; pointer-events: none; }
+  #calDaySheet.open .cal-sheet-scrim { opacity: 1; pointer-events: all; }
+  .cal-sheet-panel { position: fixed; bottom: 0; left: 0; right: 0; background: #1c1c1e; border-radius: 20px 20px 0 0; padding: 0 0 max(20px,env(safe-area-inset-bottom)); transform: translateY(100%); transition: transform .4s cubic-bezier(.32,.72,0,1); max-height: 88vh; display: flex; flex-direction: column; }
+  #calDaySheet.open .cal-sheet-panel { transform: translateY(0); }
+  .cal-sheet-handle { width: 36px; height: 4px; background: rgba(255,255,255,.2); border-radius: 2px; margin: 12px auto 0; flex-shrink: 0; }
+  .cal-sheet-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px 10px; flex-shrink: 0; }
+  .cal-sheet-date { font-size: 18px; font-weight: 700; color: #fff; }
+  .cal-sheet-add { padding: 8px 16px; border: none; background: #fff; color: #000; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; }
+  .cal-sheet-scroll { flex: 1; overflow-y: auto; padding: 0 16px; }
+  .cal-sheet-evt { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,.06); }
+  .cal-sheet-evt-bar { width: 4px; height: 40px; border-radius: 2px; flex-shrink: 0; }
+  .cal-sheet-evt-body { flex: 1; min-width: 0; }
+  .cal-sheet-evt-title { font-size: 15px; font-weight: 600; color: #fff; margin-bottom: 3px; }
+  .cal-sheet-evt-meta { font-size: 12px; color: #8e8e93; }
+  .cal-sheet-evt-actions { display: flex; gap: 6px; }
+  .cal-sheet-done-btn { width: 32px; height: 32px; border-radius: 50%; border: 2px solid rgba(255,255,255,.2); background: none; color: rgba(255,255,255,.5); font-size: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background .15s, border-color .15s; }
+  .cal-sheet-done-btn.done { background: #6BE3A4; border-color: #6BE3A4; color: #000; }
+  .cal-sheet-del-btn { width: 32px; height: 32px; border-radius: 50%; border: none; background: rgba(239,68,68,.15); color: #f87171; font-size: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .cal-sheet-empty { text-align: center; padding: 40px 20px; color: #8e8e93; font-size: 15px; }
+
+  /* Add/Edit modal */
+  #calEvtModal { position: fixed; inset: 0; z-index: 600; display: none; }
+  #calEvtModal.open { display: flex; flex-direction: column; justify-content: flex-end; }
+  .cal-modal-scrim { position: fixed; inset: 0; background: rgba(0,0,0,.7); }
+  .cal-modal-panel { position: relative; background: #1c1c1e; border-radius: 20px 20px 0 0; padding: 20px; padding-bottom: max(24px,env(safe-area-inset-bottom)); max-height: 92vh; overflow-y: auto; }
+  .cal-modal-handle { width: 36px; height: 4px; background: rgba(255,255,255,.2); border-radius: 2px; margin: 0 auto 16px; }
+  .cal-modal-title { font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 16px; }
+  .cal-field { margin-bottom: 12px; }
+  .cal-field-label { font-size: 12px; font-weight: 700; color: #8e8e93; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
+  .cal-field input, .cal-field select, .cal-field textarea { width: 100%; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); border-radius: 12px; padding: 12px 14px; font-size: 16px; color: #fff; font-family: inherit; outline: none; }
+  .cal-field input:focus, .cal-field select:focus, .cal-field textarea:focus { border-color: rgba(255,255,255,.3); }
+  .cal-field textarea { resize: none; min-height: 70px; }
+  .cal-type-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 6px; }
+  .cal-type-opt { padding: 8px 4px; border: 1.5px solid rgba(255,255,255,.08); border-radius: 10px; background: rgba(255,255,255,.04); text-align: center; cursor: pointer; transition: border-color .15s, background .15s; }
+  .cal-type-opt.sel { border-color: #fff; background: rgba(255,255,255,.12); }
+  .cal-type-opt-icon { font-size: 18px; display: block; }
+  .cal-type-opt-name { font-size: 9px; color: #8e8e93; margin-top: 2px; font-weight: 600; }
+  .cal-type-opt.sel .cal-type-opt-name { color: #fff; }
+  .cal-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .cal-modal-btn { width: 100%; padding: 15px; border: none; border-radius: 14px; font-size: 16px; font-weight: 700; cursor: pointer; font-family: inherit; margin-top: 8px; }
+  .cal-modal-btn.pri { background: #fff; color: #000; }
+  .cal-modal-btn.del { background: rgba(239,68,68,.15); color: #f87171; }
+  .cal-modal-btn.sec { background: rgba(255,255,255,.06); color: rgba(255,255,255,.7); }
+  </style>
+
+  <!-- Calendar HTML injected by JS -->
+  <div id="calDaySheet">
+    <div class="cal-sheet-scrim" onclick="calCloseSheet()"></div>
+    <div class="cal-sheet-panel">
+      <div class="cal-sheet-handle"></div>
+      <div class="cal-sheet-header">
+        <div class="cal-sheet-date" id="calSheetDate"></div>
+        <button class="cal-sheet-add" onclick="calOpenAdd()">+ Add</button>
+      </div>
+      <div class="cal-sheet-scroll" id="calSheetEvents"></div>
+    </div>
+  </div>
+
+  <div id="calEvtModal">
+    <div class="cal-modal-scrim" onclick="calCloseModal()"></div>
+    <div class="cal-modal-panel">
+      <div class="cal-modal-handle"></div>
+      <div class="cal-modal-title" id="calModalTitle">New Entry</div>
+      <div class="cal-field">
+        <div class="cal-field-label">Type</div>
+        <div class="cal-type-grid" id="calTypeGrid"></div>
+      </div>
+      <div class="cal-field">
+        <div class="cal-field-label">Title</div>
+        <input type="text" id="calEvtTitle" placeholder="e.g. Morning Swim">
+      </div>
+      <div class="cal-field-row">
+        <div class="cal-field">
+          <div class="cal-field-label">Date</div>
+          <input type="date" id="calEvtDate">
+        </div>
+        <div class="cal-field">
+          <div class="cal-field-label">Time</div>
+          <input type="time" id="calEvtTime">
+        </div>
+      </div>
+      <div id="calTrainingFields" style="display:none">
+        <div class="cal-field-row">
+          <div class="cal-field"><div class="cal-field-label">Duration (min)</div><input type="number" id="calEvtDuration" placeholder="60" min="1"></div>
+          <div class="cal-field"><div class="cal-field-label">Distance (km)</div><input type="number" id="calEvtDistance" placeholder="0" step="0.1" min="0"></div>
+        </div>
+        <div class="cal-field-row">
+          <div class="cal-field"><div class="cal-field-label">Intensity</div>
+            <select id="calEvtIntensity"><option value="easy">Easy</option><option value="moderate">Moderate</option><option value="hard">Hard</option></select>
+          </div>
+          <div class="cal-field"><div class="cal-field-label">HR Zone</div>
+            <select id="calEvtHrZone"><option value="">—</option><option value="1">Zone 1</option><option value="2">Zone 2</option><option value="3">Zone 3</option><option value="4">Zone 4</option><option value="5">Zone 5</option></select>
+          </div>
+        </div>
+      </div>
+      <div id="calRaceFields" style="display:none">
+        <div class="cal-field"><div class="cal-field-label">Race Distance / Name</div><input type="text" id="calEvtRaceDist" placeholder="e.g. Half Ironman · Zürich"></div>
+      </div>
+      <div class="cal-field">
+        <div class="cal-field-label">Reminder</div>
+        <select id="calEvtReminder">
+          <option value="">None</option>
+          <option value="15">15 min before</option>
+          <option value="30" selected>30 min before</option>
+          <option value="60">1 hour before</option>
+          <option value="120">2 hours before</option>
+        </select>
+      </div>
+      <div class="cal-field">
+        <div class="cal-field-label">Recurring</div>
+        <select id="calEvtRecurring"><option value="">Never</option><option value="yearly">Yearly (Birthday)</option></select>
+      </div>
+      <div class="cal-field">
+        <div class="cal-field-label">Notes</div>
+        <textarea id="calEvtNotes" placeholder="Optional notes…"></textarea>
+      </div>
+      <input type="hidden" id="calEvtId">
+      <button class="cal-modal-btn pri" onclick="calSaveEvent()">Save</button>
+      <button class="cal-modal-btn del" id="calDeleteBtn" onclick="calDeleteEvent()" style="display:none">Delete Entry</button>
+      <button class="cal-modal-btn sec" onclick="calCloseModal()">Cancel</button>
+    </div>
+  </div>
+
+  <script>
+  (function(){
+  'use strict';
+  // ─────────────────────────────────────
+  // CONSTANTS
+  // ─────────────────────────────────────
+  const CAL_KEY = 'calendar_v1';
+  const TYPES = [
+    {id:'swim',    icon:'🏊', label:'Swim',       color:'#06b6d4', training:true},
+    {id:'bike',    icon:'🚴', label:'Bike',       color:'#f59e0b', training:true},
+    {id:'run',     icon:'🏃', label:'Run',        color:'#22c55e', training:true},
+    {id:'strength',icon:'💪', label:'Strength',   color:'#8b5cf6', training:true},
+    {id:'hyrox',   icon:'🔥', label:'Hyrox',      color:'#ef4444', training:true},
+    {id:'race',    icon:'🏁', label:'Race',       color:'#ef4444', training:false},
+    {id:'school',  icon:'📚', label:'School',     color:'#3b82f6', training:false},
+    {id:'appointment',icon:'🏥',label:'Appt',   color:'#14b8a6', training:false},
+    {id:'birthday',icon:'🎂', label:'Birthday',   color:'#ec4899', training:false},
+    {id:'rest',    icon:'😴', label:'Rest',       color:'#6b7280', training:false},
+    {id:'general', icon:'📋', label:'General',    color:'#9ca3af', training:false},
+  ];
+  const typeMap = Object.fromEntries(TYPES.map(t=>[t.id,t]));
+  const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const WEEK_GOALS = {swim:120,bike:180,run:90,strength:60}; // minutes
+
+  // ─────────────────────────────────────
+  // STATE
+  // ─────────────────────────────────────
+  function load(){try{return JSON.parse(localStorage.getItem(CAL_KEY))||def();}catch{return def();}}
+  function def(){return{events:[],whoopScores:{},weeklyGoals:WEEK_GOALS,morningReminder:'07:00',notifEnabled:false};}
+  function save(s){localStorage.setItem(CAL_KEY,JSON.stringify(s));}
+  function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
+  function dk(d){return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+  function today(){return dk(new Date());}
+
+  // ─────────────────────────────────────
+  // CALENDAR STATE
+  // ─────────────────────────────────────
+  let view='month', curYear=new Date().getFullYear(), curMonth=new Date().getMonth();
+  let selectedDate=today(), sheetOpen=false;
+  let touchStartX=0, touchStartY=0;
+
+  // ─────────────────────────────────────
+  // EVENTS HELPERS
+  // ─────────────────────────────────────
+  function getEventsForDate(state, dateStr){
+    const base=state.events.filter(e=>{
+      if(e.recurring==='yearly'){
+        const ed=e.date.slice(5); // MM-DD
+        return dateStr.slice(5)===ed;
+      }
+      return e.date===dateStr;
+    });
+    return base;
+  }
+  function getEventsForMonth(state, year, month){
+    const map={};
+    const daysInMonth=new Date(year,month+1,0).getDate();
+    for(let d=1;d<=daysInMonth;d++){
+      const k=`${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const evts=getEventsForDate(state,k);
+      if(evts.length)map[k]=evts;
+    }
+    return map;
+  }
+  function nextRace(state){
+    const td=today();
+    return state.events
+      .filter(e=>e.type==='race'&&e.date>=td)
+      .sort((a,b)=>a.date.localeCompare(b.date))[0]||null;
+  }
+  function daysUntil(dateStr){
+    const d=new Date(dateStr+'T12:00:00'), t=new Date(today()+'T12:00:00');
+    return Math.round((d-t)/86400000);
+  }
+  function weekRange(){
+    const d=new Date(); const dow=d.getDay();
+    const mon=new Date(d); mon.setDate(d.getDate()-((dow+6)%7));
+    const sun=new Date(mon); sun.setDate(mon.getDate()+6);
+    return{mon:dk(mon),sun:dk(sun)};
+  }
+  function weeklyTraining(state){
+    const{mon,sun}=weekRange();
+    const totals={swim:0,bike:0,run:0,strength:0};
+    state.events.filter(e=>e.date>=mon&&e.date<=sun&&TYPES.find(t=>t.id===e.type&&t.training))
+      .forEach(e=>{
+        if(e.done&&e.duration){
+          const k=e.type==='hyrox'?'strength':e.type;
+          if(k in totals)totals[k]+=(e.duration||0);
+        }
+      });
+    return totals;
+  }
+  function totalWeeklyMins(state){
+    const t=weeklyTraining(state);
+    return Object.values(t).reduce((a,v)=>a+v,0);
+  }
+  function isTaperWeek(state){
+    const race=nextRace(state);
+    if(!race)return false;
+    const du=daysUntil(race.date);
+    return du>0&&du<=7;
+  }
+  function backToBackWarning(state){
+    const td=today();
+    const yd=dk(new Date(new Date(td+'T12:00:00').getTime()-86400000));
+    const hard=d=>state.events.some(e=>e.date===d&&e.intensity==='hard');
+    return hard(td)&&hard(yd);
+  }
+
+  // ─────────────────────────────────────
+  // RENDER
+  // ─────────────────────────────────────
+  function render(){
+    const state=load();
+    const root=document.getElementById('cal-root');
+    if(!root)return;
+
+    const race=nextRace(state);
+    const taper=isTaperWeek(state);
+    const backToBack=backToBackWarning(state);
+    const wt=weeklyTraining(state);
+    const totalMin=totalWeeklyMins(state);
+    const goals=state.weeklyGoals||WEEK_GOALS;
+
+    // Race countdown
+    let raceStrip='';
+    if(race){
+      const du=daysUntil(race.date);
+      if(du<=30&&du>=0){
+        raceStrip=`<div class="cal-race-strip">
+          <div class="cal-race-strip-icon">🏁</div>
+          <div class="cal-race-strip-name">${race.title||race.raceDist||'Race'}</div>
+          <div style="text-align:right">
+            <div class="cal-race-strip-countdown">${du===0?'TODAY':du+'d'}</div>
+            <div class="cal-race-strip-label">${du===0?'Race day!':du===1?'Tomorrow':'to go'}</div>
+          </div>
+        </div>`;
+      }
+    }
+
+    // Progress rings
+    function ring(type, mins, goal, color){
+      const pct=Math.min(1,goal>0?mins/goal:0);
+      const r=16, circ=2*Math.PI*r;
+      const offset=circ*(1-pct);
+      const t=typeMap[type];
+      return`<div class="cal-ring-item">
+        <svg class="cal-ring-svg" viewBox="0 0 40 40">
+          <circle class="cal-ring-track" cx="20" cy="20" r="${r}"/>
+          <circle class="cal-ring-fill" cx="20" cy="20" r="${r}" stroke="${color}"
+            stroke-dasharray="${circ.toFixed(1)}"
+            stroke-dashoffset="${offset.toFixed(1)}"
+            transform="rotate(-90 20 20)"/>
+          <text x="20" y="24" text-anchor="middle" font-size="11" font-weight="700" fill="${pct>=1?color:'#fff'}">${t.icon}</text>
+        </svg>
+        <div class="cal-ring-label">${type}</div>
+      </div>`;
+    }
+
+    const totalH=Math.floor(totalMin/60), totalM=totalMin%60;
+
+    let weekBar=`<div class="cal-week-bar">
+      <div class="cal-week-total">
+        <div class="cal-week-total-num">${totalH}h${totalM>0?totalM+'m':''}</div>
+        <div class="cal-week-total-label">This week</div>
+      </div>
+      <div class="cal-rings-row">
+        ${ring('swim',wt.swim,goals.swim,'#06b6d4')}
+        ${ring('bike',wt.bike,goals.bike,'#f59e0b')}
+        ${ring('run',wt.run,goals.run,'#22c55e')}
+        ${ring('strength',wt.strength,goals.strength,'#8b5cf6')}
+      </div>
+    </div>`;
+
+    // Warnings
+    let warnings='';
+    if(taper) warnings+=`<div style="padding:8px 12px;background:rgba(107,227,164,.1);border:1px solid rgba(107,227,164,.2);border-radius:10px;font-size:13px;color:#6BE3A4;margin-bottom:8px">🌟 Taper week — race in ${daysUntil(race.date)} days. Reduce volume.</div>`;
+    if(backToBack) warnings+=`<div style="padding:8px 12px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);border-radius:10px;font-size:13px;color:#f59e0b;margin-bottom:8px">⚠️ Two hard sessions back-to-back — consider recovery.</div>`;
+
+    // Calendar body
+    let calBody='';
+    if(view==='month') calBody=renderMonth(state);
+    else if(view==='week') calBody=renderWeek(state);
+    else calBody=renderDay(state);
+
+    const monthLabel=view==='month'?`${MONTHS[curMonth]} ${curYear}`:
+                     view==='week'?getWeekLabel():
+                     new Date(selectedDate+'T12:00:00').toLocaleDateString('en',{weekday:'long',month:'long',day:'numeric'});
+
+    root.innerHTML=`
+      <div class="cal-section-title">Calendar</div>
+      ${raceStrip}
+      ${weekBar}
+      ${warnings}
+      <div class="cal-card">
+        <div class="cal-header">
+          <div class="cal-title" onclick="calCycleView()">${monthLabel}</div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="cal-view-toggle">
+              <button class="cal-view-btn ${view==='month'?'on':''}" onclick="calSetView('month')">M</button>
+              <button class="cal-view-btn ${view==='week'?'on':''}" onclick="calSetView('week')">W</button>
+              <button class="cal-view-btn ${view==='day'?'on':''}" onclick="calSetView('day')">D</button>
+            </div>
+            <div class="cal-nav">
+              <button class="cal-nav-btn" onclick="calPrev()">‹</button>
+              <button class="cal-nav-btn" onclick="calNext()">›</button>
+            </div>
+          </div>
+        </div>
+        ${view==='month'?`<div class="cal-dow">${DOW.map(d=>`<div class="cal-dow-cell">${d[0]}</div>`).join('')}</div>`:''}
+        <div class="cal-grid-wrap" id="calGridWrap">
+          ${calBody}
+        </div>
+      </div>`;
+
+    // Swipe
+    const wrap=document.getElementById('calGridWrap');
+    if(wrap){
+      wrap.addEventListener('touchstart',e=>{touchStartX=e.touches[0].clientX;touchStartY=e.touches[0].clientY;},{passive:true});
+      wrap.addEventListener('touchend',e=>{
+        const dx=e.changedTouches[0].clientX-touchStartX;
+        const dy=e.changedTouches[0].clientY-touchStartY;
+        if(Math.abs(dx)>40&&Math.abs(dx)>Math.abs(dy)*1.5){
+          if(dx<0)calNext(); else calPrev();
+        }
+      },{passive:true});
+    }
+  }
+
+  function renderMonth(state){
+    const firstDay=new Date(curYear,curMonth,1).getDay();
+    const daysInMonth=new Date(curYear,curMonth+1,0).getDate();
+    const daysInPrev=new Date(curYear,curMonth,0).getDate();
+    const td=today();
+    let html=`<div class="cal-grid" id="calGrid">`;
+    // Leading days from prev month
+    for(let i=firstDay-1;i>=0;i--){
+      const d=daysInPrev-i;
+      const dm=curMonth===0?12:curMonth, dy=curMonth===0?curYear-1:curYear;
+      const k=`${dy}-${String(dm).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      html+=calCell(k,d,state,true);
+    }
+    // Current month
+    for(let d=1;d<=daysInMonth;d++){
+      const k=`${curYear}-${String(curMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      html+=calCell(k,d,state,false);
+    }
+    // Trailing days
+    const total=firstDay+daysInMonth;
+    const trailing=total%7===0?0:7-(total%7);
+    for(let d=1;d<=trailing;d++){
+      const nm=curMonth===11?1:curMonth+2, ny=curMonth===11?curYear+1:curYear;
+      const k=`${ny}-${String(nm).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      html+=calCell(k,d,state,true);
+    }
+    return html+'</div>';
+  }
+
+  function calCell(dateStr,dayNum,state,otherMonth){
+    const evts=getEventsForDate(state,dateStr);
+    const isToday=dateStr===today();
+    const isSel=dateStr===selectedDate;
+    const hasRace=evts.some(e=>e.type==='race');
+    let cls='cal-cell';
+    if(otherMonth)cls+=' other-month';
+    if(isToday)cls+=' today';
+    if(isSel)cls+=' selected';
+    if(hasRace)cls+=' race-day';
+    const dots=evts.slice(0,6).map(e=>`<div class="cal-dot" style="background:${typeMap[e.type]?.color||'#9ca3af'}"></div>`).join('');
+    return`<div class="${cls}" onclick="calSelectDate('${dateStr}')">
+      <div class="cal-day-num">${dayNum}</div>
+      <div class="cal-dots">${dots}</div>
+    </div>`;
+  }
+
+  function renderWeek(state){
+    const d=new Date(selectedDate+'T12:00:00');
+    const dow=d.getDay();
+    const mon=new Date(d); mon.setDate(d.getDate()-((dow+6)%7));
+    let html=`<div class="cal-week-grid" id="calGrid">`;
+    const td=today();
+    for(let i=0;i<7;i++){
+      const day=new Date(mon); day.setDate(mon.getDate()+i);
+      const k=dk(day);
+      const evts=getEventsForDate(state,k);
+      const isToday=k===td, isSel=k===selectedDate;
+      let numCls='cal-day-num';
+      if(isToday)numCls+=' today'; if(isSel)numCls+=' selected';
+      html+=`<div class="cal-week-cell" onclick="calSelectDate('${k}')">
+        <div style="font-size:10px;color:${isToday?'#fff':'rgba(255,255,255,.5)'};font-weight:600;text-transform:uppercase;margin-bottom:2px">${DOW[day.getDay()][0]}</div>
+        <div class="${numCls}" style="font-size:13px;width:26px;height:26px">${day.getDate()}</div>
+        <div class="cal-week-events">
+          ${evts.slice(0,3).map(e=>`<div class="cal-week-evt" style="background:${(typeMap[e.type]?.color||'#9ca3af')}33;border-left:2px solid ${typeMap[e.type]?.color||'#9ca3af'};color:${typeMap[e.type]?.color||'#9ca3af'}">${typeMap[e.type]?.icon||''} ${e.title}</div>`).join('')}
+        </div>
+      </div>`;
+    }
+    return html+'</div>';
+  }
+
+  function renderDay(state){
+    const evts=getEventsForDate(state,selectedDate).sort((a,b)=>(a.time||'00:00').localeCompare(b.time||'00:00'));
+    let html=`<div class="cal-day-timeline">`;
+    for(let h=6;h<23;h++){
+      const hEvts=evts.filter(e=>{if(!e.time)return false;const eh=parseInt(e.time.split(':')[0]);return eh===h;});
+      const label=h===12?'12 PM':h>12?`${h-12} PM`:`${h} AM`;
+      html+=`<div class="cal-hour-row">
+        <div class="cal-hour-label">${label}</div>
+        <div class="cal-hour-events">
+          ${hEvts.map(e=>`<div class="cal-hour-evt" style="background:${(typeMap[e.type]?.color||'#9ca3af')}22;border-left:3px solid ${typeMap[e.type]?.color||'#9ca3af'}" onclick="calEditEvent('${e.id}')">
+            ${typeMap[e.type]?.icon||''} ${e.title}${e.duration?' · '+e.duration+'min':''}
+          </div>`).join('')}
+        </div>
+      </div>`;
+    }
+    return html+'</div>';
+  }
+
+  function getWeekLabel(){
+    const d=new Date(selectedDate+'T12:00:00');
+    const dow=d.getDay();
+    const mon=new Date(d); mon.setDate(d.getDate()-((dow+6)%7));
+    const sun=new Date(mon); sun.setDate(mon.getDate()+6);
+    const fmt=dt=>dt.toLocaleDateString('en',{month:'short',day:'numeric'});
+    return`${fmt(mon)} – ${fmt(sun)}, ${sun.getFullYear()}`;
+  }
+
+  // ─────────────────────────────────────
+  // NAVIGATION
+  // ─────────────────────────────────────
+  function calAnimate(dir){
+    const grid=document.getElementById('calGrid');
+    if(!grid)return;
+    grid.classList.add(dir==='left'?'anim-left':'anim-right');
+    setTimeout(()=>{grid.classList.remove('anim-left','anim-right');},50);
+  }
+  function calPrev(){
+    calAnimate('right');
+    if(view==='month'){if(curMonth===0){curMonth=11;curYear--;}else curMonth--;}
+    else if(view==='week'){const d=new Date(selectedDate+'T12:00:00');d.setDate(d.getDate()-7);selectedDate=dk(d);}
+    else{const d=new Date(selectedDate+'T12:00:00');d.setDate(d.getDate()-1);selectedDate=dk(d);}
+    setTimeout(render,30);
+  }
+  function calNext(){
+    calAnimate('left');
+    if(view==='month'){if(curMonth===11){curMonth=0;curYear++;}else curMonth++;}
+    else if(view==='week'){const d=new Date(selectedDate+'T12:00:00');d.setDate(d.getDate()+7);selectedDate=dk(d);}
+    else{const d=new Date(selectedDate+'T12:00:00');d.setDate(d.getDate()+1);selectedDate=dk(d);}
+    setTimeout(render,30);
+  }
+  function calSetView(v){view=v;render();}
+  function calCycleView(){const vs=['month','week','day'];view=vs[(vs.indexOf(view)+1)%3];render();}
+  function calSelectDate(k){
+    selectedDate=k;
+    const d=new Date(k+'T12:00:00');
+    curYear=d.getFullYear();curMonth=d.getMonth();
+    render();
+    calOpenSheet(k);
+  }
+
+  // ─────────────────────────────────────
+  // DAY SHEET
+  // ─────────────────────────────────────
+  function calOpenSheet(dateStr){
+    const state=load();
+    const evts=getEventsForDate(state,dateStr);
+    const d=new Date(dateStr+'T12:00:00');
+    document.getElementById('calSheetDate').textContent=
+      d.toLocaleDateString('en',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+    const scroll=document.getElementById('calSheetEvents');
+    if(!evts.length){
+      scroll.innerHTML=`<div class="cal-sheet-empty">No entries for this day.<br>Tap + Add to create one.</div>`;
+    } else {
+      scroll.innerHTML=evts.map(e=>{
+        const t=typeMap[e.type]||typeMap.general;
+        const meta=[e.time,e.duration?e.duration+'min':null,e.distance?e.distance+'km':null,e.intensity].filter(Boolean).join(' · ');
+        return`<div class="cal-sheet-evt">
+          <div class="cal-sheet-evt-bar" style="background:${t.color}"></div>
+          <div class="cal-sheet-evt-body">
+            <div class="cal-sheet-evt-title">${t.icon} ${e.title}</div>
+            ${meta?`<div class="cal-sheet-evt-meta">${meta}</div>`:''}
+            ${e.notes?`<div class="cal-sheet-evt-meta" style="margin-top:2px;font-style:italic">${e.notes}</div>`:''}
+          </div>
+          <div class="cal-sheet-evt-actions">
+            ${t.training?`<button class="cal-sheet-done-btn ${e.done?'done':''}" onclick="calToggleDone('${e.id}')" title="Mark done">${e.done?'✓':'○'}</button>`:''}
+            <button class="cal-sheet-del-btn" onclick="calQuickDelete('${e.id}')" title="Delete">✕</button>
+          </div>
+        </div>`;
+      }).join('');
+    }
+    document.getElementById('calDaySheet').classList.add('open');
+    sheetOpen=true;
+  }
+  function calCloseSheet(){document.getElementById('calDaySheet').classList.remove('open');sheetOpen=false;}
+  function calToggleDone(id){
+    const state=load();
+    const e=state.events.find(e=>e.id===id);
+    if(e)e.done=!e.done;
+    save(state);
+    calOpenSheet(selectedDate);
+    render();
+  }
+  function calQuickDelete(id){
+    const state=load();
+    state.events=state.events.filter(e=>e.id!==id);
+    save(state);
+    calOpenSheet(selectedDate);
+    render();
+  }
+
+  // ─────────────────────────────────────
+  // ADD / EDIT MODAL
+  // ─────────────────────────────────────
+  let editingType='swim';
+  function calOpenAdd(){
+    calCloseSheet();
+    editingType='swim';
+    document.getElementById('calEvtId').value='';
+    document.getElementById('calEvtTitle').value='';
+    document.getElementById('calEvtDate').value=selectedDate;
+    document.getElementById('calEvtTime').value='07:00';
+    document.getElementById('calEvtDuration').value='';
+    document.getElementById('calEvtDistance').value='';
+    document.getElementById('calEvtIntensity').value='moderate';
+    document.getElementById('calEvtHrZone').value='';
+    document.getElementById('calEvtRaceDist').value='';
+    document.getElementById('calEvtReminder').value='30';
+    document.getElementById('calEvtRecurring').value='';
+    document.getElementById('calEvtNotes').value='';
+    document.getElementById('calModalTitle').textContent='New Entry';
+    document.getElementById('calDeleteBtn').style.display='none';
+    buildTypeGrid('swim');
+    updateModalFields('swim');
+    document.getElementById('calEvtModal').classList.add('open');
+  }
+  function calEditEvent(id){
+    const state=load();
+    const e=state.events.find(e=>e.id===id);
+    if(!e)return;
+    editingType=e.type||'swim';
+    document.getElementById('calEvtId').value=e.id;
+    document.getElementById('calEvtTitle').value=e.title||'';
+    document.getElementById('calEvtDate').value=e.date||selectedDate;
+    document.getElementById('calEvtTime').value=e.time||'';
+    document.getElementById('calEvtDuration').value=e.duration||'';
+    document.getElementById('calEvtDistance').value=e.distance||'';
+    document.getElementById('calEvtIntensity').value=e.intensity||'moderate';
+    document.getElementById('calEvtHrZone').value=e.hrZone||'';
+    document.getElementById('calEvtRaceDist').value=e.raceDist||'';
+    document.getElementById('calEvtReminder').value=e.reminder||'30';
+    document.getElementById('calEvtRecurring').value=e.recurring||'';
+    document.getElementById('calEvtNotes').value=e.notes||'';
+    document.getElementById('calModalTitle').textContent='Edit Entry';
+    document.getElementById('calDeleteBtn').style.display='block';
+    buildTypeGrid(e.type);
+    updateModalFields(e.type);
+    document.getElementById('calEvtModal').classList.add('open');
+  }
+  function calCloseModal(){document.getElementById('calEvtModal').classList.remove('open');if(sheetOpen||selectedDate)calOpenSheet(selectedDate);}
+  function buildTypeGrid(selType){
+    const grid=document.getElementById('calTypeGrid');
+    grid.innerHTML=TYPES.map(t=>`
+      <div class="cal-type-opt ${t.id===selType?'sel':''}" onclick="calSelectType('${t.id}')">
+        <span class="cal-type-opt-icon">${t.icon}</span>
+        <div class="cal-type-opt-name">${t.label}</div>
+      </div>`).join('');
+  }
+  function calSelectType(id){editingType=id;buildTypeGrid(id);updateModalFields(id);}
+  function updateModalFields(type){
+    const t=typeMap[type];
+    document.getElementById('calTrainingFields').style.display=t&&t.training?'block':'none';
+    document.getElementById('calRaceFields').style.display=type==='race'?'block':'none';
+    if(type==='birthday'){document.getElementById('calEvtRecurring').value='yearly';}
+  }
+  function calSaveEvent(){
+    const state=load();
+    const id=document.getElementById('calEvtId').value||uid();
+    const existing=state.events.findIndex(e=>e.id===id);
+    const evt={
+      id, type:editingType,
+      title:document.getElementById('calEvtTitle').value||typeMap[editingType]?.label||'Entry',
+      date:document.getElementById('calEvtDate').value||selectedDate,
+      time:document.getElementById('calEvtTime').value||'',
+      duration:parseInt(document.getElementById('calEvtDuration').value)||null,
+      distance:parseFloat(document.getElementById('calEvtDistance').value)||null,
+      intensity:document.getElementById('calEvtIntensity').value||'moderate',
+      hrZone:document.getElementById('calEvtHrZone').value||null,
+      raceDist:document.getElementById('calEvtRaceDist').value||'',
+      reminder:document.getElementById('calEvtReminder').value||null,
+      recurring:document.getElementById('calEvtRecurring').value||null,
+      notes:document.getElementById('calEvtNotes').value||'',
+      done:existing>=0?state.events[existing].done:false,
+    };
+    if(existing>=0)state.events[existing]=evt;
+    else state.events.push(evt);
+    save(state);
+    selectedDate=evt.date;
+    const d=new Date(evt.date+'T12:00:00');
+    curYear=d.getFullYear();curMonth=d.getMonth();
+    calCloseModal();
+    render();
+    scheduleNotification(evt);
+  }
+  function calDeleteEvent(){
+    const id=document.getElementById('calEvtId').value;
+    if(!id)return;
+    const state=load();
+    state.events=state.events.filter(e=>e.id!==id);
+    save(state);
+    document.getElementById('calEvtModal').classList.remove('open');
+    render();
+    calOpenSheet(selectedDate);
+  }
+
+  // ─────────────────────────────────────
+  // NOTIFICATIONS
+  // ─────────────────────────────────────
+  function scheduleNotification(evt){
+    if(!evt.reminder||Notification.permission!=='granted')return;
+    if(!evt.time||!evt.date)return;
+    const[h,m]=evt.time.split(':').map(Number);
+    const evtTime=new Date(evt.date+'T'+evt.time);
+    const notifTime=new Date(evtTime.getTime()-evt.reminder*60000);
+    const now=new Date();
+    const diff=notifTime-now;
+    if(diff<0||diff>86400000)return;
+    setTimeout(()=>new Notification(`📅 ${evt.title}`,{body:`Starting in ${evt.reminder} minutes`}),diff);
+  }
+  function checkMorningReminder(state){
+    if(Notification.permission!=='granted')return;
+    const td=today();
+    const reminderKey='cal_morning_'+td;
+    if(localStorage.getItem(reminderKey))return;
+    const[h,m]=(state.morningReminder||'07:00').split(':').map(Number);
+    const now=new Date();
+    if(now.getHours()>=h){
+      const evts=getEventsForDate(state,td);
+      if(evts.length>0){
+        const summary=evts.map(e=>`${typeMap[e.type]?.icon||''} ${e.title}`).join(', ');
+        new Notification('📅 Today\'s Schedule',{body:summary});
+        localStorage.setItem(reminderKey,'1');
+      }
+    }
+  }
+  function checkEventReminders(state){
+    if(Notification.permission!=='granted')return;
+    state.events.forEach(evt=>scheduleNotification(evt));
+  }
+
+  // ─────────────────────────────────────
+  // BOOT
+  // ─────────────────────────────────────
+  render();
+  const state=load();
+  checkMorningReminder(state);
+  checkEventReminders(state);
+  window.addEventListener('storage',render);
+
+  // Expose globals for onclick
+  window.calPrev=calPrev;window.calNext=calNext;window.calSetView=calSetView;
+  window.calCycleView=calCycleView;window.calSelectDate=calSelectDate;
+  window.calOpenSheet=calOpenSheet;window.calCloseSheet=calCloseSheet;
+  window.calToggleDone=calToggleDone;window.calQuickDelete=calQuickDelete;
+  window.calOpenAdd=calOpenAdd;window.calEditEvent=calEditEvent;
+  window.calCloseModal=calCloseModal;window.calSelectType=calSelectType;
+  window.calSaveEvent=calSaveEvent;window.calDeleteEvent=calDeleteEvent;
+
+  // Cloud sync
+  if(window.initCloudSync){
+    window.initCloudSync({appKey:'calendar',syncedKeys:[CAL_KEY],onApplied:render});
+  }
+  })();
+  </script>
+
   <div class="section">
     <div class="section-title">To Do List</div>
 
