@@ -1648,7 +1648,23 @@ function groqKey(){return localStorage.getItem('groq_api_key')||'';}
 function whoop(){return load('whoop_data_v1',{});}
 function checkin(){return load('daily_checkin_v1',{});}
 function todayCheckin(){const c=checkin();return c[todayK()]||{};}
-function bodyMetrics(){return load('body_metrics_v1',{weight:[],bodyFat:[],muscle:[]});}
+function withings(){return load('withings_data_v1',{});}
+function withingsConnected(){const w=withings();return !!(w.refresh||(w.records&&w.records.length));}
+// Body metrics: prefer Withings smart-scale history, fall back to manual entries
+function bodyMetrics(){
+  const manual=load('body_metrics_v1',{weight:[],bodyFat:[],muscle:[]});
+  const w=withings();const recs=(w.records||[]).slice().sort((a,b)=>a.date.localeCompare(b.date));
+  if(!recs.length)return manual;
+  const out={weight:[],bodyFat:[],muscle:[]};
+  recs.forEach(r=>{
+    if(r.weight!=null)out.weight.push({date:r.date,val:Math.round(r.weight*10)/10});
+    if(r.fat!=null)out.bodyFat.push({date:r.date,val:Math.round(r.fat*10)/10});
+    if(r.muscle!=null)out.muscle.push({date:r.date,val:Math.round(r.muscle*10)/10});
+  });
+  // merge any manual entries not from Withings
+  ['weight','bodyFat','muscle'].forEach(k=>{if(!out[k].length)out[k]=manual[k]||[];});
+  return out;
+}
 function strava(){return load('strava_data_v1',{activities:[]});}
 function foodProfile(){return load('fl_profile',null);}
 function foodLogToday(){return load('fl_log_'+todayK(),[]);}
@@ -1816,6 +1832,8 @@ function render(){
     +'<div class="hl-chart-card"><div class="hl-chart-head"><span class="hl-chart-title">HRV · last 7 days</span>'
       +'<span class="hl-chart-base">'+(baseline?'baseline '+baseline+'ms':'')+'</span></div>'
       +hrvChart(series.slice(-7),baseline)+'</div>'
+    // Withings body composition
+    +withingsCard()
     // daily check-in
     +'<div style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,.06)">'
       +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><span style="font-size:13px;font-weight:700;color:var(--text-secondary,#B8B6B0)">Daily check-in</span>'
@@ -1921,11 +1939,235 @@ document.addEventListener('click',function(e){
   }
 });
 
+// ── WITHINGS BODY COMPOSITION CARD ──
+function wRecords(){const w=withings();return (w.records||[]).slice().sort((a,b)=>a.date.localeCompare(b.date));}
+function wAvg(recs,key,days){
+  const cut=Date.now()-days*864e5;
+  const vals=recs.filter(r=>new Date(r.date).getTime()>=cut&&r[key]!=null).map(r=>r[key]);
+  if(!vals.length)return null;return Math.round(vals.reduce((a,b)=>a+b,0)/vals.length*10)/10;
+}
+function withingsCard(){
+  if(!withingsConnected()){
+    return '<div style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,.06)">'
+      +'<div style="display:flex;align-items:center;gap:12px">'
+      +'<div style="width:38px;height:38px;border-radius:10px;background:rgba(0,150,136,.15);display:flex;align-items:center;justify-content:center;color:#26d0b0">'+I.scale+'</div>'
+      +'<div style="flex:1"><div style="font-size:14px;font-weight:700">Withings Smart Scale</div><div style="font-size:12px;color:var(--text-tertiary,#76746E)">Connect for automatic body composition</div></div>'
+      +'<button class="hl-btn pri" style="width:auto;margin:0;padding:9px 16px;background:#00b8a9;color:#fff" onclick="window.withingsConnect&&window.withingsConnect()">Connect</button></div></div>';
+  }
+  const recs=wRecords();const w=withings();
+  if(!recs.length)return '<div style="margin-top:16px" class="hl-empty">Withings connected — syncing measurements…</div>';
+  const last=recs[recs.length-1], prev=recs.length>1?recs[recs.length-2]:{};
+  const goal=w.goalWeight||null;
+
+  // metric row helper with change vs last
+  function row(name,key,unit,goodUp,dec){
+    if(last[key]==null)return'';
+    const cur=Math.round(last[key]*(dec?10:1))/(dec?10:1);
+    let ch='';
+    if(prev[key]!=null){const d=last[key]-prev[key];const up=d>0;const good=goodUp?up:!up;
+      ch='<span style="font-size:11px;font-weight:700;color:'+(Math.abs(d)<.05?'#76746E':good?'#6BE3A4':'#FF6B6B')+'">'+(Math.abs(d)<.05?'→':(up?'▲':'▼')+' '+Math.abs(Math.round(d*10)/10)+unit)+'</span>';}
+    return'<div class="hl-hist-row"><span class="hl-hist-date" style="color:var(--text-secondary,#B8B6B0);font-size:13px">'+name+'</span><span><span class="hl-hist-val">'+cur+unit+'</span> '+ch+'</span></div>';
+  }
+
+  // weight progress to goal
+  let goalHtml='';
+  if(goal&&last.weight!=null){
+    const start=recs[0].weight||last.weight;
+    const total=Math.abs(start-goal)||1;const done=Math.abs(start-last.weight);
+    const pct=Math.min(100,Math.round(done/total*100));
+    goalHtml='<div style="margin-top:12px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px"><span style="color:var(--text-secondary,#B8B6B0)">Goal '+goal+'kg</span><span style="color:var(--text-tertiary,#76746E)">'+pct+'%</span></div>'
+      +'<div style="height:6px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:#00b8a9;border-radius:3px"></div></div></div>';
+  }
+
+  const wkAvg=wAvg(recs,'weight',7), moAvg=wAvg(recs,'weight',30);
+  const muscleTrend=wAvg(recs,'muscle',7), muscleTrendOld=wAvg(recs,'muscle',30);
+  const fatTrend=wAvg(recs,'fatMass',7), fatTrendOld=wAvg(recs,'fatMass',30);
+  let trendNote='';
+  if(muscleTrend!=null&&muscleTrendOld!=null){const md=muscleTrend-muscleTrendOld;trendNote+='<span style="color:'+(md>=0?'#6BE3A4':'#FF6B6B')+'">Muscle '+(md>=0?'+':'')+Math.round(md*10)/10+'kg</span> · ';}
+  if(fatTrend!=null&&fatTrendOld!=null){const fd=fatTrend-fatTrendOld;trendNote+='<span style="color:'+(fd<=0?'#6BE3A4':'#FF6B6B')+'">Fat '+(fd>=0?'+':'')+Math.round(fd*10)/10+'kg</span>';}
+
+  return '<div style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,.06)">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><span style="font-size:13px;font-weight:700;color:var(--text-secondary,#B8B6B0)">Body Composition · Withings</span>'
+      +'<span class="hl-sub-link" onclick="window.withingsSetGoal&&window.withingsSetGoal()">'+(goal?'Goal '+goal+'kg':'Set goal')+'</span></div>'
+    // big weight + chart
+    +'<div style="display:flex;align-items:baseline;gap:10px;margin-bottom:2px"><span style="font-size:30px;font-weight:800;letter-spacing:-1px">'+(last.weight!=null?Math.round(last.weight*10)/10:'—')+'<span style="font-size:15px;color:var(--text-tertiary,#76746E);font-weight:600"> kg</span></span>'
+      +(prev.weight!=null?'<span style="font-size:13px;font-weight:700;color:'+(last.weight<=prev.weight?'#6BE3A4':'#FF6B6B')+'">'+(last.weight>prev.weight?'▲':'▼')+' '+Math.abs(Math.round((last.weight-prev.weight)*10)/10)+'kg</span>':'')+'</div>'
+    +'<div style="font-size:12px;color:var(--text-tertiary,#76746E);margin-bottom:8px">7-day avg '+(wkAvg||'—')+'kg · 30-day '+(moAvg||'—')+'kg'+(trendNote?' · '+trendNote:'')+'</div>'
+    +weightChart(recs.slice(-30),goal)
+    +goalHtml
+    // donut + metrics
+    +'<div style="display:flex;gap:16px;align-items:center;margin-top:16px;flex-wrap:wrap">'
+      +bodyDonut(last)
+      +'<div style="flex:1;min-width:160px">'
+        +row('Body Fat','fat','%',false,true)
+        +row('Fat Mass','fatMass','kg',false,true)
+        +row('Muscle Mass','muscle','kg',true,true)
+        +row('Lean Mass','lean','kg',true,true)
+        +row('Bone Mass','bone','kg',true,true)
+        +row('Body Water','waterPct','%',true,true)
+      +'</div>'
+    +'</div>'
+    // extra metrics
+    +'<div style="margin-top:6px">'
+      +row('Visceral Fat','visceral','',false,false)
+      +row('BMI','bmi','',false,true)
+      +row('Pulse Wave Vel.','pwv',' m/s',false,true)
+      +row('Heart Rate','hr',' bpm',false,false)
+      +(last.metabolicAge!=null?row('Metabolic Age','metabolicAge',' yr',false,false):'')
+    +'</div>'
+    +'<button class="hl-btn sec" style="margin-top:12px" onclick="window.hlBodyAI&&window.hlBodyAI()">'+I.bolt+' AI body-composition analysis</button>'
+    +'<div id="hlBodyAiOut" style="display:none;margin-top:10px;padding:12px 14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:12px;font-size:13.5px;line-height:1.6;color:var(--text-secondary,#B8B6B0)"></div>'
+  +'</div>';
+}
+function bodyDonut(last){
+  // masses: fat, muscle (or lean), bone, water
+  const fat=last.fatMass||0, bone=last.bone||0, water=last.water||0;
+  const muscle=(last.muscle!=null?last.muscle:(last.lean||0))-water-bone; // approx soft-lean excl water/bone
+  const segs=[['Fat',Math.max(0,fat),'#F2C063'],['Muscle',Math.max(0,muscle),'#6BE3A4'],['Water',Math.max(0,water),'#7DD3FC'],['Bone',Math.max(0,bone),'#B8B6B0']];
+  const total=segs.reduce((a,s)=>a+s[1],0)||1;
+  let off=0;const r=34,circ=2*Math.PI*r;
+  const arcs=segs.map(([n,v,c])=>{const frac=v/total;const dash=frac*circ;const el='<circle cx="45" cy="45" r="'+r+'" fill="none" stroke="'+c+'" stroke-width="12" stroke-dasharray="'+dash.toFixed(1)+' '+(circ-dash).toFixed(1)+'" stroke-dashoffset="'+(-off).toFixed(1)+'" transform="rotate(-90 45 45)"/>';off+=dash;return el;}).join('');
+  const legend=segs.filter(s=>s[1]>0).map(([n,v,c])=>'<div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-secondary,#B8B6B0)"><span style="width:8px;height:8px;border-radius:2px;background:'+c+'"></span>'+n+' '+Math.round(v*10)/10+'kg</div>').join('');
+  return'<div style="display:flex;flex-direction:column;align-items:center;gap:8px"><svg width="90" height="90" viewBox="0 0 90 90">'+arcs+'</svg><div style="display:grid;grid-template-columns:1fr 1fr;gap:2px 10px">'+legend+'</div></div>';
+}
+function weightChart(recs,goal){
+  const pts0=recs.filter(r=>r.weight!=null);
+  if(pts0.length<2)return'';
+  const vals=pts0.map(r=>r.weight);let min=Math.min(...vals),max=Math.max(...vals);
+  if(goal){min=Math.min(min,goal);max=Math.max(max,goal);}
+  const r=(max-min)||1;const pad=8,W=320,H=80;
+  const pts=pts0.map((x,i)=>[pad+(W-2*pad)*(i/(pts0.length-1)),H-pad-(H-2*pad)*((x.weight-min)/r)]);
+  const path=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
+  const area=path+' L '+pts[pts.length-1][0].toFixed(1)+' '+(H-pad)+' L '+pts[0][0].toFixed(1)+' '+(H-pad)+' Z';
+  let goalLine='';if(goal){const gy=H-pad-(H-2*pad)*((goal-min)/r);goalLine='<line x1="'+pad+'" y1="'+gy.toFixed(1)+'" x2="'+(W-pad)+'" y2="'+gy.toFixed(1)+'" stroke="#00b8a9" stroke-width="1.2" stroke-dasharray="4 3"/>';}
+  return'<svg style="width:100%;height:80px" viewBox="0 0 320 80" preserveAspectRatio="none">'
+    +'<defs><linearGradient id="hlWg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#00b8a9" stop-opacity=".22"/><stop offset="100%" stop-color="#00b8a9" stop-opacity="0"/></linearGradient></defs>'
+    +'<path d="'+area+'" fill="url(#hlWg)"/>'+goalLine
+    +'<path d="'+path+'" fill="none" stroke="#00b8a9" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+}
+window.withingsSetGoal=function(){
+  const w=withings();const g=prompt('Goal weight (kg):',w.goalWeight||'');
+  if(g===null)return;const v=parseFloat(g);
+  if(!isNaN(v)){w.goalWeight=v;save('withings_data_v1',w);render();}
+};
+// AI body-composition analysis (weight trend vs calories vs training)
+window.hlBodyAI=async function(){
+  const out=document.getElementById('hlBodyAiOut');if(!out)return;
+  if(!groqKey()){out.style.display='block';out.textContent='Add a Groq key in dashboard Settings for AI analysis.';return;}
+  out.style.display='block';out.textContent='Analyzing your body composition trends…';
+  const recs=wRecords();const last=recs[recs.length-1]||{};
+  const wk=wAvg(recs,'weight',7),mo=wAvg(recs,'weight',30);
+  const mus7=wAvg(recs,'muscle',7),mus30=wAvg(recs,'muscle',30);
+  const fat7=wAvg(recs,'fatMass',7),fat30=wAvg(recs,'fatMass',30);
+  // calories from food tracker (today + profile target)
+  const fp=foodProfile();const cal=fp?fp.daily_kcal:'?';
+  const cardio=cardioLoad();
+  const ctx='Weight now '+(last.weight||'?')+'kg (7d avg '+(wk||'?')+', 30d '+(mo||'?')+'). Body fat '+(last.fat||'?')+'%. Muscle 7d '+(mus7||'?')+' vs 30d '+(mus30||'?')+'kg. Fat mass 7d '+(fat7||'?')+' vs 30d '+(fat30||'?')+'kg. Daily calorie target '+cal+'. Weekly cardio '+cardio.hours+'h, '+cardio.km+'km.';
+  try{
+    const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+groqKey()},
+      body:JSON.stringify({model:'llama-3.3-70b-versatile',messages:[
+        {role:'system',content:'You are a body-composition coach. In 2-3 sentences, analyze whether the athlete is gaining muscle / losing fat given their weight trend, calorie target, and training load, and give one concrete recommendation.'},
+        {role:'user',content:ctx}],max_tokens:160,temperature:0.5})});
+    const data=await r.json();if(!r.ok)throw new Error((data.error&&data.error.message)||'failed');
+    out.textContent=(data.choices&&data.choices[0]&&data.choices[0].message&&data.choices[0].message.content||'').trim();
+  }catch(e){out.textContent='Analysis failed: '+(e.message||e);}
+};
+
 // ── BOOT ──
 window.hlRender=render; // allow the WHOOP card (same document) to refresh the lab
 render();
-window.addEventListener('storage',e=>{if(['whoop_data_v1','daily_checkin_v1','body_metrics_v1','strava_data_v1','hlab_insight_v1'].includes(e.key)||(e.key||'').indexOf('fl_log_')===0)render();});
+window.addEventListener('storage',e=>{if(['whoop_data_v1','daily_checkin_v1','body_metrics_v1','strava_data_v1','hlab_insight_v1','withings_data_v1'].includes(e.key)||(e.key||'').indexOf('fl_log_')===0)render();});
 setTimeout(genInsight,1500); // auto-generate once per day shortly after load
+})();
+</script>
+
+<!-- ════════════════ WITHINGS INTEGRATION ════════════════ -->
+<script>
+(function(){
+'use strict';
+const WK='withings_data_v1';
+const CLIENT_ID='cc3bffc6d3c20c406ec9c812518c928cb9d14cb31267d863237308b90f9bfef9';
+const REDIRECT='https://row-gray.vercel.app/api/withings-callback';
+function load(){try{return JSON.parse(localStorage.getItem(WK))||{};}catch{return{};}}
+function save(s){localStorage.setItem(WK,JSON.stringify(s));}
+
+// Withings measure type codes → our field names (value already scaled)
+const TYPE={1:'weight',5:'lean',6:'fat',8:'fatMass',11:'hr',12:'temp',76:'muscle',77:'water',88:'bone',91:'pwv',155:'vascularAge',170:'visceral',4:'height',226:'metabolicAge'};
+
+window.withingsConnect=function(){
+  const url='https://account.withings.com/oauth2_user/authorize2?response_type=code&client_id='+CLIENT_ID
+    +'&scope=user.metrics&redirect_uri='+encodeURIComponent(REDIRECT)+'&state=hl'+Date.now();
+  try{(window.top||window).location.href=url;}catch(e){location.href=url;}
+};
+
+async function accessToken(){
+  const s=load();
+  if(s.access && s.expires && Date.now() < s.expires-60000) return s.access;
+  if(!s.refresh) return null;
+  const r=await fetch('/api/withings-refresh',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({refresh_token:s.refresh})});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok||!j.access_token) throw new Error(j.error||'refresh failed');
+  s.access=j.access_token; if(j.refresh_token)s.refresh=j.refresh_token;
+  s.expires=Date.now()+(j.expires_in||10800)*1000; save(s);
+  return s.access;
+}
+
+function parseMeasures(json){
+  const grps=json && json.body && json.body.measuregrps;
+  if(!Array.isArray(grps))return null;
+  let height=null;
+  const byDay={};
+  grps.forEach(g=>{
+    const day=new Date((g.date||0)*1000).toISOString().slice(0,10);
+    const rec=byDay[day]||(byDay[day]={date:day});
+    (g.measures||[]).forEach(m=>{
+      const field=TYPE[m.type]; if(!field)return;
+      const val=m.value*Math.pow(10,m.unit);
+      if(field==='height'){height=val;return;}
+      rec[field]=val;
+    });
+  });
+  // derive water%, BMI per record
+  Object.values(byDay).forEach(r=>{
+    if(r.water!=null&&r.weight)r.waterPct=Math.round(r.water/r.weight*1000)/10;
+    if(r.weight&&height)r.bmi=Math.round(r.weight/(height*height)*10)/10;
+  });
+  return {records:Object.values(byDay).sort((a,b)=>a.date.localeCompare(b.date)), height};
+}
+
+async function fetchAll(){
+  try{
+    const token=await accessToken(); if(!token)return;
+    // last ~2 years of body-composition measures
+    const startdate=Math.floor(Date.now()/1000)-2*365*24*3600;
+    const r=await fetch('/api/withings-data?startdate='+startdate,{headers:{'Authorization':'Bearer '+token}});
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok){console.warn('[withings]',j.error||r.status);return;}
+    const parsed=parseMeasures(j); if(!parsed)return;
+    const s=load();
+    s.records=parsed.records; if(parsed.height)s.height=parsed.height; s.updated=Date.now();
+    save(s);
+    if(window.hlRender)try{window.hlRender();}catch(e){}
+  }catch(e){console.warn('[withings] fetch',e.message);}
+}
+
+// Capture OAuth tokens on return, then go back to the dashboard shell
+(function(){
+  if(location.hash.indexOf('withings_refresh=')>=0){
+    const p=new URLSearchParams(location.hash.slice(1));
+    const s=load();
+    s.access=p.get('withings_access')||s.access;
+    s.refresh=p.get('withings_refresh')||s.refresh;
+    s.expires=parseInt(p.get('withings_expires'))||s.expires;
+    save(s);
+    if(window.self===window.top){ history.replaceState(null,'',location.pathname); location.replace('/'); return; }
+    history.replaceState(null,'',location.pathname+location.search);
+  }
+})();
+
+// Auto-fetch on every dashboard open (if connected)
+if(load().refresh) fetchAll();
+window.withingsSync=fetchAll;
 })();
 </script>
 

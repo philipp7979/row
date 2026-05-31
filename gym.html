@@ -4009,9 +4009,27 @@ function gxRenderBody(s){
       <div class="gx-bodies">${gxBodySVG('front',trained)}${gxBodySVG('back',trained)}</div>
       <div style="text-align:center;font-size:12px;color:rgba(255,255,255,.5);margin-top:10px">${trained.length?'Trained today: '+trained.join(', '):'No muscles trained today yet'}</div>
     `:`
+      ${gxWithingsSummary()}
       ${measHtml}
       <button class="gx-mbtn pri" style="margin-top:14px" onclick="gxOpenMeas()">+ Log Measurements</button>
     `}`;
+}
+// Compact Withings body-composition summary (read-only, synced from Health tab)
+function gxWithingsSummary(){
+  let w; try{w=JSON.parse(localStorage.getItem('withings_data_v1'))||{};}catch(e){return'';}
+  const recs=(w.records||[]).slice().sort((a,b)=>a.date.localeCompare(b.date));
+  if(!recs.length)return'';
+  const last=recs[recs.length-1],prev=recs[recs.length-2]||{};
+  const cell=(label,key,unit,goodUp)=>{
+    if(last[key]==null)return'';
+    let ch='';if(prev[key]!=null){const d=last[key]-prev[key];const good=goodUp?d>0:d<0;ch=`<span style="font-size:10px;color:${Math.abs(d)<.05?'#8e8e93':good?'#6ee7b7':'#ff8a8a'}">${Math.abs(d)<.05?'':(d>0?'▲':'▼')+Math.abs(Math.round(d*10)/10)}</span>`;}
+    return`<div style="background:rgba(255,255,255,.04);border-radius:10px;padding:10px;text-align:center"><div style="font-size:18px;font-weight:800">${Math.round(last[key]*10)/10}<span style="font-size:11px;color:#8e8e93">${unit}</span></div><div style="font-size:10px;color:#8e8e93;margin-top:2px">${label} ${ch}</div></div>`;
+  };
+  return`<div style="margin-bottom:14px">
+    <div style="font-size:12px;color:#00b8a9;font-weight:700;margin-bottom:8px">Withings · Body Composition</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+      ${cell('Weight','weight','kg',false)}${cell('Body Fat','fat','%',false)}${cell('Muscle','muscle','kg',true)}
+    </div></div>`;
 }
 function gxMusclesTrainedToday(){
   const p=po();const exMap={};(p.exercises||[]).forEach(e=>exMap[e.id]=e);
