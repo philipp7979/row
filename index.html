@@ -170,8 +170,8 @@ body.finance-open .sh-top{ display:none; }
   </button>
   <input type="file" id="shScanInput" accept="image/*" capture="environment" style="display:none">
   <button class="sh-finance" onclick="openFinance(event)" aria-label="Finance">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-      <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="12" y1="2" x2="12" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
     </svg>
   </button>
   <button class="sh-settings-btn" onclick="openSettings()" aria-label="Settings">
@@ -218,7 +218,7 @@ body.finance-open .sh-top{ display:none; }
   <iframe src="health.html" id="frame-health"  class="sh-frame" allow="camera"></iframe>
   <iframe src="gym.html"    id="frame-fitness" class="sh-frame"></iframe>
   <iframe src="bible.html"  id="frame-other"   class="sh-frame"></iframe>
-  <iframe                   id="frame-finance" class="sh-frame"></iframe>
+  <iframe src="finance.html" id="frame-finance" class="sh-frame"></iframe>
 </div>
 
 <!-- BOTTOMBAR -->
@@ -288,7 +288,7 @@ window.addEventListener('message', e => {
 function openFinance(e) {
   if (e) e.preventDefault();
   const fin = document.getElementById('frame-finance');
-  if (!fin.getAttribute('src')) fin.setAttribute('src', 'finance.html');
+  if (!fin.getAttribute('src')) fin.setAttribute('src', 'finance.html'); // safety: load if not pre-loaded
   financePrevTab = curTab;
   TABS.forEach(t => document.getElementById('frame-'+t).classList.remove('active'));
   fin.classList.add('active');
