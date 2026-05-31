@@ -1589,7 +1589,7 @@ async function groqVision(b64,prompt){
     method:'POST',
     headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
     body:JSON.stringify({
-      model:'llama-3.2-90b-vision-preview',
+      model:'meta-llama/llama-4-scout-17b-16e-instruct',
       messages:[{role:'user',content:[
         {type:'image_url',image_url:{url:'data:image/jpeg;base64,'+b64}},
         {type:'text',text:prompt}
@@ -1681,6 +1681,21 @@ function clearFoodLog(){
 
   // Set up add button (FAB via search bar)
   document.getElementById('srchInput')&&document.getElementById('srchInput').addEventListener('focus',()=>openAddSheet('search',''));
+
+  // External "open Add Food" command (from the dashboard topbar button).
+  // Same-origin storage event fires here when the shell writes fl_open_add.
+  function handleOpenAddCmd(raw){
+    try{
+      const c=JSON.parse(raw||'{}');
+      if(!c.ts || Date.now()-c.ts > 5000) return; // only act on fresh commands
+      // only meaningful once the app is set up
+      const pr=FL.profile();
+      if(pr&&pr.setup_done) openAddSheet(c.tab||'scan','');
+    }catch(e){}
+  }
+  window.addEventListener('storage',e=>{ if(e.key==='fl_open_add') handleOpenAddCmd(e.newValue); });
+  // also honor a command that was set just before this frame finished loading
+  try{ handleOpenAddCmd(localStorage.getItem('fl_open_add')); }catch(e){}
 })();
 </script>
 </body>

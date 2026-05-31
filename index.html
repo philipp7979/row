@@ -163,7 +163,7 @@ body.finance-open .sh-top{ display:none; }
     </div>
     <button class="sh-water-add" id="shWaterAdd" type="button">+</button>
   </div>
-  <button class="sh-finance" onclick="openScan()" aria-label="Scan food" title="Quick food scan">
+  <button class="sh-finance" onclick="quickAddFood()" aria-label="Add food" title="Add food">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
       <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="3.5"/>
     </svg>
@@ -456,6 +456,13 @@ function clearKey() {
   setKeyStatus('ok', 'Key removed.');
 }
 
+// ── TOPBAR "ADD FOOD" → Health tab + open the food tracker's Add Food sheet ──
+function quickAddFood(){
+  switchTab('health');
+  // Same-origin command the embedded food tracker (and health page) react to
+  try{ localStorage.setItem('fl_open_add', JSON.stringify({tab:'scan', ts:Date.now()})); }catch(e){}
+}
+
 // ── QUICK FOOD SCAN (Groq vision → food log) ──
 function scanDateKey(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function scanBody(html){document.getElementById('scanBody').innerHTML=html;}
@@ -491,7 +498,7 @@ async function analyzeScan(b64){
     const key=localStorage.getItem('groq_api_key')||'';
     const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{
       method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
-      body:JSON.stringify({model:'llama-3.2-90b-vision-preview',messages:[{role:'user',content:[
+      body:JSON.stringify({model:'meta-llama/llama-4-scout-17b-16e-instruct',messages:[{role:'user',content:[
         {type:'image_url',image_url:{url:'data:image/jpeg;base64,'+b64}},
         {type:'text',text:'Analyze this food photo and estimate macros for the visible portion. Return ONLY valid JSON, no markdown: {"name":"Food Name","kcal":0,"protein":0,"fat":0,"carbs":0}'}
       ]}],max_tokens:300,temperature:0.3})

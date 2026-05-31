@@ -908,13 +908,23 @@ main {
   </script>
 
   <!-- Nutrition embedded -->
-  <div class="section-title">Nutrition</div>
+  <div class="section-title" id="nutritionTitle">Nutrition</div>
   <div style="background:rgba(255,255,255,0.025);border:1px solid transparent;border-radius:22px;box-shadow:0 1px 0 0 rgba(255,255,255,0.06) inset,0 12px 40px rgba(0,0,0,0.45),0 1px 2px rgba(0,0,0,0.25);overflow:hidden;margin-bottom:32px">
     <iframe src="food.html?embed=1" id="foodEmbed"
       style="width:100%;height:560px;border:none;display:block;background:#000"
       allow="camera;microphone">
     </iframe>
   </div>
+  <script>
+  // When the dashboard topbar "Add Food" command fires, scroll the food
+  // tracker into view (the food iframe opens its own Add Food sheet).
+  window.addEventListener('storage', function(e){
+    if(e.key==='fl_open_add'){
+      var t=document.getElementById('nutritionTitle');
+      if(t) t.scrollIntoView({behavior:'smooth',block:'start'});
+    }
+  });
+  </script>
 
   <div class="section-title">Daily Stack</div>
 
