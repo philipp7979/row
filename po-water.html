@@ -815,7 +815,7 @@ html.embedded, html.embedded body {
     if (count === 0) { helper.textContent = 'Start the day — first one in.'; helper.classList.remove('good'); }
     else if (pctRaw < 50) { helper.textContent = 'Behind pace — drink one in the next hour.'; helper.classList.remove('good'); }
     else if (pctRaw < 100) { helper.textContent = (targetUnits - count) + ' to go. Pacing well.'; helper.classList.remove('good'); }
-    else if (pctRaw < 130) { helper.textContent = '✓ Target hit — top up if you train this evening.'; helper.classList.add('good'); }
+    else if (pctRaw < 130) { helper.textContent = '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg> Target hit — top up if you train this evening.'; helper.classList.add('good'); }
     else { helper.textContent = 'Strong — way past target.'; helper.classList.add('good'); }
 
     // Disable minus when at zero
