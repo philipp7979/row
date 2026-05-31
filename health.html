@@ -945,12 +945,14 @@ main {
   </script>
 
   <!-- Nutrition embedded -->
+  <div id="hsecNutrition">
   <div class="section-title" id="nutritionTitle">Nutrition</div>
   <div style="background:rgba(255,255,255,0.025);border:1px solid transparent;border-radius:22px;box-shadow:0 1px 0 0 rgba(255,255,255,0.06) inset,0 12px 40px rgba(0,0,0,0.45),0 1px 2px rgba(0,0,0,0.25);overflow:hidden;margin-bottom:32px">
     <iframe src="food.html?embed=1" id="foodEmbed"
       style="width:100%;height:560px;border:none;display:block;background:#000"
       allow="camera;microphone">
     </iframe>
+  </div>
   </div>
   <script>
   // When the dashboard topbar "Add Food" command fires, scroll the food
@@ -963,6 +965,7 @@ main {
   });
   </script>
 
+  <div id="hsecStack">
   <div class="section-title">Daily Stack</div>
 
   <div class="stack-card">
@@ -1003,6 +1006,7 @@ main {
         <button id="stackAddBtn" class="stack-add-btn">+ Add</button>
       </div>
     </div>
+  </div>
   </div>
 
   <section id="water" class="water-embed">
@@ -1650,19 +1654,26 @@ function checkin(){return load('daily_checkin_v1',{});}
 function todayCheckin(){const c=checkin();return c[todayK()]||{};}
 function withings(){return load('withings_data_v1',{});}
 function withingsConnected(){const w=withings();return !!(w.refresh||(w.records&&w.records.length));}
-// Body metrics: prefer Withings smart-scale history, fall back to manual entries
+// Weight logged in the (now-removed) training tab: po_coach_weights [{dateKey,weight}]
+function trainingWeights(){
+  try{const a=JSON.parse(localStorage.getItem('po_coach_weights'))||[];
+    return a.filter(e=>e&&e.dateKey&&e.weight!=null).map(e=>({date:e.dateKey,val:Math.round(e.weight*10)/10})).sort((x,y)=>x.date.localeCompare(y.date));
+  }catch(e){return[];}
+}
+// Body metrics: prefer Withings smart-scale; fall back to manual + training-tab weights
 function bodyMetrics(){
   const manual=load('body_metrics_v1',{weight:[],bodyFat:[],muscle:[]});
   const w=withings();const recs=(w.records||[]).slice().sort((a,b)=>a.date.localeCompare(b.date));
-  if(!recs.length)return manual;
   const out={weight:[],bodyFat:[],muscle:[]};
   recs.forEach(r=>{
     if(r.weight!=null)out.weight.push({date:r.date,val:Math.round(r.weight*10)/10});
     if(r.fat!=null)out.bodyFat.push({date:r.date,val:Math.round(r.fat*10)/10});
     if(r.muscle!=null)out.muscle.push({date:r.date,val:Math.round(r.muscle*10)/10});
   });
-  // merge any manual entries not from Withings
-  ['weight','bodyFat','muscle'].forEach(k=>{if(!out[k].length)out[k]=manual[k]||[];});
+  // weight: Withings → manual → training-tab history
+  if(!out.weight.length)out.weight=(manual.weight&&manual.weight.length)?manual.weight:trainingWeights();
+  if(!out.bodyFat.length)out.bodyFat=manual.bodyFat||[];
+  if(!out.muscle.length)out.muscle=manual.muscle||[];
   return out;
 }
 function strava(){return load('strava_data_v1',{activities:[]});}
@@ -2078,6 +2089,19 @@ window.hlRender=render; // allow the WHOOP card (same document) to refresh the l
 render();
 window.addEventListener('storage',e=>{if(['whoop_data_v1','daily_checkin_v1','body_metrics_v1','strava_data_v1','hlab_insight_v1','withings_data_v1'].includes(e.key)||(e.key||'').indexOf('fl_log_')===0)render();});
 setTimeout(genInsight,1500); // auto-generate once per day shortly after load
+})();
+</script>
+
+<!-- Reorder Health tab sections: Nutrition → Water → Whoop → Health Lab → Daily Stack -->
+<script>
+(function(){
+  function reorder(){
+    var main=document.querySelector('main');if(!main)return;
+    var order=['#hsecNutrition','#water','.whoop-section','#healthLab','#hsecStack'];
+    order.forEach(function(sel){var el=main.querySelector(sel);if(el)main.appendChild(el);});
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',reorder);
+  else reorder();
 })();
 </script>
 
