@@ -168,10 +168,6 @@ button{cursor:pointer}
   <div class="section-title">Stats</div>
   <div class="card" id="statsCard"></div>
 
-  <!-- NOTIFICATIONS -->
-  <div class="section-title">Reminder</div>
-  <div class="card" id="notifCard"></div>
-
   <!-- PLANS MANAGEMENT -->
   <div class="section-title">Plans</div>
   <div class="card" id="plansCard"></div>
@@ -467,39 +463,6 @@ function skipMissed(){
 }
 
 // ═══════════════════════════════════════════
-// NOTIFICATIONS
-// ═══════════════════════════════════════════
-function toggleNotif(){
-  const state=load();
-  if(!state.notifications.enabled){
-    Notification.requestPermission().then(perm=>{
-      state.notifications.enabled=perm==='granted';
-      save(state);renderNotif(state);
-      if(perm!=='granted')alert('Please allow notifications in your browser settings.');
-    });
-  } else {
-    state.notifications.enabled=false;
-    save(state);renderNotif(state);
-  }
-}
-function saveNotifTime(){
-  const state=load();
-  state.notifications.time=document.getElementById('notifTime')?.value||'20:00';
-  save(state);
-}
-function checkNotification(state){
-  if(!state.notifications.enabled)return;
-  if(Notification.permission!=='granted')return;
-  const today=todayKey();
-  if(state.log[today]?.read)return;
-  const[h,m]=state.notifications.time.split(':').map(Number);
-  const now=new Date();
-  if(now.getHours()>=h&&now.getMinutes()>=m){
-    new Notification('<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg> Bible Reading Reminder',{body:"You haven't done your reading today yet.",icon:'/favicon.ico'});
-  }
-}
-
-// ═══════════════════════════════════════════
 // RENDER
 // ═══════════════════════════════════════════
 function renderAll(){
@@ -510,9 +473,7 @@ function renderAll(){
   renderCalendar(state);
   renderProgress(state);
   renderStats(state);
-  renderNotif(state);
   renderPlans(state);
-  checkNotification(state);
 }
 
 function renderBacklog(state){
@@ -707,18 +668,6 @@ function renderStats(state){
     <div class="stat-box"><div class="stat-val">${weeklyAvg}</div><div class="stat-label">Avg chapters/week</div></div>
     <div class="stat-box"><div class="stat-val" style="font-size:18px">${bestMonthStr}</div><div class="stat-label">Best month</div></div>
   </div>`;
-}
-
-function renderNotif(state){
-  const card=document.getElementById('notifCard');
-  const on=state.notifications.enabled;
-  const time=state.notifications.time||'20:00';
-  card.innerHTML=`
-    <div class="notif-row">
-      <div><div style="font-size:15px;font-weight:600">Daily Reminder</div><div style="font-size:13px;color:var(--t3);margin-top:2px">Get notified if today's reading isn't done</div></div>
-      <button class="toggle-switch ${on?'on':''}" onclick="toggleNotif()"><div class="toggle-knob"></div></button>
-    </div>
-    ${on?`<div class="notif-row" style="margin-top:14px"><div style="font-size:14px;color:var(--t2)">Reminder time</div><input type="time" class="time-input" id="notifTime" value="${time}" onchange="saveNotifTime()"></div>`:''}`;
 }
 
 function renderPlans(state){
