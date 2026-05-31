@@ -65,16 +65,15 @@ html,body{
 /* ── BOTTOMBAR (clean floating frosted pill) ── */
 .sh-bot{
   position:fixed;z-index:200;
-  left:14px;right:14px;
-  bottom:calc(10px + env(safe-area-inset-bottom));
+  left:0;right:0;bottom:0;
   display:flex;align-items:stretch;
-  padding:9px 6px;
-  border-radius:26px;
-  background:rgba(28,28,32,0.62);
+  padding:8px 6px calc(6px + env(safe-area-inset-bottom));
+  border-radius:22px 22px 0 0;
+  background:rgba(24,24,28,0.7);
   -webkit-backdrop-filter:blur(28px) saturate(180%);
   backdrop-filter:blur(28px) saturate(180%);
-  border:0.5px solid rgba(255,255,255,0.10);
-  box-shadow:0 8px 30px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.06);
+  border-top:0.5px solid rgba(255,255,255,0.10);
+  box-shadow:0 -4px 24px rgba(0,0,0,0.35);
 }
 /* opaque fallback where backdrop-filter isn't supported */
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
