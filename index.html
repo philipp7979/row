@@ -16,6 +16,7 @@ html,body{
 }
 
 /* ── TOPBAR ── */
+/* The top bar contains the water tracker, finance shortcut, and settings button, and is fixed at the top of the screen. */
 .sh-top{
   position:fixed;top:0;left:0;right:0;z-index:200;
   display:flex;align-items:center;justify-content:flex-end;gap:8px;
@@ -88,6 +89,14 @@ html,body{
 .sh-tab.active{color:#FAFAFA}
 .sh-tab.active svg{opacity:1}
 .sh-tab:active svg{transform:scale(0.88)}
+
+/* ── FINANCE OVERLAY ── */
+/* When finance is open, its frame fills the screen (covering the shell
+   bottombar so finance's own tabs aren't doubled). A floating Back
+   button is the way out. */
+body.finance-open .sh-frames{ top:0; bottom:0; }
+body.finance-open .sh-bot{ display:none; }
+body.finance-open .sh-top{ display:none; }
 
 /* ── SETTINGS MODAL ── */
 .sh-settings-btn{
@@ -176,6 +185,7 @@ html,body{
   <iframe src="health.html" id="frame-health"  class="sh-frame" allow="camera"></iframe>
   <iframe src="gym.html"    id="frame-fitness" class="sh-frame"></iframe>
   <iframe src="bible.html"  id="frame-other"   class="sh-frame"></iframe>
+  <iframe                   id="frame-finance" class="sh-frame"></iframe>
 </div>
 
 <!-- BOTTOMBAR -->
@@ -213,8 +223,18 @@ html,body{
 const TABS = ['main','health','fitness','other'];
 let curTab = 'main';
 
+let financeOpen = false;
+let financePrevTab = 'main';
+
 function switchTab(tab) {
-  if (tab === curTab) return;
+  // Always exit finance when a real tab is chosen
+  if (financeOpen) {
+    financeOpen = false;
+    document.getElementById('frame-finance').classList.remove('active');
+    document.body.classList.remove('finance-open');
+  } else if (tab === curTab) {
+    return;
+  }
   TABS.forEach(t => {
     document.getElementById('frame-'+t).classList.toggle('active', t===tab);
     document.getElementById('tab-'+t).classList.toggle('active', t===tab);
@@ -224,16 +244,26 @@ function switchTab(tab) {
   history.replaceState({tab}, '', urls[tab] || 'index.html');
 }
 
-// Listen for tab-switch requests from iframes
+// Listen for messages from iframes
 window.addEventListener('message', e => {
-  if (e.data && e.data.type === 'switchTab') switchTab(e.data.tab);
+  if (!e.data) return;
+  if (e.data.type === 'switchTab') switchTab(e.data.tab);
+  else if (e.data.type === 'closeFinance') closeFinance();
 });
 
-// Finance link — open inside main frame
+// Finance — opens in its own dedicated full-screen frame (never touches Main)
 function openFinance(e) {
-  e.preventDefault();
-  document.getElementById('frame-main').src = 'finance.html';
-  switchTab('main');
+  if (e) e.preventDefault();
+  const fin = document.getElementById('frame-finance');
+  if (!fin.getAttribute('src')) fin.setAttribute('src', 'finance.html');
+  financePrevTab = curTab;
+  TABS.forEach(t => document.getElementById('frame-'+t).classList.remove('active'));
+  fin.classList.add('active');
+  financeOpen = true;
+  document.body.classList.add('finance-open');
+}
+function closeFinance() {
+  switchTab(financePrevTab || 'main');
 }
 
 // ── WATER ──

@@ -8,7 +8,6 @@
 <title>Finances</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="sync.js" defer></script>
-<script src="topbar.js" defer></script>
 <style>
 /* Prevent iOS viewport zoom on input/select focus */
 @media (max-width: 768px) { input, select, textarea { font-size: 16px !important; } }
@@ -1577,7 +1576,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 <div class="shell">
 
 <!-- ===== BACK BUTTON ===== -->
-<a href="index.html" class="fin-back-btn" aria-label="Back to dashboard">
+<a href="index.html" class="fin-back-btn" aria-label="Back to dashboard"
+   onclick="if(window.self!==window.top){event.preventDefault();window.top.postMessage({type:'closeFinance'},'*');}">
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
   <span>Back</span>
 </a>
