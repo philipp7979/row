@@ -338,6 +338,24 @@ setInterval(renderWater, 30000);
   else if (p.endsWith('gym.html')) switchTab('fitness');
 })();
 
+// ── KEEP BOTTOM BAR PINNED WHEN KEYBOARD OPENS ──
+// iOS pins position:fixed elements to the shrinking *visual* viewport,
+// so the tab bar floats up above the keyboard. Counteract by pushing
+// it back down by the keyboard's height so it stays at the screen bottom.
+(function(){
+  const vv = window.visualViewport;
+  if (!vv) return;
+  const bot = document.querySelector('.sh-bot');
+  if (!bot) return;
+  function adjust(){
+    const keyboardH = window.innerHeight - vv.height - vv.offsetTop;
+    bot.style.transform = keyboardH > 60 ? 'translateY(' + keyboardH + 'px)' : '';
+  }
+  vv.addEventListener('resize', adjust);
+  vv.addEventListener('scroll', adjust);
+  adjust();
+})();
+
 // ── SETTINGS ──
 function openSettings() {
   const inp = document.getElementById('groqKeyInput');
