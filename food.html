@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
 <meta name="theme-color" content="#0c0c0e">
 <title>Nutrition Log</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="sync.js" defer></script>
 <script src="topbar.js" defer></script>
 <style>
 /* ── DESIGN TOKENS (all dark) ── */
@@ -1637,8 +1639,10 @@ function clearFoodLog(){
 }
 
 (function boot(){
-  // Set up cloud sync for food logger data
-  if(window.initCloudSync){
+  // Set up cloud sync for food logger data. sync.js is deferred, so wait
+  // until it's available (this inline boot runs before deferred scripts).
+  function startSync(){
+    if(!window.initCloudSync)return;
     window.initCloudSync({
       appKey:'food-logger',
       syncedKeys:['fl_profile'],
@@ -1652,6 +1656,8 @@ function clearFoodLog(){
       }
     });
   }
+  if(window.initCloudSync) startSync();
+  else window.addEventListener('load', startSync, {once:true});
 
   let p=FL.profile();
 
