@@ -5532,21 +5532,53 @@ function map(a){
   };
 }
 
+// ── OAuth (client-managed, full activity:read_all scope) ──
+const STRAVA_CLIENT_ID='253728';
+function authorizeUrl(){
+  const redirect=location.origin+'/api/strava-callback';
+  return 'https://www.strava.com/oauth/authorize?client_id='+STRAVA_CLIENT_ID
+    +'&response_type=code&redirect_uri='+encodeURIComponent(redirect)
+    +'&approval_prompt=auto&scope=read,activity:read_all';
+}
+function getRefresh(){return sload().refresh||'';}
+function beginAuth(){
+  // OAuth must run in the top window (not the iframe)
+  try{ (window.top||window).location.href=authorizeUrl(); }
+  catch(e){ window.location.href=authorizeUrl(); }
+}
+async function getAccessToken(){
+  const refresh=getRefresh();
+  if(!refresh)return null;
+  const r=await fetch('/api/strava-refresh',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({refresh_token:refresh})});
+  const txt=await r.text();
+  let j; try{j=JSON.parse(txt);}catch{throw new Error('Bad token response');}
+  if(!r.ok)throw new Error(safeErr(txt));
+  // Strava rotates refresh tokens on each refresh — persist the new one
+  if(j.refresh_token){const s=sload();s.refresh=j.refresh_token;ssave(s);}
+  return j.access_token;
+}
+
+window.svConnect=function(){
+  if(!getRefresh()){ setStatus('Opening Strava…'); beginAuth(); return; }
+  sync();
+};
+
 async function sync(){
-  const root=document.getElementById('stravaRoot');
   setStatus('Syncing from Strava…');
   try{
-    const r=await fetch('/api/strava-data?path=/athlete/activities&per_page=100&page=1');
+    const access=await getAccessToken();
+    if(!access){ beginAuth(); return; }
+    const hdr={headers:{'Authorization':'Bearer '+access}};
+    const r=await fetch('/api/strava-data?path=/athlete/activities&per_page=100&page=1',hdr);
     const txt=await r.text();
     if(!r.ok)throw new Error(safeErr(txt));
     let list; try{list=JSON.parse(txt);}catch{throw new Error('Bad response from Strava');}
     if(!Array.isArray(list))throw new Error(list&&list.message?list.message:'Unexpected response');
     const acts=list.map(map);
     // enrich the 8 most recent with detail (splits + calories), rate-limit friendly
-    const recent=acts.slice(0,8);
-    for(const a of recent){
+    for(const a of acts.slice(0,8)){
       try{
-        const dr=await fetch('/api/strava-data?path=/activities/'+a.id);
+        const dr=await fetch('/api/strava-data?path=/activities/'+a.id,hdr);
         if(dr.ok){const d=JSON.parse(await dr.text());
           a.calories=d.calories||a.calories;
           if(d.splits_metric)a.splits=d.splits_metric.map(s=>({km:s.split,timeS:s.moving_time}));
@@ -5556,11 +5588,23 @@ async function sync(){
     const s=sload();s.activities=acts;s.lastSync=Date.now();ssave(s);
     render();
   }catch(e){
-    setStatus('Sync failed: '+(e.message||e));
+    const m=String(e.message||e);
+    if(/authorization|scope|401|unauthor/i.test(m)){
+      setStatus('Access expired or missing permission — reconnecting…');
+      const s=sload();s.refresh='';ssave(s);
+      setTimeout(beginAuth,800);
+    } else {
+      setStatus('Sync failed: '+m);
+    }
   }
 }
-function safeErr(t){try{const j=JSON.parse(t);return j.error||j.message||t;}catch{return t.slice(0,120);}}
-function setStatus(msg){const el=document.getElementById('svStatus');if(el)el.textContent=msg;}
+function safeErr(t){
+  try{const j=JSON.parse(t);
+    if(j.errors&&j.errors.length){const e=j.errors[0];return (j.message||'Error')+' ('+(e.field||e.resource||'')+' '+(e.code||'')+')';}
+    return j.error||j.message||t;
+  }catch{return (t||'').slice(0,120);}
+}
+function setStatus(msg){const el=document.getElementById('svStatus');if(el){el.style.display='';el.textContent=msg;}}
 
 function render(){
   const root=document.getElementById('stravaRoot');if(!root)return;
@@ -5577,7 +5621,7 @@ function render(){
     <div class="sv-head">
       <div class="sv-logo"><svg viewBox="0 0 24 24" width="15" height="15" fill="#fff"><path d="M15.4 21.6 12 14.9l-3.4 6.7H3.2L12 4l8.8 17.6z" opacity=".4"/><path d="M12 14.9l-2.1 4.2H6.6L12 8.3l5.4 10.8h-3.3z"/></svg></div>
       <div><div class="sv-title">Strava</div><div class="sv-sub">${connected?'Last synced '+last:'Not connected'}</div></div>
-      <button class="sv-btn ${connected?'sec':''}" onclick="window.svSync()">${connected?'Sync':'Connect Strava'}</button>
+      <button class="sv-btn ${connected?'sec':''}" onclick="window.svConnect()">${connected?'Sync':'Connect Strava'}</button>
     </div>
     <div class="sv-status" id="svStatus" style="${connected?'display:none':''}"></div>`;
 
@@ -5611,12 +5655,15 @@ function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace
 
 window.svSync=sync;
 
-// Capture OAuth tokens if redirected back with a hash (optional re-auth path)
+// Capture OAuth tokens if redirected back with a hash, then return to the shell
 (function(){
   if(location.hash.indexOf('strava_refresh=')>=0){
     const p=new URLSearchParams(location.hash.slice(1));
-    const s=sload();s.refresh=p.get('strava_refresh');ssave(s);
+    const s=sload();s.refresh=p.get('strava_refresh')||s.refresh;ssave(s);
+    // After OAuth we're at gym.html as the TOP window — go back to the dashboard
+    if(window.self===window.top){ location.replace('/'); return; }
     history.replaceState(null,'',location.pathname+location.search);
+    setTimeout(sync,300);
   }
 })();
 
