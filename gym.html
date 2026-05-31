@@ -4424,6 +4424,26 @@ function todayK(){return new Date().toISOString().slice(0,10);}
 function weekStart(d){d=d||new Date();const x=new Date(d);const dow=(x.getDay()+6)%7;x.setDate(x.getDate()-dow);x.setHours(0,0,0,0);return x;}
 function inWeek(dateStr,offset){const d=new Date(dateStr);const ws=weekStart();ws.setDate(ws.getDate()+7*(offset||0));const we=new Date(ws);we.setDate(ws.getDate()+7);return d>=ws&&d<we;}
 
+// ── STRAVA DATA BRIDGE ──
+function stravaLoad(){try{return JSON.parse(localStorage.getItem('strava_data_v1'))||{activities:[]};}catch{return{activities:[]};}}
+// Strava activities normalized to the endurance "session" shape
+function stravaSessions(){
+  return (stravaLoad().activities||[]).map(a=>({
+    type:a.disc, date:a.date, distance:a.distanceKm||0, time:a.durationMin||0,
+    avgHr:a.avgHr||null, maxHr:a.maxHr||null, pace:a.pace||'', elev:a.elevM||null,
+    isRace:!!a.isRace, source:'strava', id:'sv_'+a.id, name:a.name
+  }));
+}
+// Combined sessions: manual endurance_v1 logs + Strava activities
+function allSessions(){ return (eload().sessions||[]).concat(stravaSessions()); }
+// Easy/hard classification using HR vs 75% max HR (falls back to manual intensity)
+function isEasy(sess){
+  const maxhr=eload().metrics&&eload().metrics.maxhr;
+  if(sess.avgHr&&maxhr) return sess.avgHr < 0.75*maxhr;
+  if(sess.intensity) return sess.intensity==='easy';
+  return null; // unknown
+}
+
 const AXES=['Swim','Bike','Run','Strength','Hyrox','Rest'];
 const AXIS_KEY={Swim:'swim',Bike:'bike',Run:'run',Strength:'strength',Hyrox:'hyrox',Rest:'rest'};
 const AXIS_COLORS={Swim:'#06b6d4',Bike:'#f59e0b',Run:'#22c55e',Strength:'#8b5cf6',Hyrox:'#ef4444',Rest:'#94a3b8'};
@@ -4431,20 +4451,21 @@ const AXIS_UNIT={Swim:'km',Bike:'km',Run:'km',Strength:'sets',Hyrox:'×',Rest:'d
 
 // volume per axis for a given week offset (0=this week,-1=last)
 function weekVolume(offset){
-  const s=eload();const v={swim:0,bike:0,run:0,strength:0,hyrox:0,rest:0};
-  s.sessions.forEach(ss=>{
-    if(!inWeek(ss.date,offset))return;
+  const sessions=allSessions();const v={swim:0,bike:0,run:0,strength:0,hyrox:0,rest:0};
+  sessions.forEach(ss=>{
+    if(!ss.date||!inWeek(ss.date,offset))return;
     if(ss.type==='swim')v.swim+=(ss.distance||0);
     else if(ss.type==='bike')v.bike+=(ss.distance||0);
     else if(ss.type==='run')v.run+=(ss.distance||0);
     else if(ss.type==='hyrox')v.hyrox+=1;
+    else if(ss.type==='strength')v.strength+=1; // Strava weight-training session
   });
-  // strength sets from po_coach_v1
+  // strength sets from po_coach_v1 (logged lifts)
   const p=po();
   Object.values(p.logs||{}).forEach(arr=>arr.forEach(set=>{if(!set.warmup&&inWeek(set.date,offset))v.strength++;}));
   // rest days = days this week with no session/strength
   const active=new Set();
-  s.sessions.forEach(ss=>{if(inWeek(ss.date,offset))active.add(ss.date.slice(0,10));});
+  sessions.forEach(ss=>{if(ss.date&&inWeek(ss.date,offset))active.add(ss.date.slice(0,10));});
   Object.values(p.logs||{}).forEach(arr=>arr.forEach(set=>{if(inWeek(set.date,offset))active.add(set.date.slice(0,10));}));
   const ws=weekStart();ws.setDate(ws.getDate()+7*(offset||0));
   let rest=0;for(let i=0;i<7;i++){const d=new Date(ws);d.setDate(ws.getDate()+i);if(d>new Date())continue;if(!active.has(d.toISOString().slice(0,10)))rest++;}
@@ -4545,18 +4566,18 @@ function enRadarSVG(cur,last,tgt){
 
 // Week analysis pane
 function enRenderWeek(cur,tgt){
-  const s=eload();const p=po();
-  const enduranceMin=s.sessions.filter(x=>inWeek(x.date,0)).reduce((a,x)=>a+(x.time||0),0);
+  const sessions=allSessions();
+  const enduranceMin=sessions.filter(x=>x.date&&inWeek(x.date,0)&&['swim','bike','run'].includes(x.type)).reduce((a,x)=>a+(x.time||0),0);
   const strengthSets=cur.strength;
   const sbr=`${cur.swim%1?cur.swim.toFixed(1):cur.swim} : ${cur.bike%1?cur.bike.toFixed(1):cur.bike} : ${cur.run%1?cur.run.toFixed(1):cur.run}`;
-  // 80/20 split
-  const wkSessions=s.sessions.filter(x=>inWeek(x.date,0));
-  const easy=wkSessions.filter(x=>x.intensity==='easy').length;
-  const hard=wkSessions.filter(x=>x.intensity!=='easy'&&x.intensity).length;
+  // 80/20 split — HR-based (avg HR vs 75% max), falls back to manual intensity
+  const wkSessions=sessions.filter(x=>x.date&&inWeek(x.date,0)&&['swim','bike','run'].includes(x.type));
+  let easy=0,hard=0;
+  wkSessions.forEach(x=>{const e=isEasy(x);if(e===true)easy++;else if(e===false)hard++;});
   const totalI=easy+hard;
   const easyPct=totalI?Math.round(easy/totalI*100):0;
-  // longest per discipline
-  const longest={};['swim','bike','run'].forEach(t=>{const m=Math.max(0,...s.sessions.filter(x=>x.type===t).map(x=>x.distance||0));if(m>0)longest[t]=m;});
+  // longest per discipline (all-time, combined)
+  const longest={};['swim','bike','run'].forEach(t=>{const m=Math.max(0,...sessions.filter(x=>x.type===t).map(x=>x.distance||0));if(m>0)longest[t]=Math.round(m*10)/10;});
   return`
     <div class="en-row"><span class="en-row-name">Swim : Bike : Run (km)</span><span class="en-row-val">${sbr}</span></div>
     <div class="en-row"><span class="en-row-name">Endurance hours</span><span class="en-row-val">${(enduranceMin/60).toFixed(1)}h</span></div>
@@ -4606,13 +4627,22 @@ const PR_DEFS={
 function enRenderPRs(s){
   let html='';
   const icons={swim:'<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block" aria-hidden="true"><circle cx="17" cy="7" r="2"/><path d="M2 16c1.5 0 1.5 1 3 1s1.5-1 3-1 1.5 1 3 1 1.5-1 3-1 1.5 1 3 1 1.5-1 3-1M5.5 13l4-3 3 2 3.5-2.5"/></svg>',bike:'<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block" aria-hidden="true"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2zM12 17.5 9 9l3-2 3 4h3M9 9l-3 1"/></svg>',run:'<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block" aria-hidden="true"><circle cx="14" cy="5" r="2"/><path d="M11 21l1.5-5-3-2 2-5 3 2 2 1M7 12l2-4M13 16l3 1 1 4M9 21l1-4"/></svg>',hyrox:'<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.4-.5-2-1-3-1.1-2.1-.2-4 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.2.4-2.3 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>'};
+  const star='<svg viewBox="0 0 24 24" width="1em" height="1em" fill="#FFD700" stroke="none" style="vertical-align:-0.14em;display:inline-block"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg>';
+  const svPrs=(stravaLoad().prs)||{}; // auto run PRs from Strava best_efforts
+  const recent=Date.now()-14*864e5;
   Object.keys(PR_DEFS).forEach(disc=>{
-    html+=`<div style="font-size:12px;color:rgba(255,255,255,.5);margin:12px 0 4px">${icons[disc]} ${disc.charAt(0).toUpperCase()+disc.slice(1)}</div>`;
+    html+=`<div style="font-size:12px;color:rgba(255,255,255,.5);margin:12px 0 4px">${icons[disc]} ${disc.charAt(0).toUpperCase()+disc.slice(1)}${disc==='run'&&Object.keys(svPrs).length?' <span style="color:#FC4C02">· Strava</span>':''}</div>`;
     PR_DEFS[disc].forEach(([key,label])=>{
-      const pr=s.prs[key];
-      html+=`<div class="en-row"><span class="en-row-name">${label}</span><span class="en-row-val">${pr?pr.value+(pr.date?` <span style="font-size:11px;color:rgba(255,255,255,.4)">${pr.date}</span>`:''):'<span style="color:rgba(255,255,255,.3)">—</span>'}</span><button class="en-metric-add" style="margin-left:10px" onclick="enSetPR('${key}','${label}')">+</button></div>`;
+      const sv=svPrs[key]; const manual=s.prs[key];
+      const pr=sv||manual; // Strava-derived takes precedence for runs
+      const isRecent=sv&&sv.date&&new Date(sv.date).getTime()>=recent;
+      const valHtml=pr
+        ?`${isRecent?star+' ':''}${pr.value}${pr.date?` <span style="font-size:11px;color:rgba(255,255,255,.4)">${pr.date}</span>`:''}${sv?'':''}`
+        :'<span style="color:rgba(255,255,255,.3)">—</span>';
+      html+=`<div class="en-row"><span class="en-row-name">${label}</span><span class="en-row-val">${valHtml}</span>${sv?'':`<button class="en-metric-add" style="margin-left:10px" onclick="enSetPR('${key}','${label}')">+</button>`}</div>`;
     });
   });
+  if(Object.keys(svPrs).length)html+=`<div style="font-size:11px;color:rgba(255,255,255,.35);margin-top:10px"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="#FFD700" stroke="none" style="vertical-align:-0.14em;display:inline-block"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg> = set in the last 14 days · run PRs auto-detected from Strava</div>`;
   return html;
 }
 window.enSetPR=function(key,label){
@@ -4628,21 +4658,39 @@ function enPrStar(txt){
   if(navigator.vibrate)navigator.vibrate([100,50,100,50,200]);setTimeout(()=>t.classList.remove('show'),3500);
 }
 
-// Races pane
+// Races pane — manual triathlon races + auto-detected Strava races
 function enRenderRaces(s){
   let html=`<button class="gx-mbtn pri" onclick="enOpenRace()" style="margin-bottom:14px">+ Log Race</button>`;
-  if(!s.races.length)return html+`<div class="en-empty">No races logged yet.</div>`;
-  html+=s.races.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(r=>`
-    <div class="en-race-row">
-      <span class="en-race-type">${r.type}</span>
-      <div style="flex:1">
-        <div style="font-size:14px;font-weight:700">${r.total||'—'}</div>
-        <div style="font-size:11px;color:rgba(255,255,255,.5)">S ${r.swim||'–'} · T1 ${r.t1||'–'} · Bike ${r.bike||'–'} · T2 ${r.t2||'–'} · R ${r.run||'–'} · ${r.date}</div>
-      </div>
-      <button class="en-metric-add" onclick="enDelRace('${r.id}')" style="background:rgba(248,113,113,.12);color:#f87171;border:none"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
-    </div>`).join('');
+  // Strava activities flagged as race (workout_type 1/11)
+  const svRaces=stravaSessions().filter(x=>x.isRace).sort((a,b)=>new Date(b.date)-new Date(a.date));
+  if(svRaces.length){
+    html+=`<div style="font-size:12px;color:#FC4C02;font-weight:700;margin:4px 0 6px">Strava Races</div>`;
+    svRaces.forEach(r=>{
+      const sv=stravaLoad().activities.find(a=>('sv_'+a.id)===r.id)||{};
+      const meta=[r.distance?r.distance+'km':null, sv.durationS?fmtTimeEn(sv.durationS):null, r.pace||null, r.avgHr?Math.round(r.avgHr)+'bpm':null].filter(Boolean).join(' · ');
+      html+=`<div class="en-race-row">
+        <span class="en-race-type" style="background:rgba(252,76,2,.15);color:#FC4C02;text-transform:capitalize">${r.type}</span>
+        <div style="flex:1"><div style="font-size:14px;font-weight:700">${r.name||'Race'}</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.5)">${meta} · ${r.date.slice(0,10)}</div></div>
+      </div>`;
+    });
+  }
+  if(s.races.length){
+    html+=`<div style="font-size:12px;color:rgba(255,255,255,.5);font-weight:700;margin:14px 0 6px">Triathlon Races</div>`;
+    html+=s.races.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(r=>`
+      <div class="en-race-row">
+        <span class="en-race-type">${r.type}</span>
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:700">${r.total||'—'}</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.5)">S ${r.swim||'–'} · T1 ${r.t1||'–'} · Bike ${r.bike||'–'} · T2 ${r.t2||'–'} · R ${r.run||'–'} · ${r.date}</div>
+        </div>
+        <button class="en-metric-add" onclick="enDelRace('${r.id}')" style="background:rgba(248,113,113,.12);color:#f87171;border:none"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+      </div>`).join('');
+  }
+  if(!svRaces.length&&!s.races.length)html+=`<div class="en-empty">No races yet. Strava activities marked as a race appear here automatically.</div>`;
   return html;
 }
+function fmtTimeEn(sec){sec=Math.round(sec);const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=sec%60;return(h>0?h+':'+String(m).padStart(2,'0'):m)+':'+String(s).padStart(2,'0');}
 window.enDelRace=function(id){const s=eload();s.races=s.races.filter(r=>r.id!==id);esave(s);enRender();};
 
 // AI pane
@@ -4816,11 +4864,24 @@ function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace
 function dataSummary(){
   const s=eload();const cur=weekVolume(0),last=weekVolume(-1);
   const m=s.metrics;
-  const recent=s.sessions.slice(-14).map(x=>`${x.date.slice(5)} ${x.type} ${x.distance||''}${x.distance?'km':''} ${x.time||''}min ${x.intensity||''}`).join('; ');
-  return`This week: swim ${cur.swim}km, bike ${cur.bike}km, run ${cur.run}km, ${cur.strength} strength sets, ${cur.hyrox} hyrox.
-Last week: swim ${last.swim}km, bike ${last.bike}km, run ${last.run}km.
+  // Last 30 real activities (Strava + manual), most recent first, with HR/pace/elevation
+  const recent=allSessions()
+    .filter(x=>x.date)
+    .sort((a,b)=>new Date(b.date)-new Date(a.date))
+    .slice(0,30)
+    .map(x=>{
+      const parts=[x.date.slice(0,10),x.type];
+      if(x.distance)parts.push(x.distance+'km');
+      if(x.time)parts.push(Math.round(x.time)+'min');
+      if(x.pace)parts.push(x.pace);
+      if(x.avgHr)parts.push(Math.round(x.avgHr)+'bpm');
+      if(x.elev)parts.push(x.elev+'m elev');
+      return parts.join(' ');
+    }).join('; ');
+  return`This week: swim ${cur.swim.toFixed?cur.swim.toFixed(1):cur.swim}km, bike ${cur.bike.toFixed?cur.bike.toFixed(1):cur.bike}km, run ${cur.run.toFixed?cur.run.toFixed(1):cur.run}km, ${cur.strength} strength sessions, ${cur.hyrox} hyrox.
+Last week: swim ${last.swim.toFixed?last.swim.toFixed(1):last.swim}km, bike ${last.bike}km, run ${last.run}km.
 Metrics: VO2max ${m.vo2max.at?.(-1)?.val||'?'}, FTP ${m.ftp.at?.(-1)?.val||'?'}W, CSS ${m.css.at?.(-1)?.val||'?'}/100m, run threshold ${m.threshold.at?.(-1)?.val||'?'}/km, maxHR ${m.maxhr||'?'}.
-Recent sessions: ${recent||'none logged'}.`;
+Recent activities (most recent first): ${recent||'none logged — connect Strava or log sessions'}.`;
 }
 window.enAiCoach=async function(){enLoad('Reviewing your last 2 weeks…');try{
   const out=await groq(`Give a short weekly coaching message based on this endurance athlete's data. Note what's going well and the single most important thing to change.\n\n${dataSummary()}`);
@@ -4828,11 +4889,18 @@ window.enAiCoach=async function(){enLoad('Reviewing your last 2 weeks…');try{
 window.enAiOvertraining=async function(){enLoad('Checking training load…');try{
   const out=await groq(`Analyze for overtraining risk. Flag if weekly volume jumped >10%, intensity distribution is off, or recovery looks insufficient.\n\n${dataSummary()}`);
   enOut(`<h4><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M4 3v6a4 4 0 0 0 8 0V3M8 13v3a5 5 0 0 0 10 0v-1M2 3h4M16 3h4"/><circle cx="18" cy="15" r="2"/></svg> Overtraining Check</h4>${esc(out)}`);}catch(e){enErr(e);}};
+// Average pace from the last 5 Strava/manual activities of a discipline
+function avgPace(disc){
+  const acts=allSessions().filter(x=>x.type===disc&&x.pace).slice(-5);
+  if(!acts.length)return null;
+  return acts[acts.length-1].pace; // most recent real pace as the reference
+}
 window.enAiPace=async function(){
-  const dist=prompt('Target distance (e.g. "10km run", "1500m swim", "40km bike"):');if(!dist)return;
+  const refs=['run','bike','swim'].map(d=>{const p=avgPace(d);return p?d+' '+p:null;}).filter(Boolean).join(', ');
+  const dist=prompt('Target distance (e.g. "10km run", "1500m swim", "40km bike"):'+(refs?'\n\nYour recent paces: '+refs:''));if(!dist)return;
   const time=prompt('Goal time (e.g. "45:00"):');if(!time)return;
   enLoad('Calculating pace…');try{
-    const out=await groq(`For a target of ${dist} in ${time}, give the required pace (per km for run/bike, per 100m for swim), plus 2-3 split checkpoints. Be precise with numbers.`);
+    const out=await groq(`For a target of ${dist} in ${time}, give the required pace (per km for run/bike, per 100m for swim), plus 2-3 split checkpoints. ${refs?'Their recent actual paces are: '+refs+'. Note whether the goal is realistic vs their current pace.':''} Be precise with numbers.`);
     enOut(`<h4>⏱️ Pace for ${esc(dist)} in ${esc(time)}</h4>${esc(out)}`);}catch(e){enErr(e);}};
 window.enAiStrategy=async function(){
   const race=prompt('Race (e.g. "Olympic triathlon", "70.3", "Marathon"):');if(!race)return;
@@ -4852,7 +4920,8 @@ window.enAiPredict=async function(){
   enLoad('Analyzing all your data…');try{
     const s=eload();
     const sys='You are an elite endurance performance analyst. Analyze the athlete\'s data and give a realistic, numbers-based prediction. Structure your answer with: ESTIMATE (a concrete time/date), CONFIDENCE (low/medium/high — based on how much data exists), KEY LIMITERS (what is holding them back), NEXT STEPS (2-3 actionable items), WEEKLY VOLUME NEEDED. If there is not enough logged data to predict well, clearly say what specific data is still needed.';
-    const out=await groq(`Athlete question: "${q}"\n\nData available:\n${dataSummary()}\nTotal sessions logged: ${s.sessions.length}. Races: ${s.races.length}.`,sys);
+    const svCount=stravaSessions().length;
+    const out=await groq(`Athlete question: "${q}"\n\nData available:\n${dataSummary()}\nTotal activities: ${allSessions().length} (${svCount} from Strava). Races: ${s.races.length}.`,sys);
     // confidence badge
     let conf='medium';const lo=/confidence[:\s]*low/i.test(out),hi=/confidence[:\s]*high/i.test(out);
     if(lo)conf='low';else if(hi)conf='high';
@@ -4862,10 +4931,11 @@ window.enAiPredict=async function(){
   }catch(e){enErr(e);}};
 
 // ════════ BOOT ════════
+window.enRender=enRender; // allow the Strava module to refresh this panel
 enRender();
-window.addEventListener('storage',e=>{if(e.key===EK||e.key===PO||e.key===CAL)enRender();});
+window.addEventListener('storage',e=>{if(e.key===EK||e.key===PO||e.key===CAL||e.key==='strava_data_v1')enRender();});
 const _es=localStorage.setItem.bind(localStorage);
-localStorage.setItem=function(k,v){_es(k,v);if(k===PO||k===CAL){try{enRender();}catch(e){}}};
+localStorage.setItem=function(k,v){_es(k,v);if(k===PO||k===CAL||k==='strava_data_v1'){try{enRender();}catch(e){}}};
 if(window.initCloudSync){window.initCloudSync({appKey:'endurance',syncedKeys:[EK],onApplied:enRender});}
 })();
 </script>
@@ -5525,11 +5595,29 @@ function map(a){
     id:a.id, type:a.type||a.sport_type, disc, name:a.name||a.type,
     date:a.start_date_local||a.start_date,
     distanceKm:Math.round(distKm*100)/100, durationMin:Math.round(durMin),
+    durationS:a.moving_time||a.elapsed_time||0,
     pace, avgHr:a.average_heartrate||null, maxHr:a.max_heartrate||null,
     cadence:a.average_cadence||null, elevM:a.total_elevation_gain||null,
     calories:a.calories||(a.kilojoules?Math.round(a.kilojoules):null),
+    workout_type:a.workout_type!=null?a.workout_type:null,
+    isRace:a.workout_type===1||a.workout_type===11, // 1=run race, 11=ride race
     splits:a.splits_metric?a.splits_metric.map(s=>({km:s.split,timeS:s.moving_time,paceS:s.moving_time})):null
   };
+}
+// Format seconds → mm:ss or h:mm:ss
+function fmtTime(sec){sec=Math.round(sec);const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=sec%60;return(h>0?h+':'+String(m).padStart(2,'0'):m)+':'+String(s).padStart(2,'0');}
+// Strava run best_effort name → endurance PR key
+const EFFORT_KEY={'1k':'run1','5k':'run5','10k':'run10','Half-Marathon':'run21','Marathon':'run42'};
+// Update strava_data_v1.prs from an activity's best_efforts (run)
+function captureBestEfforts(store,efforts){
+  if(!Array.isArray(efforts))return;
+  store.prs=store.prs||{};
+  efforts.forEach(ef=>{
+    const key=EFFORT_KEY[ef.name];if(!key)return;
+    const sec=ef.elapsed_time||ef.moving_time;if(!sec)return;
+    const ex=store.prs[key];
+    if(!ex||sec<ex.seconds){store.prs[key]={seconds:sec,value:fmtTime(sec),date:(ef.start_date_local||'').slice(0,10)};}
+  });
 }
 
 // ── OAuth (client-managed, full activity:read_all scope) ──
@@ -5575,18 +5663,22 @@ async function sync(){
     let list; try{list=JSON.parse(txt);}catch{throw new Error('Bad response from Strava');}
     if(!Array.isArray(list))throw new Error(list&&list.message?list.message:'Unexpected response');
     const acts=list.map(map);
-    // enrich the 8 most recent with detail (splits + calories), rate-limit friendly
-    for(const a of acts.slice(0,8)){
+    const s=sload(); s.prs=s.prs||{};
+    // enrich the 10 most recent with detail (splits + calories + best_efforts)
+    for(const a of acts.slice(0,10)){
       try{
         const dr=await fetch('/api/strava-data?path=/activities/'+a.id,hdr);
         if(dr.ok){const d=JSON.parse(await dr.text());
           a.calories=d.calories||a.calories;
-          if(d.splits_metric)a.splits=d.splits_metric.map(s=>({km:s.split,timeS:s.moving_time}));
+          if(d.splits_metric)a.splits=d.splits_metric.map(x=>({km:x.split,timeS:x.moving_time}));
+          if(d.best_efforts)captureBestEfforts(s,d.best_efforts); // run PRs
         }
       }catch(e){}
     }
-    const s=sload();s.activities=acts;s.lastSync=Date.now();ssave(s);
+    s.activities=acts;s.lastSync=Date.now();ssave(s);
     render();
+    // refresh the endurance module so spider/analysis/PRs pick up new data
+    if(window.enRender)try{window.enRender();}catch(e){}
   }catch(e){
     const m=String(e.message||e);
     if(/authorization|scope|401|unauthor/i.test(m)){
