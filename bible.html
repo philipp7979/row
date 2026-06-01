@@ -386,7 +386,7 @@ function refreshPlanOptions(){
   ['bible_1_year','nt_90','psalms_proverbs','custom'].forEach(id=>{
     document.getElementById('opt-'+id)?.classList.toggle('sel',id===selectedPlan);
     const chk=document.getElementById('chk-'+id);
-    if(chk)chk.innerHTML=id===selectedPlan?'<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>':'';
+    if(chk)chk.innerHTML=id===selectedPlan?'<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>':'';
   });
 }
 function addPlan(){
@@ -494,7 +494,7 @@ function renderBacklog(state){
   if(missed.length<3){banner.style.display='none';return;}
   banner.style.display='block';
   banner.innerHTML=`<div class="backlog-banner">
-    <div class="backlog-icon"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>️</div>
+    <div class="backlog-icon"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>️</div>
     <div style="flex:1">
       <div class="backlog-title">${missed.length} Missed Days</div>
       <div class="backlog-desc">You've missed ${missed.length} day${missed.length!==1?'s':''} of reading. What would you like to do?</div>
@@ -559,7 +559,7 @@ function renderStreak(state){
   card.innerHTML=`
     <div class="streak-row">
       <div class="streak-pill">
-        <span class="streak-fire"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.4-.5-2-1-3-1.1-2.1-.2-4 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.2.4-2.3 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg></span>
+        <span class="streak-fire"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.4-.5-2-1-3-1.1-2.1-.2-4 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.2.4-2.3 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg></span>
         <span class="streak-num">${streak}</span>
         <span class="streak-label">day streak</span>
       </div>
@@ -623,7 +623,7 @@ function renderProgress(state){
       <div class="book-name">${name}</div>
       <div class="book-bar-wrap"><div class="book-bar-fill" style="width:${bookPct}%"></div></div>
       <div class="book-pct">${read}/${total}</div>
-      <div class="book-done">${done?'<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>':''}</div>
+      <div class="book-done">${done?'<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>':''}</div>
     </div>`;
   });
   booksHtml+=`<div class="book-section-head">New Testament</div>`;
@@ -636,7 +636,7 @@ function renderProgress(state){
       <div class="book-name">${name}</div>
       <div class="book-bar-wrap"><div class="book-bar-fill" style="width:${bookPct}%"></div></div>
       <div class="book-pct">${read}/${total}</div>
-      <div class="book-done">${done?'<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>':''}</div>
+      <div class="book-done">${done?'<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>':''}</div>
     </div>`;
   });
 

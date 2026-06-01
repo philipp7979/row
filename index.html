@@ -189,12 +189,12 @@ body.finance-open .sh-top{ display:none; }
   <div class="sh-modal-sub">Keys are stored locally on this device only.</div>
 
   <div class="sh-key-row">
-    <span class="sh-key-icon"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></svg></span>
+    <span class="sh-key-icon"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></svg></span>
     <div class="sh-key-body">
       <div class="sh-key-label">Groq API Key</div>
       <input class="sh-key-input" id="groqKeyInput" type="password" placeholder="gsk_… — get free key at console.groq.com" autocomplete="off" spellcheck="false">
     </div>
-    <button onclick="toggleKeyVisibility()" id="keyToggleBtn" style="background:none;border:none;color:#8e8e93;font-size:16px;padding:4px;cursor:pointer;flex-shrink:0"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button>
+    <button onclick="toggleKeyVisibility()" id="keyToggleBtn" style="background:none;border:none;color:#8e8e93;font-size:16px;padding:4px;cursor:pointer;flex-shrink:0"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button>
   </div>
   <div class="sh-key-status" id="keyStatus"></div>
 
@@ -394,7 +394,7 @@ function openSettings() {
   const inp = document.getElementById('groqKeyInput');
   inp.value = localStorage.getItem('groq_api_key') || '';
   inp.type = 'password';
-  document.getElementById('keyToggleBtn').innerHTML = '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>';
+  document.getElementById('keyToggleBtn').innerHTML = '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>';
   setKeyStatus('', '');
   document.getElementById('settingsScrim').classList.add('show');
   document.getElementById('settingsModal').classList.add('show');
@@ -406,8 +406,8 @@ function closeSettings() {
 function toggleKeyVisibility() {
   const inp = document.getElementById('groqKeyInput');
   const btn = document.getElementById('keyToggleBtn');
-  if (inp.type === 'password') { inp.type = 'text'; btn.innerHTML = '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M2 12s3.5-7 10-7c2 0 3.7.6 5.2 1.5M22 12s-3.5 7-10 7c-2 0-3.7-.6-5.2-1.5M3 3l18 18M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>'; }
-  else { inp.type = 'password'; btn.innerHTML = '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>'; }
+  if (inp.type === 'password') { inp.type = 'text'; btn.innerHTML = '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M2 12s3.5-7 10-7c2 0 3.7.6 5.2 1.5M22 12s-3.5 7-10 7c-2 0-3.7-.6-5.2-1.5M3 3l18 18M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>'; }
+  else { inp.type = 'password'; btn.innerHTML = '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>'; }
 }
 function setKeyStatus(type, msg) {
   const el = document.getElementById('keyStatus');
@@ -423,7 +423,7 @@ function saveKey() {
     return;
   }
   localStorage.setItem('groq_api_key', key);
-  setKeyStatus('ok', '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg> Key saved — AI features enabled across all tabs.');
+  setKeyStatus('ok', '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg> Key saved — AI features enabled across all tabs.');
 }
 async function testKey() {
   const key = document.getElementById('groqKeyInput').value.trim() || localStorage.getItem('groq_api_key') || '';
@@ -444,10 +444,10 @@ async function testKey() {
     const data = await res.json();
     if (!res.ok) throw new Error(data?.error?.message || 'Error ' + res.status);
     const reply = data?.choices?.[0]?.message?.content || '';
-    setKeyStatus('ok', '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg> Working! Groq replied: "' + reply.trim() + '"');
+    setKeyStatus('ok', '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg> Working! Groq replied: "' + reply.trim() + '"');
     localStorage.setItem('groq_api_key', key);
   } catch(e) {
-    setKeyStatus('err', '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg> ' + e.message);
+    setKeyStatus('err', '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg> ' + e.message);
   }
 }
 function clearKey() {
