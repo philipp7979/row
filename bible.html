@@ -778,6 +778,8 @@ if(window.initCloudSync){
 .th-pin-ico.on{color:#fbbf24}
 .th-row-content{font-size:15.5px;color:var(--t1);line-height:1.55;word-break:break-word}
 .th-row.done .th-row-content{text-decoration:line-through}
+.th-note-title{font-size:16px;font-weight:700;color:var(--t1);line-height:1.4;word-break:break-word;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.th-note-preview{font-size:14px;color:var(--t3);line-height:1.5;margin-top:3px;word-break:break-word;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .th-row-meta{font-size:11px;color:var(--t4);margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .th-row-proj{padding:1px 7px;border-radius:5px;font-weight:600}
 .th-expand{margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:none}
@@ -909,9 +911,14 @@ function sortThoughts(arr){
 
 function noteRow(t){
   const date=new Date(t.created).toLocaleDateString('en',{month:'short',day:'numeric'});
+  // first line = headline, rest = preview (Apple Notes style)
+  const lines=(t.content||'').split(/\n/);
+  const title=(lines.shift()||'').trim()||'New Note';
+  const preview=lines.join(' ').trim();
   const inner='<div class="th-row'+(t.pinned?' pinned':'')+(expandedIds.has(t.id)?' expanded':'')+'" id="throw-'+t.id+'" onclick="thToggleExpand(event,\''+t.id+'\')">'
     +(t.pinned?'<span class="th-pin-ico on" style="float:right;margin-left:8px" onclick="thPin(event,\''+t.id+'\')"><svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5M9 10.76V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v6.76l2 3.24H7z"/></svg></span>':'')
-    +'<div class="th-row-content">'+md(t.content)+'</div>'
+    +'<div class="th-note-title">'+esc(title)+'</div>'
+    +(preview?'<div class="th-note-preview">'+esc(preview)+'</div>':'')
     +'<div class="th-row-meta"><span>'+date+'</span>'+(t.modified&&t.modified>t.created+60000?'<span>· edited</span>':'')+'</div>'
     +'<div class="th-expand" onclick="event.stopPropagation()">'
       +'<textarea class="th-edit-ta" id="thedit-'+t.id+'">'+esc(t.content)+'</textarea>'
