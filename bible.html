@@ -870,20 +870,18 @@ function md(t){
 let capTag='note', capPrio='medium', capProj='';
 
 // ── RENDER ──
-let filter={tag:'',project:'',priority:''}, search='';
+let filter={tag:'',project:'',priority:''}, search='', expandedIds=new Set();
 function render(){
   const root=document.getElementById('thoughtsRoot');if(!root)return;
   const s=load();
 
-  // capture
+  // capture — minimal: type, pick a tag, save. (priority/project set later)
   let cap='<div class="th-capture">'
-    +'<textarea class="th-capture-ta" id="thCapInput" placeholder="What\'s on your mind? Capture it instantly…" rows="2"></textarea>'
+    +'<textarea class="th-capture-ta" id="thCapInput" placeholder="Capture a thought…" rows="2"></textarea>'
     +'<div class="th-chips" id="thTagChips">'+TAGS.map(t=>'<div class="th-chip '+(t.id===capTag?'on':'')+'" onclick="thSetTag(\''+t.id+'\')"><span class="th-dot" style="background:'+t.color+'"></span>'+t.label+'</div>').join('')+'</div>'
-    +'<div class="th-chips" id="thPrioChips" style="margin-top:6px">'+PRIO.map(p=>'<div class="th-chip '+(p.id===capPrio?'on':'')+'" onclick="thSetPrio(\''+p.id+'\')"><span class="th-dot" style="background:'+p.color+'"></span>'+p.label+'</div>').join('')+'</div>'
     +'<div class="th-capture-actions">'
       +'<button class="th-voice" id="thVoiceBtn" onclick="thVoice()" title="Voice input"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3"/></svg></button>'
-      +'<select class="th-proj-sel" id="thCapProj" onchange="thSetCapProj(this.value)"><option value="">No project</option>'+(s.projects||[]).map(p=>'<option value="'+p.id+'"'+(p.id===capProj?' selected':'')+'>'+esc(p.name)+'</option>').join('')+'</select>'
-      +'<button class="th-save" onclick="thSave()">Save</button>'
+      +'<button class="th-save" id="thSaveBtn" onclick="thSave()">Save</button>'
     +'</div></div>';
 
   // toolbar
@@ -967,7 +965,7 @@ function renderBoard(s){
 function thoughtRow(s,t,inBoard){
   const tag=tagOf(t.tag),prio=prioOf(t.priority),proj=projOf(s,t.project);
   const date=new Date(t.created).toLocaleDateString('en',{month:'short',day:'numeric'});
-  const inner='<div class="th-row'+(t.pinned?' pinned':'')+(t.done?' done':'')+(t._expanded?' expanded':'')+'" id="throw-'+t.id+'" onclick="thToggleExpand(event,\''+t.id+'\')">'
+  const inner='<div class="th-row'+(t.pinned?' pinned':'')+(t.done?' done':'')+(expandedIds.has(t.id)?' expanded':'')+'" id="throw-'+t.id+'" onclick="thToggleExpand(event,\''+t.id+'\')">'
     +'<div class="th-row-top">'
       +'<span class="th-tag" style="background:'+tag.color+'22;color:'+tag.color+'">'+tag.label+'</span>'
       +'<span class="th-prio-dot" style="background:'+prio.color+'" title="'+prio.label+'"></span>'
@@ -978,12 +976,15 @@ function thoughtRow(s,t,inBoard){
     // expand
     +'<div class="th-expand" onclick="event.stopPropagation()">'
       +'<textarea class="th-edit-ta" id="thedit-'+t.id+'">'+esc(t.content)+'</textarea>'
+      +'<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:8px">'
+        +PRIO.map(p=>'<div class="th-chip '+(t.priority===p.id?'on':'')+'" style="padding:4px 10px;font-size:11px" onclick="thSetPrio2(\''+t.id+'\',\''+p.id+'\')"><span class="th-dot" style="background:'+p.color+'"></span>'+p.label+'</div>').join('')
+        +'<select class="th-proj-sel" onchange="thSetProj2(\''+t.id+'\',this.value)"><option value="">No project</option>'+(s.projects||[]).map(p=>'<option value="'+p.id+'"'+(p.id===t.project?' selected':'')+'>'+esc(p.name)+'</option>').join('')+'</select>'
+      +'</div>'
       +'<div class="th-exp-btns">'
         +'<button class="th-xbtn" onclick="thSaveEdit(\''+t.id+'\')"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Save</button>'
-        +'<button class="th-xbtn" onclick="thToggleDone(\''+t.id+'\')">'+(t.done?'Undone':'Mark done')+'</button>'
-        +'<button class="th-xbtn" onclick="thBoardMove(\''+t.id+'\')">'+(t.status==='in_progress'?'→ Idea':'→ In progress')+'</button>'
+        +'<button class="th-xbtn" onclick="thToggleDone(\''+t.id+'\')">'+(t.done?'Undone':'Done')+'</button>'
+        +(inBoard?'<button class="th-xbtn" onclick="thBoardMove(\''+t.id+'\')">'+(t.status==='in_progress'?'← Idea':'In progress →')+'</button>':'')
         +'<button class="th-xbtn ai" onclick="thDevelop(\''+t.id+'\')"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg> Develop</button>'
-        +'<button class="th-xbtn ai" onclick="thSmartTag(\''+t.id+'\')">Auto-tag</button>'
         +'<button class="th-xbtn ai" onclick="thConnect(\''+t.id+'\')">Connect</button>'
         +'<button class="th-xbtn del" onclick="thDelete(\''+t.id+'\')">Delete</button>'
       +'</div>'
@@ -1035,8 +1036,12 @@ window.thSearchInput=function(v){search=v;const s=load();const root=document.get
   render();const si=document.getElementById('thSearch');if(si){si.focus();si.value=v;si.setSelectionRange(v.length,v.length);}};
 
 // ── ROW ACTIONS ──
-window.thToggleExpand=function(e,id){const s=load();const t=s.thoughts.find(x=>x.id===id);if(!t)return;t._expanded=!t._expanded;
-  document.getElementById('throw-'+id).classList.toggle('expanded',t._expanded);};
+window.thToggleExpand=function(e,id){
+  if(expandedIds.has(id))expandedIds.delete(id);else expandedIds.add(id);
+  const row=document.getElementById('throw-'+id);if(row)row.classList.toggle('expanded',expandedIds.has(id));
+};
+window.thSetPrio2=function(id,p){const s=load();const t=s.thoughts.find(x=>x.id===id);if(t){t.priority=p;t.modified=now();save(s);render();}};
+window.thSetProj2=function(id,pid){const s=load();const t=s.thoughts.find(x=>x.id===id);if(t){t.project=pid;t.modified=now();save(s);render();}};
 window.thPin=function(e,id){e.stopPropagation();const s=load();const t=s.thoughts.find(x=>x.id===id);if(t){t.pinned=!t.pinned;save(s);render();}};
 window.thSaveEdit=function(id){const s=load();const t=s.thoughts.find(x=>x.id===id);const ta=document.getElementById('thedit-'+id);if(t&&ta){t.content=ta.value;t.modified=now();save(s);render();}};
 window.thToggleDone=function(id){const s=load();const t=s.thoughts.find(x=>x.id===id);if(t){t.done=!t.done;if(t.done)t.status='done';else if(t.status==='done')t.status='';save(s);render();}};
