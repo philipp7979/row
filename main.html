@@ -674,10 +674,12 @@ body::after {
   .pc-sd-dots{display:flex;gap:2px;height:5px}
   .pc-sd-dot{width:4px;height:4px;border-radius:50%}
   .pc-sd-load{font-size:9px;color:rgba(255,255,255,.4);font-variant-numeric:tabular-nums}
-  .pc-tl{position:relative;margin-top:8px}
+  .pc-tl-scroll{position:relative;margin-top:8px;max-height:62vh;overflow-y:auto;-webkit-overflow-scrolling:touch;border-radius:14px}
+  .pc-tl-scroll::-webkit-scrollbar{width:0}
+  .pc-tl{position:relative;margin-top:0}
   .pc-hour{display:flex;gap:10px;align-items:flex-start;position:relative}
   .pc-hour-lbl{width:42px;flex-shrink:0;font-size:10px;color:rgba(255,255,255,.3);padding-top:2px;font-variant-numeric:tabular-nums}
-  .pc-hour-line{flex:1;border-top:1px solid rgba(255,255,255,.05);min-height:48px}
+  .pc-hour-line{flex:1;border-top:1px solid rgba(255,255,255,.05)}
   .pc-evt{position:absolute;border-radius:11px;padding:7px 10px;overflow:hidden;cursor:pointer;z-index:2}
   .pc-evt-t{font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:5px}
   .pc-evt-m{font-size:10px;opacity:.75;margin-top:1px}
@@ -699,6 +701,9 @@ body::after {
   .pc-cell-dots{display:flex;gap:2px;flex-wrap:wrap;justify-content:center;margin-top:3px;max-width:34px}
   .pc-cell-dot{width:5px;height:5px;border-radius:50%}
   .pc-cell-more{font-size:8px;color:rgba(255,255,255,.4)}
+  .pc-wload{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;height:14px;margin:2px 0 6px}
+  .pc-wload-c{display:flex;align-items:flex-end;justify-content:center}
+  .pc-wload-bar{width:60%;min-height:0;border-radius:2px 2px 0 0;transition:height .4s}
   .pc-reco{display:flex;gap:10px;align-items:flex-start;padding:13px 15px;border-radius:16px;background:rgba(125,211,252,.08);margin-bottom:14px;font-size:13.5px;line-height:1.5;color:#bfe3fb;cursor:pointer}
   .pc-fab{position:fixed;right:18px;bottom:calc(86px + env(safe-area-inset-bottom));z-index:60;width:56px;height:56px;border-radius:50%;border:none;background:#fff;color:#000;font-size:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 24px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.1);transition:transform .15s}
   .pc-fab:active{transform:scale(.9)}
@@ -831,6 +836,7 @@ body::after {
       +'<div class="pc-views">'+['month','week','day'].map(v=>'<button class="pc-view-btn '+(view===v?'on':'')+'" onclick="pcView(\''+v+'\')">'+v.charAt(0).toUpperCase()+v.slice(1)+'</button>').join('')+'</div>'
       +races+'<div class="pc-card '+anim+'" id="pcCard">'+body+'</div></div>';
     bindSwipe();
+    if(view!=='month')setTimeout(scrollToNow,30);
     if(view==='day')genReco();
   }
 
@@ -843,18 +849,26 @@ body::after {
     for(let i=1;i<=dim;i++)cells.push({d:new Date(y,m,i)});
     while(cells.length%7)cells.push({d:new Date(y,m+1,cells.length-fd-dim+1),other:1});
     const td=todayK();
-    let h='<div class="pc-dow">'+['M','T','W','T','F','S','S'].map(x=>'<span>'+x+'</span>').join('')+'</div><div class="pc-grid">';
-    cells.forEach(c=>{
+    function cell(c){
       const ds=dk(c.d),evs=eventsOn(ds),rec=recovery(ds);
       const isToday=ds===td,isRace=evs.some(e=>e.type==='race'),isPast=ds<td&&!isToday;
       let cls='pc-cell';if(c.other)cls+=' other';if(isPast)cls+=' past';if(isToday)cls+=' today';if(isRace)cls+=' race';else if(taperDay(ds))cls+=' taper';
       const dots=evs.slice(0,3).map(e=>'<span class="pc-cell-dot" style="background:'+T(e.type).c+'"></span>').join('');
-      h+='<div class="'+cls+'" onclick="pcOpenDay(\''+ds+'\')">'
+      return '<div class="'+cls+'" onclick="pcOpenDay(\''+ds+'\')">'
         +(rec!=null?'<span class="pc-cell-rec" style="background:'+recColor(rec)+'"></span>':'')
         +'<div class="pc-cell-num">'+c.d.getDate()+'</div>'
         +'<div class="pc-cell-dots">'+dots+(evs.length>3?'<span class="pc-cell-more">+'+(evs.length-3)+'</span>':'')+'</div></div>';
-    });
-    return h+'</div>';
+    }
+    let h='<div class="pc-dow">'+['M','T','W','T','F','S','S'].map(x=>'<span>'+x+'</span>').join('')+'</div>';
+    // weeks with a per-week training-load bar underneath
+    for(let w=0;w<cells.length;w+=7){
+      const week=cells.slice(w,w+7);
+      let loads=week.map(c=>trainLoad(dk(c.d)));
+      const maxL=Math.max(60,...loads);
+      h+='<div class="pc-grid">'+week.map(cell).join('')+'</div>';
+      h+='<div class="pc-wload">'+loads.map(l=>'<div class="pc-wload-c"><div class="pc-wload-bar" style="height:'+Math.round(l/maxL*100)+'%;background:'+(l?'#a78bfa':'transparent')+'"></div></div>').join('')+'</div>';
+    }
+    return h;
   }
 
   function renderWeek(){
@@ -883,24 +897,47 @@ body::after {
     return reco+warn+timeline(sel);
   }
 
+  const HH=58; // px per hour
   function timeline(ds){
-    const timed=eventsOn(ds).filter(e=>e.time).sort((a,b)=>a.time.localeCompare(b.time));
-    const allday=eventsOn(ds).filter(e=>!e.time);
+    const evs0=eventsOn(ds);
+    const timed=evs0.filter(e=>e.time).map(e=>{const[h,m]=e.time.split(':').map(Number);const s=h*60+m;return Object.assign({},e,{_s:s,_e:s+Math.max(20,e.duration||45)});}).sort((a,b)=>a._s-b._s||a._e-b._e);
+    const allday=evs0.filter(e=>!e.time);
+    // dynamic visible window
+    let startH=7,endH=21;
+    if(timed.length){let mn=24*60,mx=0;timed.forEach(e=>{mn=Math.min(mn,e._s);mx=Math.max(mx,e._e);});startH=Math.max(0,Math.min(Math.floor(mn/60),7));endH=Math.min(24,Math.max(Math.ceil(mx/60),startH+9));}
+    if(ds===todayK()){const nh=new Date().getHours();startH=Math.min(startH,Math.max(0,nh-1));endH=Math.max(endH,Math.min(24,nh+2));}
+    // hour grid
     let rows='';
-    for(let hr=6;hr<23;hr++){rows+='<div class="pc-hour"><div class="pc-hour-lbl">'+fmtHr(hr)+'</div><div class="pc-hour-line" onclick="pcAddAt(\''+ds+'\','+hr+')"></div></div>';}
+    for(let hr=startH;hr<endH;hr++){rows+='<div class="pc-hour" style="height:'+HH+'px"><div class="pc-hour-lbl">'+fmtHr(hr)+'</div><div class="pc-hour-line" style="min-height:'+HH+'px" onclick="pcAddAt(\''+ds+'\','+hr+')"></div></div>';}
+    // overlap layout → columns
+    layoutEvents(timed);
     let blocks='';
     timed.forEach(e=>{
-      const[hh,mm]=e.time.split(':').map(Number);if(hh<6||hh>=23)return;
-      const top=(hh-6)*48+(mm/60*48);
-      const height=Math.max(26,Math.max(30,e.duration||45)/60*48-3);
+      if(e._e<=startH*60||e._s>=endH*60)return;
+      const top=(e._s-startH*60)/60*HH;
+      const height=Math.max(24,(e._e-e._s)/60*HH-3);
       const c=T(e.type).c;
-      blocks+='<div class="pc-evt" style="top:'+top+'px;height:'+height+'px;left:46px;right:2px;background:'+c+'22;box-shadow:0 0 14px '+c+'33 inset'+(e.strava?';outline:1.5px solid #f59e0b':'')+'" onclick="pcOpenEvt(\''+e.id+'\',\''+ds+'\')">'
-        +'<div class="pc-evt-t" style="color:'+c+'"><span class="pc-evt-prio" style="background:'+(PRIO[e.priority]||PRIO.low).c+'"></span>'+esc(e.title)+((e.strava||e.done)?' '+ok():'')+'</div>'
-        +'<div class="pc-evt-m" style="color:'+c+'">'+e.time+(e.duration?' · '+e.duration+'m':'')+'</div></div>';
+      const lf=(e.col/e.cols).toFixed(4);
+      blocks+='<div class="pc-evt" style="top:'+top.toFixed(1)+'px;height:'+height.toFixed(1)+'px;left:calc(48px + (100% - 50px)*'+lf+');width:calc((100% - 50px)/'+e.cols+' - 3px);background:'+c+'22;box-shadow:0 0 16px '+c+'2e inset'+(e.strava?';outline:1.5px solid #f59e0b':'')+'" onclick="pcOpenEvt(\''+e.id+'\',\''+ds+'\')">'
+        +'<div class="pc-evt-t" style="color:'+c+'"><span class="pc-evt-prio" style="background:'+(PRIO[e.priority]||PRIO.low).c+'"></span>'+(height>34?'<span style="opacity:.85;font-size:.9em">'+(ICON[e.type]||'')+'</span> ':'')+esc(e.title)+((e.strava||e.done)?' '+ok():'')+'</div>'
+        +(height>40?'<div class="pc-evt-m" style="color:'+c+'">'+e.time+(e.duration?' · '+e.duration+'m':'')+(e.meta?' · '+esc(e.meta):'')+'</div>':'')+'</div>';
     });
-    let now='';if(ds===todayK()){const n=new Date();const cm=n.getHours()*60+n.getMinutes();if(cm>=360&&cm<1380)now='<div class="pc-nowline" style="top:'+((cm-360)/60*48)+'px"></div>';}
+    let now='';if(ds===todayK()){const n=new Date();const cm=n.getHours()*60+n.getMinutes();if(cm>=startH*60&&cm<endH*60)now='<div class="pc-nowline" style="top:'+((cm-startH*60)/60*HH)+'px"></div>';}
     let head=allday.length?'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">'+allday.map(e=>pill(e,ds)).join('')+'</div>':'';
-    return head+'<div style="position:relative"><div class="pc-tl">'+rows+'</div><div style="position:absolute;top:0;left:0;right:0">'+blocks+now+'</div></div>';
+    const total=(endH-startH)*HH;
+    return head+'<div class="pc-tl-scroll" id="pcTLScroll"><div style="position:relative;height:'+total+'px"><div class="pc-tl" style="margin:0">'+rows+'</div><div style="position:absolute;top:0;left:0;right:0">'+blocks+now+'</div></div></div>';
+  }
+  function scrollToNow(){
+    const sc=document.getElementById('pcTLScroll');if(!sc)return;
+    const nl=sc.querySelector('.pc-nowline');
+    if(nl){const top=parseFloat(nl.style.top)||0;sc.scrollTop=Math.max(0,top-sc.clientHeight*0.4);}
+  }
+  // assign each timed event a column index + total columns for its overlap cluster
+  function layoutEvents(list){
+    let cur=[],curEnd=-1;const clusters=[];
+    list.forEach(ev=>{if(cur.length&&ev._s>=curEnd){clusters.push(cur);cur=[];curEnd=-1;}cur.push(ev);curEnd=Math.max(curEnd,ev._e);});
+    if(cur.length)clusters.push(cur);
+    clusters.forEach(cl=>{const cols=[];cl.forEach(ev=>{let i=0;for(;i<cols.length;i++){if(cols[i]<=ev._s)break;}cols[i]=ev._e;ev.col=i;});const n=cols.length;cl.forEach(ev=>ev.cols=n);});
   }
   function ok(){return '<svg viewBox="0 0 24 24" style="width:.85em;height:.85em;display:inline-block;vertical-align:-.1em" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';}
   function pill(e,ds){return '<span style="display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:20px;font-size:12px;font-weight:700;color:'+T(e.type).c+';background:'+T(e.type).c+'1e" onclick="pcOpenEvt(\''+e.id+'\',\''+ds+'\')"><span class="pc-evt-prio" style="background:'+(PRIO[e.priority]||PRIO.low).c+'"></span>'+esc(e.title)+'</span>';}
