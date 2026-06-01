@@ -943,21 +943,46 @@ window.thSave=function(){
   save(s);inp.value='';render();
 };
 
-// ── VOICE ──
-let recog=null;
-window.thVoice=function(){
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+// ── VOICE → Groq Whisper transcription ──
+let mediaRec=null, recChunks=[];
+window.thVoice=async function(){
   const btn=document.getElementById('thVoiceBtn');
-  if(!SR){alert('Voice input not supported on this browser.');return;}
-  if(recog){recog.stop();recog=null;return;}
-  recog=new SR();recog.lang='en-US';recog.interimResults=true;recog.continuous=true;
-  btn.classList.add('rec');
-  let base=(document.getElementById('thCapInput').value||'');
-  recog.onresult=e=>{let txt='';for(let i=0;i<e.results.length;i++)txt+=e.results[i][0].transcript;document.getElementById('thCapInput').value=(base?base+' ':'')+txt;};
-  recog.onend=()=>{btn.classList.remove('rec');recog=null;};
-  recog.onerror=()=>{btn.classList.remove('rec');recog=null;};
-  recog.start();
+  // tap again to stop
+  if(mediaRec && mediaRec.state==='recording'){ mediaRec.stop(); return; }
+  if(!groqKey()){alert('Add a Groq key in dashboard Settings to use voice transcription.');return;}
+  if(!navigator.mediaDevices||!window.MediaRecorder){alert('Recording not supported on this browser.');return;}
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    recChunks=[];
+    mediaRec=new MediaRecorder(stream);
+    mediaRec.ondataavailable=e=>{if(e.data&&e.data.size)recChunks.push(e.data);};
+    mediaRec.onstop=async()=>{
+      stream.getTracks().forEach(t=>t.stop());
+      btn.classList.remove('rec'); btn.classList.add('busy');
+      btn.innerHTML='<span class="th-spin"></span>';
+      try{
+        const blob=new Blob(recChunks,{type:mediaRec.mimeType||'audio/webm'});
+        const txt=await groqTranscribe(blob);
+        const inp=document.getElementById('thCapInput');
+        if(inp&&txt){inp.value=(inp.value.trim()?inp.value.trim()+' ':'')+txt; inp.focus();}
+      }catch(e){alert('Transcription failed: '+(e.message||e));}
+      btn.classList.remove('busy'); btn.innerHTML=MIC_SVG; mediaRec=null;
+    };
+    mediaRec.start();
+    btn.classList.add('rec');
+  }catch(e){alert('Microphone access denied.');}
 };
+const MIC_SVG='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3"/></svg>';
+async function groqTranscribe(blob){
+  const fd=new FormData();
+  fd.append('file', blob, 'note.webm');
+  fd.append('model','whisper-large-v3-turbo');
+  fd.append('response_format','json');
+  const r=await fetch('https://api.groq.com/openai/v1/audio/transcriptions',{method:'POST',headers:{'Authorization':'Bearer '+groqKey()},body:fd});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error((d.error&&d.error.message)||('Error '+r.status));
+  return (d.text||'').trim();
+}
 
 // ── VIEW / FILTER / SEARCH ──
 window.thSetView=function(v){const s=load();s.view=v;save(s);render();};
