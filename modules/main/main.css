@@ -1,5 +1,4 @@
-﻿<style>
-:root {
+﻿:root {
   --text-primary: #FAFAFA;
   --text-secondary: #B8B6B0;
   --text-tertiary: #76746E;
@@ -583,4 +582,3 @@ body::after {
   .gm-card { padding: 16px; }
   .gm-progress-num { font-size: 36px; }
 }
-</style>

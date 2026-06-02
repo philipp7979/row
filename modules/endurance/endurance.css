@@ -1,5 +1,4 @@
-﻿<style>
-.en-card{background:#111113;border:1px solid rgba(255,255,255,.06);border-radius:18px;padding:18px;margin-bottom:16px;box-shadow:0 12px 40px rgba(0,0,0,.45)}
+﻿.en-card{background:#111113;border:1px solid rgba(255,255,255,.06);border-radius:18px;padding:18px;margin-bottom:16px;box-shadow:0 12px 40px rgba(0,0,0,.45)}
 .en-title{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:14px;display:flex;align-items:center;gap:8px}
 .en-flag{margin-left:auto;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:700;text-transform:none;letter-spacing:.02em}
 .en-radar{width:100%;max-width:300px;margin:0 auto;display:block}
@@ -57,4 +56,3 @@
 .en-station{background:rgba(255,255,255,.04);border-radius:10px;padding:8px 10px}
 .en-station label{font-size:10px;color:rgba(255,255,255,.5);display:block;margin-bottom:3px}
 .en-station input{width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:7px;padding:7px;font-size:14px;color:#fff;font-family:inherit;outline:none}
-</style>

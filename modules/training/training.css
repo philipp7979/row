@@ -1,5 +1,4 @@
-﻿<style>
-.tr-tabbar{
+﻿.tr-tabbar{
   position:sticky;top:0;z-index:30;
   display:flex;gap:8px;
   background:#0a0a0b;
@@ -18,4 +17,3 @@
 .tr-pane{display:none;animation:trFade .25s ease}
 .tr-pane.on{display:block}
 @keyframes trFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
-</style>
