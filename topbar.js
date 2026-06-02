@@ -192,6 +192,22 @@ body.topbar-modal-open { overflow: hidden; touch-action: none; }
     </span>
     <span>Fitness</span>
   </a>
+  <a href="calendar.html" class="bottombar-tab" data-page="life" data-tab="life">
+    <span class="bottombar-tab-icon">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+      </svg>
+    </span>
+    <span>Life</span>
+  </a>
+  <a href="training.html" class="bottombar-tab" data-page="train" data-tab="train">
+    <span class="bottombar-tab-icon">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+      </svg>
+    </span>
+    <span>Train</span>
+  </a>
 </nav>`;
 
   function isFinancePage() {
@@ -206,6 +222,8 @@ body.topbar-modal-open { overflow: hidden; touch-action: none; }
     const p = (window.location.pathname || '').toLowerCase();
     if (p.endsWith('health.html')) return 'health';
     if (p.endsWith('gym.html')) return 'fitness';
+    if (p.endsWith('calendar.html')) return 'life';
+    if (p.endsWith('training.html')) return 'train';
     return 'main';
   }
 
