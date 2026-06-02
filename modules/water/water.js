@@ -1,4 +1,4 @@
-﻿(function(){
+(function(){
 
 const CONFIG = {
   appTitle: "Water Coach",
@@ -505,7 +505,7 @@ const CONFIG = {
   try { embedded = window.self !== window.top; } catch (e) { embedded = true; }
   if (embedded) document.documentElement.classList.add('embedded');
 })();
-document.addEventListener('DOMContentLoaded', function () {
+(function() {
   try { if (window.self !== window.top) return; } catch (e) { return; }
   if (typeof initCloudSync !== 'function') return;
   initCloudSync({

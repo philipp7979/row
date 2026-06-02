@@ -11,10 +11,13 @@
 <link rel="stylesheet" href="food.css">
 </head>
 <body>
-<script>/* inject fragment */(function(){
-  const d=document.createElement('div');d.id='_root';document.body.appendChild(d);
-  fetch('food.html').then(r=>r.text()).then(h=>{d.insertAdjacentHTML('beforeend',h);});
-})();</script>
-<script src="food.js"></script>
+<script>
+fetch('food.html').then(r=>r.text()).then(function(h){
+  document.body.insertAdjacentHTML('beforeend',h);
+  var s=document.createElement('script');
+  s.src='food.js';
+  document.head.appendChild(s);
+});
+</script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-﻿(function(){
+(function(){
 
   (function () {
     const KEY       = 'whoop_tokens_v1';
@@ -796,7 +796,7 @@
 
 
 
-document.addEventListener('DOMContentLoaded', function () {
+(function() {
   if (typeof initCloudSync !== 'function') return;
   initCloudSync({
     appKey: 'health',

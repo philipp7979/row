@@ -1,4 +1,4 @@
-﻿(function(){
+(function(){
   (function(){
   'use strict';
   const CAL_KEY='calendar_v1';

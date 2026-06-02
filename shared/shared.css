@@ -1,3 +1,27 @@
+/* ── COMMON CSS VARIABLES — available to all modules ── */
+:root{
+  --bg:#0a0a0b;
+  --bg-card:#111113;
+  --bg-card2:rgba(255,255,255,0.07);
+  --text-1:#ffffff;
+  --text-2:rgba(255,255,255,0.6);
+  --text-3:rgba(255,255,255,0.4);
+  --text-4:rgba(255,255,255,0.25);
+  --text-primary:#FAFAFA;
+  --text-secondary:#B8B6B0;
+  --text-tertiary:#76746E;
+  --border:rgba(255,255,255,0.06);
+  --border-strong:rgba(255,255,255,0.14);
+  --border2:rgba(255,255,255,0.12);
+  --success:#6BE3A4;--good:#6ee7b7;
+  --warning:#F2C063;--warn:#fbbf24;
+  --danger:#FF6B6B;--bad:#ff8a8a;
+  --info:#7DD3FC;
+  --font:-apple-system,BlinkMacSystemFont,'SF Pro Text','Inter',sans-serif;
+  --font-mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  --r:16px;--r2:22px;
+}
+
 /* ── RESET ── */
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{

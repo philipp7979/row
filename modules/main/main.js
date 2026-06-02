@@ -1,4 +1,4 @@
-﻿(function(){
+(function(){
 'use strict';
 (function () {
   'use strict';
@@ -629,9 +629,9 @@
   // Re-render when storage changes from another tab (or our bridged parent).
   window.addEventListener('storage', () => {
     loadToday(); loadTomorrow(); renderStreak();
-  });
+  })();
 })();
-document.addEventListener('DOMContentLoaded', function () {
+(function() {
   if (typeof initCloudSync !== 'function') return;
   initCloudSync({
     appKey: 'goals',
@@ -641,5 +641,5 @@ document.addEventListener('DOMContentLoaded', function () {
       window.dispatchEvent(new Event('storage'));
     }
   });
-});
+})();
 })();

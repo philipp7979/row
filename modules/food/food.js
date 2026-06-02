@@ -1,4 +1,4 @@
-﻿(function(){
+(function(){
 
 'use strict';
 // Plate/utensils placeholder icon for foods without an image

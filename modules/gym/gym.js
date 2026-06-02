@@ -1,4 +1,4 @@
-﻿const CONFIG = {
+const CONFIG = {
   appTitle: "Progressive Overload Coach",
 
   // Weight unit shown everywhere. "kg" or "lb".

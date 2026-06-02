@@ -1,4 +1,4 @@
-﻿(function(){
+(function(){
 (function(){
 'use strict';
 const EK='endurance_v1', PO='po_coach_v1', CAL='calendar_v1';

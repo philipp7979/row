@@ -176,4 +176,4 @@ window.addWaterQuick = function() {
 };
 
 /* ── Init ── */
-loadModule('main');
+loadModule('main').then(() => loadModule('life-calendar', document.getElementById('mod-main')));

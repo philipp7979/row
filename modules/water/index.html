@@ -10,9 +10,13 @@
 <link rel="stylesheet" href="water.css">
 </head>
 <body>
-<script>(function(){
-  fetch('water.html').then(r=>r.text()).then(h=>{document.body.insertAdjacentHTML('beforeend',h);});
-})();</script>
-<script src="water.js"></script>
+<script>
+fetch('water.html').then(r=>r.text()).then(function(h){
+  document.body.insertAdjacentHTML('beforeend',h);
+  var s=document.createElement('script');
+  s.src='water.js';
+  document.head.appendChild(s);
+});
+</script>
 </body>
 </html>

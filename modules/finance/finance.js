@@ -1,4 +1,4 @@
-﻿(function(){
+(function(){
 
 (function() {
 
@@ -1492,7 +1492,7 @@
 
 
 
-document.addEventListener('DOMContentLoaded', function () {
+(function() {
   if (typeof initCloudSync !== 'function') return;
   initCloudSync({
     appKey: 'finance',
