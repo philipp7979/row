@@ -1,5 +1,4 @@
-﻿(function(){
-const CONFIG = {
+﻿const CONFIG = {
   appTitle: "Progressive Overload Coach",
 
   // Weight unit shown everywhere. "kg" or "lb".
@@ -73,6 +72,7 @@ const CONFIG = {
     { name: "Leg press",       gym: "comm", day: "legs", repMin: 8, repMax: 12, step: 5,   startWeight: 100 }
   ]
 };
+
 (function() {
   // ============================================================
   // STATE — all logs + edits live in browser localStorage. Each
@@ -1932,6 +1932,7 @@ const CONFIG = {
     if (document.hidden) pcFlushPushOnUnload();
   });
 })();
+
 (function(){
 'use strict';
 // ════════ STORAGE ════════
@@ -2471,6 +2472,535 @@ window.addEventListener('storage',e=>{if(e.key===PO||e.key===GK)gxRender();});
 if(window.initCloudSync){window.initCloudSync({appKey:'gym-extra',syncedKeys:[GK],onApplied:gxRender});}
 const _spin=document.createElement('style');_spin.textContent='@keyframes gxSpin{to{transform:rotate(360deg)}}';document.head.appendChild(_spin);
 })();
+
+(function(){
+'use strict';
+const EK='endurance_v1', PO='po_coach_v1', CAL='calendar_v1';
+function eload(){try{return JSON.parse(localStorage.getItem(EK))||edef();}catch{return edef();}}
+function edef(){return{sessions:[],targets:{swim:5,bike:60,run:20,strength:12,hyrox:1,rest:2},metrics:{vo2max:[],ftp:[],css:[],threshold:[],maxhr:null},prs:{},prHistory:[],races:[],predictions:[],phase:null};}
+function esave(s){localStorage.setItem(EK,JSON.stringify(s));}
+function po(){try{return JSON.parse(localStorage.getItem(PO))||{};}catch{return{};}}
+function cal(){try{return JSON.parse(localStorage.getItem(CAL))||{events:[]};}catch{return{events:[]};}}
+function groqKey(){return localStorage.getItem('groq_api_key')||'';}
+function todayK(){return new Date().toISOString().slice(0,10);}
+function weekStart(d){d=d||new Date();const x=new Date(d);const dow=(x.getDay()+6)%7;x.setDate(x.getDate()-dow);x.setHours(0,0,0,0);return x;}
+function inWeek(dateStr,offset){const d=new Date(dateStr);const ws=weekStart();ws.setDate(ws.getDate()+7*(offset||0));const we=new Date(ws);we.setDate(ws.getDate()+7);return d>=ws&&d<we;}
+
+// ── STRAVA DATA BRIDGE ──
+function stravaLoad(){try{return JSON.parse(localStorage.getItem('strava_data_v1'))||{activities:[]};}catch{return{activities:[]};}}
+// Strava activities normalized to the endurance "session" shape
+function stravaSessions(){
+  return (stravaLoad().activities||[]).map(a=>({
+    type:a.disc, date:a.date, distance:a.distanceKm||0, time:a.durationMin||0,
+    avgHr:a.avgHr||null, maxHr:a.maxHr||null, pace:a.pace||'', elev:a.elevM||null,
+    isRace:!!a.isRace, source:'strava', id:'sv_'+a.id, name:a.name
+  }));
+}
+// Combined sessions: manual endurance_v1 logs + Strava activities
+function allSessions(){ return (eload().sessions||[]).concat(stravaSessions()); }
+// Easy/hard classification using HR vs 75% max HR (falls back to manual intensity)
+function isEasy(sess){
+  const maxhr=eload().metrics&&eload().metrics.maxhr;
+  if(sess.avgHr&&maxhr) return sess.avgHr < 0.75*maxhr;
+  if(sess.intensity) return sess.intensity==='easy';
+  return null; // unknown
+}
+
+const AXES=['Swim','Bike','Run','Strength','Hyrox','Rest'];
+const AXIS_KEY={Swim:'swim',Bike:'bike',Run:'run',Strength:'strength',Hyrox:'hyrox',Rest:'rest'};
+const AXIS_COLORS={Swim:'#06b6d4',Bike:'#f59e0b',Run:'#22c55e',Strength:'#8b5cf6',Hyrox:'#ef4444',Rest:'#94a3b8'};
+const AXIS_UNIT={Swim:'km',Bike:'km',Run:'km',Strength:'sets',Hyrox:'×',Rest:'d'};
+
+// volume per axis for a given week offset (0=this week,-1=last)
+function weekVolume(offset){
+  const sessions=allSessions();const v={swim:0,bike:0,run:0,strength:0,hyrox:0,rest:0};
+  sessions.forEach(ss=>{
+    if(!ss.date||!inWeek(ss.date,offset))return;
+    if(ss.type==='swim')v.swim+=(ss.distance||0);
+    else if(ss.type==='bike')v.bike+=(ss.distance||0);
+    else if(ss.type==='run')v.run+=(ss.distance||0);
+    else if(ss.type==='hyrox')v.hyrox+=1;
+    else if(ss.type==='strength')v.strength+=1; // Strava weight-training session
+  });
+  // strength sets from po_coach_v1 (logged lifts)
+  const p=po();
+  Object.values(p.logs||{}).forEach(arr=>arr.forEach(set=>{if(!set.warmup&&inWeek(set.date,offset))v.strength++;}));
+  // rest days = days this week with no session/strength
+  const active=new Set();
+  sessions.forEach(ss=>{if(ss.date&&inWeek(ss.date,offset))active.add(ss.date.slice(0,10));});
+  Object.values(p.logs||{}).forEach(arr=>arr.forEach(set=>{if(inWeek(set.date,offset))active.add(set.date.slice(0,10));}));
+  const ws=weekStart();ws.setDate(ws.getDate()+7*(offset||0));
+  let rest=0;for(let i=0;i<7;i++){const d=new Date(ws);d.setDate(ws.getDate()+i);if(d>new Date())continue;if(!active.has(d.toISOString().slice(0,10)))rest++;}
+  v.rest=rest;
+  return v;
+}
+
+// ════════ RENDER ════════
+let enSub='log';
+function enRender(){
+  const root=document.getElementById('enRoot');if(!root)return;
+  const s=eload();const tgt=s.targets;
+  const cur=weekVolume(0),last=weekVolume(-1);
+
+  // on-target count
+  const hit=AXES.filter(a=>{const k=AXIS_KEY[a];return(cur[k]||0)>=(tgt[k]||1);}).length;
+  const flagCol=hit>=5?'#6ee7b7':hit>=3?'#fbbf24':'#ff8a8a';
+
+  // overtraining detection
+  const curTotal=cur.swim+cur.bike+cur.run, lastTotal=last.swim+last.bike+last.run;
+  let otWarn='';
+  if(lastTotal>5&&curTotal>lastTotal*1.1){
+    const pct=Math.round((curTotal/lastTotal-1)*100);
+    otWarn=`<div class="en-warn orange"><span><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>️</span><div><b>Volume up ${pct}% vs last week.</b> Rapid increases raise injury risk — keep weekly jumps under 10%.</div></div>`;
+  }
+  // taper detection from calendar race
+  const taper=enTaperCheck();
+  let taperWarn='';
+  if(taper)taperWarn=`<div class="en-warn blue"><span><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/></svg></span><div><b>Taper time.</b> Race "${taper.title}" in ${taper.days} days — reduce volume ${taper.days<=7?'40-50%':'20-30%'}, keep some intensity.</div></div>`;
+
+  root.innerHTML=`
+    <div class="en-card">
+      <div class="en-title">Endurance · This Week <span class="en-flag" style="background:${flagCol}22;color:${flagCol}">${hit}/6 on target</span></div>
+      ${enRadarSVG(cur,last,tgt)}
+      <div class="en-overlay-key">
+        <span><span class="en-okline" style="background:#6ee7b7"></span>This week</span>
+        <span><span class="en-okline" style="background:rgba(255,255,255,.4)"></span>Last week</span>
+        <span><span class="en-okline" style="background:transparent;border-top:2px dashed rgba(255,255,255,.5);height:0"></span>Target</span>
+      </div>
+      <div class="en-legend">${AXES.map(a=>{
+        const k=AXIS_KEY[a],v=cur[k]||0,t=tgt[k]||1;
+        const ratio=v/t;const col=ratio>=1?'#6ee7b7':ratio>=0.7?'#fbbf24':'#ff8a8a';
+        return`<div class="en-leg"><span class="en-leg-dot" style="background:${AXIS_COLORS[a]}"></span><span class="en-leg-name">${a}</span><span class="en-leg-val" style="color:${col}">${v%1?v.toFixed(1):v}/${t}${AXIS_UNIT[a]}</span></div>`;
+      }).join('')}</div>
+      ${otWarn}${taperWarn}
+      <div style="text-align:right;margin-top:10px"><span style="font-size:12px;color:rgba(255,255,255,.4);cursor:pointer;text-decoration:underline" onclick="enOpenTargets()">Edit targets</span></div>
+    </div>
+
+    <div class="en-card">
+      <div class="en-title">Log Endurance Session</div>
+      <div class="en-disc-btns">
+        <button class="en-disc-btn" onclick="enOpenLog('swim')"><span class="ico"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><circle cx="17" cy="7" r="2"/><path d="M2 16c1.5 0 1.5 1 3 1s1.5-1 3-1 1.5 1 3 1 1.5-1 3-1 1.5 1 3 1 1.5-1 3-1M5.5 13l4-3 3 2 3.5-2.5"/></svg></span>Swim</button>
+        <button class="en-disc-btn" onclick="enOpenLog('bike')"><span class="ico"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2zM12 17.5 9 9l3-2 3 4h3M9 9l-3 1"/></svg></span>Bike</button>
+        <button class="en-disc-btn" onclick="enOpenLog('run')"><span class="ico"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><circle cx="14" cy="5" r="2"/><path d="M11 21l1.5-5-3-2 2-5 3 2 2 1M7 12l2-4M13 16l3 1 1 4M9 21l1-4"/></svg></span>Run</button>
+        <button class="en-disc-btn" onclick="enOpenLog('hyrox')"><span class="ico"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.4-.5-2-1-3-1.1-2.1-.2-4 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.2.4-2.3 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg></span>Hyrox</button>
+      </div>
+    </div>
+
+    <div class="en-card">
+      <div class="en-sub-tabs">
+        <button class="en-sub-tab ${enSub==='log'?'on':''}" onclick="enSetSub('log')">Week</button>
+        <button class="en-sub-tab ${enSub==='metrics'?'on':''}" onclick="enSetSub('metrics')">Metrics</button>
+        <button class="en-sub-tab ${enSub==='prs'?'on':''}" onclick="enSetSub('prs')">PRs</button>
+        <button class="en-sub-tab ${enSub==='races'?'on':''}" onclick="enSetSub('races')">Races</button>
+        <button class="en-sub-tab ${enSub==='ai'?'on':''}" onclick="enSetSub('ai')">AI</button>
+        <button class="en-sub-tab ${enSub==='plan'?'on':''}" onclick="enSetSub('plan')">Plan</button>
+      </div>
+      <div class="en-pane ${enSub==='log'?'on':''}">${enRenderWeek(cur,tgt)}</div>
+      <div class="en-pane ${enSub==='metrics'?'on':''}">${enRenderMetrics(s)}</div>
+      <div class="en-pane ${enSub==='prs'?'on':''}">${enRenderPRs(s)}</div>
+      <div class="en-pane ${enSub==='races'?'on':''}">${enRenderRaces(s)}</div>
+      <div class="en-pane ${enSub==='ai'?'on':''}">${enRenderAI()}</div>
+      <div class="en-pane ${enSub==='plan'?'on':''}">${enRenderPlan(s)}</div>
+    </div>`;
+}
+
+window.enSetSub=function(t){enSub=t;enRender();};
+
+// Radar with 2 overlays + target dashed
+function enRadarSVG(cur,last,tgt){
+  const cx=150,cy=145,R=105,n=6;
+  function maxFor(a){const k=AXIS_KEY[a];return Math.max((tgt[k]||1)*1.3,cur[k]||0,last[k]||0,1);}
+  function pt(i,r){const ang=(Math.PI*2*i/n)-Math.PI/2;return[cx+r*Math.cos(ang),cy+r*Math.sin(ang)];}
+  let grid='';[0.25,0.5,0.75,1].forEach(f=>{grid+=`<polygon points="${AXES.map((a,i)=>pt(i,R*f).join(',')).join(' ')}" fill="none" stroke="rgba(255,255,255,.06)"/>`;});
+  let axes='',labels='';
+  AXES.forEach((a,i)=>{const[x,y]=pt(i,R);axes+=`<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="rgba(255,255,255,.06)"/>`;const[lx,ly]=pt(i,R+16);labels+=`<text x="${lx}" y="${ly}" fill="rgba(255,255,255,.6)" font-size="10" font-weight="700" text-anchor="middle" dominant-baseline="middle">${a}</text>`;});
+  const norm=(a,val)=>R*Math.min(1,val/maxFor(a));
+  const tgtPts=AXES.map((a,i)=>pt(i,norm(a,tgt[AXIS_KEY[a]]||1)).join(',')).join(' ');
+  const lastPts=AXES.map((a,i)=>pt(i,norm(a,last[AXIS_KEY[a]]||0)).join(',')).join(' ');
+  const curPts=AXES.map((a,i)=>pt(i,norm(a,cur[AXIS_KEY[a]]||0)).join(',')).join(' ');
+  let dots='';AXES.forEach((a,i)=>{const[x,y]=pt(i,norm(a,cur[AXIS_KEY[a]]||0));dots+=`<circle cx="${x}" cy="${y}" r="3" fill="${AXIS_COLORS[a]}"/>`;});
+  return`<svg class="en-radar" viewBox="0 0 300 300">${grid}${axes}
+    <polygon points="${tgtPts}" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="1.5" stroke-dasharray="4 3"/>
+    <polygon points="${lastPts}" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.4)" stroke-width="1.5"/>
+    <polygon points="${curPts}" fill="rgba(110,231,183,.2)" stroke="#6ee7b7" stroke-width="2"/>
+    ${dots}${labels}</svg>`;
+}
+
+// Week analysis pane
+function enRenderWeek(cur,tgt){
+  const sessions=allSessions();
+  const enduranceMin=sessions.filter(x=>x.date&&inWeek(x.date,0)&&['swim','bike','run'].includes(x.type)).reduce((a,x)=>a+(x.time||0),0);
+  const strengthSets=cur.strength;
+  const sbr=`${cur.swim%1?cur.swim.toFixed(1):cur.swim} : ${cur.bike%1?cur.bike.toFixed(1):cur.bike} : ${cur.run%1?cur.run.toFixed(1):cur.run}`;
+  // 80/20 split — HR-based (avg HR vs 75% max), falls back to manual intensity
+  const wkSessions=sessions.filter(x=>x.date&&inWeek(x.date,0)&&['swim','bike','run'].includes(x.type));
+  let easy=0,hard=0;
+  wkSessions.forEach(x=>{const e=isEasy(x);if(e===true)easy++;else if(e===false)hard++;});
+  const totalI=easy+hard;
+  const easyPct=totalI?Math.round(easy/totalI*100):0;
+  // longest per discipline (all-time, combined)
+  const longest={};['swim','bike','run'].forEach(t=>{const m=Math.max(0,...sessions.filter(x=>x.type===t).map(x=>x.distance||0));if(m>0)longest[t]=Math.round(m*10)/10;});
+  return`
+    <div class="en-row"><span class="en-row-name">Swim : Bike : Run (km)</span><span class="en-row-val">${sbr}</span></div>
+    <div class="en-row"><span class="en-row-name">Endurance hours</span><span class="en-row-val">${(enduranceMin/60).toFixed(1)}h</span></div>
+    <div class="en-row"><span class="en-row-name">Strength sets</span><span class="en-row-val">${strengthSets}</span></div>
+    <div class="en-row"><span class="en-row-name">80/20 split (easy/hard)</span><span class="en-row-val" style="color:${easyPct>=75?'#6ee7b7':'#fbbf24'}">${easyPct}% / ${100-easyPct}%</span></div>
+    ${Object.keys(longest).length?`<div style="margin-top:12px;font-size:12px;color:rgba(255,255,255,.5);margin-bottom:6px">Longest ever</div>${['swim','bike','run'].filter(t=>longest[t]).map(t=>`<div class="en-row"><span class="en-row-name" style="text-transform:capitalize">${t}</span><span class="en-row-val">${longest[t]} km</span></div>`).join('')}`:''}
+    ${totalI&&easyPct<75?`<div class="en-warn orange" style="margin-top:10px"><span><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M3 3v18h18"/><path d="m19 15-5-5-4 4-3-3"/></svg></span><div>Only ${easyPct}% easy. The 80/20 rule suggests ~80% of sessions should be easy/aerobic.</div></div>`:''}`;
+}
+
+// Metrics pane
+function enRenderMetrics(s){
+  const m=s.metrics;
+  function metricRow(key,name,unit){
+    const arr=m[key]||[];const last=arr[arr.length-1];
+    return`<div class="en-metric">
+      <span class="en-metric-name">${name}</span>
+      <span class="en-metric-val">${last?last.val:'—'}<span style="font-size:11px;color:rgba(255,255,255,.4)">${last?unit:''}</span></span>
+      ${enSparkline(arr.map(x=>x.val))}
+      <button class="en-metric-add" onclick="enOpenMetric('${key}','${name}')">+</button>
+    </div>`;
+  }
+  let zones='';
+  if(m.maxhr){
+    const z=[[.5,.6,'Z1 Recovery','#94a3b8'],[.6,.7,'Z2 Aerobic','#22c55e'],[.7,.8,'Z3 Tempo','#fbbf24'],[.8,.9,'Z4 Threshold','#f59e0b'],[.9,1,'Z5 VO2max','#ef4444']];
+    zones=`<div style="font-size:12px;color:rgba(255,255,255,.5);margin:14px 0 4px">HR Zones (Max ${m.maxhr})</div><div class="en-zones">`+
+      z.map(([lo,hi,n,c])=>`<div class="en-zone"><span style="width:90px;color:${c};font-weight:600">${n}</span><div class="en-zone-bar" style="background:${c}"></div><span class="en-zone-range">${Math.round(m.maxhr*lo)}–${Math.round(m.maxhr*hi)}</span></div>`).join('')+`</div>`;
+  }
+  return metricRow('vo2max','VO₂max','')+metricRow('ftp','FTP','W')+metricRow('css','CSS','/100m')+metricRow('threshold','Run Thr','/km')
+    +`<div class="en-metric"><span class="en-metric-name">Max HR</span><span class="en-metric-val">${m.maxhr||'—'}</span><span style="flex:1"></span><button class="en-metric-add" onclick="enOpenMetric('maxhr','Max HR')">+</button></div>`
+    +zones;
+}
+function enSparkline(vals){
+  if(!vals||vals.length<2)return'<span style="flex:1"></span>';
+  const min=Math.min(...vals),max=Math.max(...vals),r=max-min||1;
+  const pts=vals.map((v,i)=>`${(i/(vals.length-1)*78+1).toFixed(1)},${(22-((v-min)/r)*20).toFixed(1)}`).join(' ');
+  const up=vals[vals.length-1]>=vals[0];
+  return`<svg class="en-spark" viewBox="0 0 80 24"><polyline points="${pts}" fill="none" stroke="${up?'#6ee7b7':'#ff8a8a'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+}
+
+// PRs pane
+const PR_DEFS={
+  swim:[['swim400','400m'],['swim1500','1500m'],['swim3800','3.8km']],
+  bike:[['bike20','20km'],['bike40','40km'],['bike90','90km'],['bike180','180km']],
+  run:[['run1','1km'],['run5','5km'],['run10','10km'],['run21','21km'],['run42','42km']],
+  hyrox:[['hyroxTotal','Total']]
+};
+function enRenderPRs(s){
+  let html='';
+  const icons={swim:'<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><circle cx="17" cy="7" r="2"/><path d="M2 16c1.5 0 1.5 1 3 1s1.5-1 3-1 1.5 1 3 1 1.5-1 3-1 1.5 1 3 1 1.5-1 3-1M5.5 13l4-3 3 2 3.5-2.5"/></svg>',bike:'<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2zM12 17.5 9 9l3-2 3 4h3M9 9l-3 1"/></svg>',run:'<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><circle cx="14" cy="5" r="2"/><path d="M11 21l1.5-5-3-2 2-5 3 2 2 1M7 12l2-4M13 16l3 1 1 4M9 21l1-4"/></svg>',hyrox:'<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.4-.5-2-1-3-1.1-2.1-.2-4 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.2.4-2.3 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>'};
+  const star='<svg viewBox="0 0 24 24" width="1em" height="1em" fill="#FFD700" stroke="none" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg>';
+  const svPrs=(stravaLoad().prs)||{}; // auto run PRs from Strava best_efforts
+  const recent=Date.now()-14*864e5;
+  Object.keys(PR_DEFS).forEach(disc=>{
+    html+=`<div style="font-size:12px;color:rgba(255,255,255,.5);margin:12px 0 4px">${icons[disc]} ${disc.charAt(0).toUpperCase()+disc.slice(1)}${disc==='run'&&Object.keys(svPrs).length?' <span style="color:#FC4C02">· Strava</span>':''}</div>`;
+    PR_DEFS[disc].forEach(([key,label])=>{
+      const sv=svPrs[key]; const manual=s.prs[key];
+      const pr=sv||manual; // Strava-derived takes precedence for runs
+      const isRecent=sv&&sv.date&&new Date(sv.date).getTime()>=recent;
+      const valHtml=pr
+        ?`${isRecent?star+' ':''}${pr.value}${pr.date?` <span style="font-size:11px;color:rgba(255,255,255,.4)">${pr.date}</span>`:''}${sv?'':''}`
+        :'<span style="color:rgba(255,255,255,.3)">—</span>';
+      html+=`<div class="en-row"><span class="en-row-name">${label}</span><span class="en-row-val">${valHtml}</span>${sv?'':`<button class="en-metric-add" style="margin-left:10px" onclick="enSetPR('${key}','${label}')">+</button>`}</div>`;
+    });
+  });
+  if(Object.keys(svPrs).length)html+=`<div style="font-size:11px;color:rgba(255,255,255,.35);margin-top:10px"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="#FFD700" stroke="none" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg> = set in the last 14 days · run PRs auto-detected from Strava</div>`;
+  return html;
+}
+window.enSetPR=function(key,label){
+  const v=prompt(`New PR for ${label} (time mm:ss or value):`);
+  if(!v)return;
+  const s=eload();s.prs[key]={value:v,date:todayK()};
+  s.prHistory.unshift({discipline:key,value:v,date:todayK()});
+  esave(s);enPrStar(`${label}: ${v}`);enRender();
+};
+function enPrStar(txt){
+  const t=document.getElementById('gxPrToast');
+  if(!t)return;document.getElementById('gxPrText').textContent='PR! '+txt;t.classList.add('show');
+  if(navigator.vibrate)navigator.vibrate([100,50,100,50,200]);setTimeout(()=>t.classList.remove('show'),3500);
+}
+
+// Races pane — manual triathlon races + auto-detected Strava races
+function enRenderRaces(s){
+  let html=`<button class="gx-mbtn pri" onclick="enOpenRace()" style="margin-bottom:14px">+ Log Race</button>`;
+  // Strava activities flagged as race (workout_type 1/11)
+  const svRaces=stravaSessions().filter(x=>x.isRace).sort((a,b)=>new Date(b.date)-new Date(a.date));
+  if(svRaces.length){
+    html+=`<div style="font-size:12px;color:#FC4C02;font-weight:700;margin:4px 0 6px">Strava Races</div>`;
+    svRaces.forEach(r=>{
+      const sv=stravaLoad().activities.find(a=>('sv_'+a.id)===r.id)||{};
+      const meta=[r.distance?r.distance+'km':null, sv.durationS?fmtTimeEn(sv.durationS):null, r.pace||null, r.avgHr?Math.round(r.avgHr)+'bpm':null].filter(Boolean).join(' · ');
+      html+=`<div class="en-race-row">
+        <span class="en-race-type" style="background:rgba(252,76,2,.15);color:#FC4C02;text-transform:capitalize">${r.type}</span>
+        <div style="flex:1"><div style="font-size:14px;font-weight:700">${r.name||'Race'}</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.5)">${meta} · ${r.date.slice(0,10)}</div></div>
+      </div>`;
+    });
+  }
+  if(s.races.length){
+    html+=`<div style="font-size:12px;color:rgba(255,255,255,.5);font-weight:700;margin:14px 0 6px">Triathlon Races</div>`;
+    html+=s.races.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(r=>`
+      <div class="en-race-row">
+        <span class="en-race-type">${r.type}</span>
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:700">${r.total||'—'}</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.5)">S ${r.swim||'–'} · T1 ${r.t1||'–'} · Bike ${r.bike||'–'} · T2 ${r.t2||'–'} · R ${r.run||'–'} · ${r.date}</div>
+        </div>
+        <button class="en-metric-add" onclick="enDelRace('${r.id}')" style="background:rgba(248,113,113,.12);color:#f87171;border:none"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+      </div>`).join('');
+  }
+  if(!svRaces.length&&!s.races.length)html+=`<div class="en-empty">No races yet. Strava activities marked as a race appear here automatically.</div>`;
+  return html;
+}
+function fmtTimeEn(sec){sec=Math.round(sec);const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=sec%60;return(h>0?h+':'+String(m).padStart(2,'0'):m)+':'+String(s).padStart(2,'0');}
+window.enDelRace=function(id){const s=eload();s.races=s.races.filter(r=>r.id!==id);esave(s);enRender();};
+
+// AI pane
+function enRenderAI(){
+  return`<div class="en-ai-btns">
+    <button class="en-ai-btn" onclick="enAiPredict()"><span class="ico"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg></span>Performance Predictor</button>
+    <button class="en-ai-btn" onclick="enAiCoach()"><span class="ico"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>Weekly Coaching</button>
+    <button class="en-ai-btn" onclick="enAiPace()"><span class="ico">⏱️</span>Pace Calculator</button>
+    <button class="en-ai-btn" onclick="enAiStrategy()"><span class="ico"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="m9 4-6 2v14l6-2 6 2 6-2V4l-6 2zM9 4v14M15 6v14"/></svg>️</span>Race Strategy</button>
+    <button class="en-ai-btn" onclick="enAiRaceDay()"><span class="ico"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M4 21V4M4 4h13l-2 4 2 4H4"/></svg></span>Race Day Protocol</button>
+    <button class="en-ai-btn" onclick="enAiOvertraining()"><span class="ico"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M4 3v6a4 4 0 0 0 8 0V3M8 13v3a5 5 0 0 0 10 0v-1M2 3h4M16 3h4"/><circle cx="18" cy="15" r="2"/></svg></span>Overtraining Check</button>
+  </div>
+  <div class="en-ai-out" id="enAiOut"></div>
+  ${enPredHistory()}`;
+}
+function enPredHistory(){
+  const s=eload();if(!s.predictions.length)return'';
+  return`<div style="font-size:12px;color:rgba(255,255,255,.4);margin:16px 0 6px">Prediction History</div>`+
+    s.predictions.slice(0,4).map(p=>`<div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:13px"><div style="color:rgba(255,255,255,.7);font-weight:600">${p.q}</div><div style="color:rgba(255,255,255,.45);font-size:12px;margin-top:2px">${p.date}</div></div>`).join('');
+}
+
+// Plan pane
+function enRenderPlan(s){
+  const phases=['Base','Build','Peak','Taper'];
+  const cur=s.phase?s.phase.type:null;
+  const taper=enTaperCheck();
+  const active=taper?'Taper':cur;
+  return`
+    <div class="en-phase-timeline">${phases.map(p=>`<div class="en-phase ${p===active?'on':''}">${p}</div>`).join('')}</div>
+    <div style="font-size:13px;color:rgba(255,255,255,.6);line-height:1.6;margin-bottom:12px">
+      <b>Base</b> — build aerobic volume. <b>Build</b> — add intensity & race-specific work. <b>Peak</b> — sharpen at race pace. <b>Taper</b> — cut volume, stay fresh.
+    </div>
+    ${taper?`<div class="en-warn blue"><span><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/></svg></span><div>Auto-taper active — race in ${taper.days} days. Volume targets reduced.</div></div>`:''}
+    <div class="gx-field" style="margin-top:12px"><label>Set current phase</label>
+      <select id="enPhaseSel" onchange="enSetPhase(this.value)">
+        <option value="">— none —</option>
+        ${phases.map(p=>`<option value="${p}" ${cur===p?'selected':''}>${p}</option>`).join('')}
+      </select>
+    </div>`;
+}
+window.enSetPhase=function(v){const s=eload();s.phase=v?{type:v,start:todayK()}:null;esave(s);enRender();};
+
+// taper auto-detect from calendar races
+function enTaperCheck(){
+  const c=cal();const td=new Date(todayK());
+  const races=(c.events||[]).filter(e=>e.type==='race'&&e.date>=todayK()).sort((a,b)=>a.date.localeCompare(b.date));
+  if(!races.length)return null;
+  const r=races[0];const days=Math.round((new Date(r.date)-td)/864e5);
+  if(days>=0&&days<=14)return{title:r.title||'Race',days};
+  return null;
+}
+
+// ════════ LOG SESSION ════════
+let enLogType='run';
+window.enOpenLog=function(type){
+  enLogType=type;
+  document.getElementById('enLogTitle').innerHTML={swim:'<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><circle cx="17" cy="7" r="2"/><path d="M2 16c1.5 0 1.5 1 3 1s1.5-1 3-1 1.5 1 3 1 1.5-1 3-1 1.5 1 3 1 1.5-1 3-1M5.5 13l4-3 3 2 3.5-2.5"/></svg> Swim',bike:'<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2zM12 17.5 9 9l3-2 3 4h3M9 9l-3 1"/></svg> Bike',run:'<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><circle cx="14" cy="5" r="2"/><path d="M11 21l1.5-5-3-2 2-5 3 2 2 1M7 12l2-4M13 16l3 1 1 4M9 21l1-4"/></svg> Run',hyrox:'<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.4-.5-2-1-3-1.1-2.1-.2-4 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.2.4-2.3 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> Hyrox'}[type];
+  const f=document.getElementById('enLogFields');
+  const common=`<div class="gx-field"><label>Date</label><input type="date" id="enLogDate" value="${todayK()}"></div>
+    <div class="gx-field"><label>Intensity</label><select id="enLogIntensity"><option value="easy">Easy / Aerobic</option><option value="moderate">Moderate</option><option value="hard">Hard / Threshold</option></select></div>`;
+  if(type==='swim'){
+    f.innerHTML=`<div class="gx-field"><label>Distance (km)</label><input type="number" id="enLogDist" step="0.05" placeholder="2.0"></div>
+      <div class="gx-field"><label>Time (min)</label><input type="number" id="enLogTime" step="1" placeholder="45"></div>
+      <div class="gx-field"><label>Water</label><select id="enLogWater"><option value="pool">Pool</option><option value="open">Open Water</option></select></div>${common}`;
+  } else if(type==='bike'){
+    f.innerHTML=`<div class="gx-field"><label>Distance (km)</label><input type="number" id="enLogDist" step="0.1" placeholder="40"></div>
+      <div class="gx-field"><label>Time (min)</label><input type="number" id="enLogTime" step="1" placeholder="80"></div>
+      <div class="gx-field"><label>Avg cadence (RPM)</label><input type="number" id="enLogCadence" placeholder="90"></div>
+      <div class="gx-field"><label><input type="checkbox" id="enLogBrick" style="width:16px;height:16px;accent-color:#6ee7b7;vertical-align:-2px"> Brick (Bike→Run)</label></div>${common}`;
+  } else if(type==='run'){
+    f.innerHTML=`<div class="gx-field"><label>Distance (km)</label><input type="number" id="enLogDist" step="0.1" placeholder="10"></div>
+      <div class="gx-field"><label>Time (min)</label><input type="number" id="enLogTime" step="1" placeholder="50"></div>
+      <div class="gx-field"><label>Elevation gain (m)</label><input type="number" id="enLogElev" placeholder="120"></div>
+      <div class="gx-field"><label><input type="checkbox" id="enLogBrick" style="width:16px;height:16px;accent-color:#6ee7b7;vertical-align:-2px"> Brick (off the bike)</label></div>${common}`;
+  } else {
+    const stations=['SkiErg','Sled Push','Sled Pull','Burpee Broad Jump','Row','Farmers Carry','Sandbag Lunges','Wall Balls'];
+    f.innerHTML=`<div class="gx-field"><label>Total time (mm:ss)</label><input id="enLogTotal" placeholder="65:00"></div>
+      <div style="font-size:12px;color:rgba(255,255,255,.5);margin:6px 0 4px">Station times (mm:ss)</div>
+      <div class="en-stations">${stations.map((st,i)=>`<div class="en-station"><label>${st}</label><input id="enSt${i}" placeholder="mm:ss"></div>`).join('')}</div>
+      <div class="gx-field" style="margin-top:10px"><label>Time (min, for volume)</label><input type="number" id="enLogTime" placeholder="65"></div>${common}`;
+  }
+  document.getElementById('enLogModal').classList.add('open');
+};
+window.enSaveSession=function(){
+  const s=eload();const type=enLogType;
+  const sess={id:'en_'+Date.now(),type,date:document.getElementById('enLogDate')?.value||todayK(),
+    time:parseFloat(document.getElementById('enLogTime')?.value)||0,
+    intensity:document.getElementById('enLogIntensity')?.value||'moderate'};
+  if(type!=='hyrox'){
+    sess.distance=parseFloat(document.getElementById('enLogDist')?.value)||0;
+    if(sess.distance&&sess.time){
+      if(type==='swim')sess.pace=(sess.time/(sess.distance*10)).toFixed(2)+'/100m';
+      else if(type==='run')sess.pace=(sess.time/sess.distance).toFixed(2)+'/km';
+      else sess.speed=(sess.distance/(sess.time/60)).toFixed(1)+'km/h';
+    }
+  }
+  if(type==='swim')sess.water=document.getElementById('enLogWater')?.value;
+  if(type==='bike')sess.cadence=parseFloat(document.getElementById('enLogCadence')?.value)||null;
+  if(type==='run')sess.elevation=parseFloat(document.getElementById('enLogElev')?.value)||null;
+  if(type==='bike'||type==='run')sess.brick=document.getElementById('enLogBrick')?.checked||false;
+  if(type==='hyrox'){
+    sess.total=document.getElementById('enLogTotal')?.value||'';
+    sess.stations=[];for(let i=0;i<8;i++){sess.stations.push(document.getElementById('enSt'+i)?.value||'');}
+  }
+  s.sessions.push(sess);
+  // auto-PR check for distance bests
+  enAutoPR(s,sess);
+  esave(s);gxCloseModal('enLogModal');enRender();
+};
+function enAutoPR(s,sess){
+  // longest distance auto-tracking handled in week view; explicit time PRs are manual
+}
+
+// ════════ METRICS ════════
+let enMetricKey='vo2max';
+window.enOpenMetric=function(key,name){
+  enMetricKey=key;
+  document.getElementById('enMetricTitle').textContent='Log '+name;
+  document.getElementById('enMetricLabel').textContent=name;
+  document.getElementById('enMetricInput').value='';
+  document.getElementById('enMetricModal').classList.add('open');
+};
+window.enSaveMetric=function(){
+  const v=parseFloat(document.getElementById('enMetricInput').value);
+  if(isNaN(v))return;
+  const s=eload();
+  if(enMetricKey==='maxhr')s.metrics.maxhr=v;
+  else{if(!s.metrics[enMetricKey])s.metrics[enMetricKey]=[];s.metrics[enMetricKey].push({date:todayK(),val:v});}
+  esave(s);gxCloseModal('enMetricModal');enRender();
+};
+
+// ════════ RACES ════════
+window.enOpenRace=function(){document.getElementById('enRaceDate').value=todayK();document.getElementById('enRaceModal').classList.add('open');};
+window.enSaveRace=function(){
+  const s=eload();
+  s.races.push({id:'r_'+Date.now(),type:document.getElementById('enRaceType').value,date:document.getElementById('enRaceDate').value||todayK(),
+    swim:document.getElementById('enRaceSwim').value,t1:document.getElementById('enRaceT1').value,bike:document.getElementById('enRaceBike').value,
+    t2:document.getElementById('enRaceT2').value,run:document.getElementById('enRaceRun').value,total:document.getElementById('enRaceTotal').value});
+  esave(s);gxCloseModal('enRaceModal');enRender();
+};
+
+// ════════ TARGETS ════════
+window.enOpenTargets=function(){
+  const t=eload().targets;
+  document.getElementById('enTgtSwim').value=t.swim;document.getElementById('enTgtBike').value=t.bike;
+  document.getElementById('enTgtRun').value=t.run;document.getElementById('enTgtStrength').value=t.strength;
+  document.getElementById('enTgtHyrox').value=t.hyrox;document.getElementById('enTgtRest').value=t.rest;
+  document.getElementById('enTargetModal').classList.add('open');
+};
+window.enSaveTargets=function(){
+  const s=eload();
+  s.targets={swim:+document.getElementById('enTgtSwim').value||0,bike:+document.getElementById('enTgtBike').value||0,
+    run:+document.getElementById('enTgtRun').value||0,strength:+document.getElementById('enTgtStrength').value||0,
+    hyrox:+document.getElementById('enTgtHyrox').value||0,rest:+document.getElementById('enTgtRest').value||0};
+  esave(s);gxCloseModal('enTargetModal');enRender();
+};
+
+// ════════ GROQ AI ════════
+async function groq(prompt,sys){
+  const key=groqKey();if(!key)throw new Error('NO_KEY');
+  const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+    body:JSON.stringify({model:'llama-3.3-70b-versatile',messages:[{role:'system',content:sys||'You are an expert triathlon and endurance coach. Be concise, specific, and practical.'},{role:'user',content:prompt}],max_tokens:700,temperature:0.5})});
+  const d=await r.json();if(!r.ok)throw new Error(d?.error?.message||'Groq error');
+  return(d?.choices?.[0]?.message?.content||'').trim();
+}
+function enOut(html){const o=document.getElementById('enAiOut');o.innerHTML=html;o.classList.add('show');}
+function enLoad(label){enOut(`<div style="display:flex;align-items:center;gap:10px;color:rgba(255,255,255,.6)"><span style="width:16px;height:16px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;display:inline-block;animation:gxSpin .7s linear infinite"></span>${label}</div>`);}
+function enErr(e){enOut(e.message==='NO_KEY'?`<div style="color:#ff8a8a">Add your Groq API key in Settings (<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82L4.2 7.12a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>) to use AI features.</div>`:`<div style="color:#ff8a8a">AI failed: ${e.message}</div>`);}
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function dataSummary(){
+  const s=eload();const cur=weekVolume(0),last=weekVolume(-1);
+  const m=s.metrics;
+  // Last 30 real activities (Strava + manual), most recent first, with HR/pace/elevation
+  const recent=allSessions()
+    .filter(x=>x.date)
+    .sort((a,b)=>new Date(b.date)-new Date(a.date))
+    .slice(0,30)
+    .map(x=>{
+      const parts=[x.date.slice(0,10),x.type];
+      if(x.distance)parts.push(x.distance+'km');
+      if(x.time)parts.push(Math.round(x.time)+'min');
+      if(x.pace)parts.push(x.pace);
+      if(x.avgHr)parts.push(Math.round(x.avgHr)+'bpm');
+      if(x.elev)parts.push(x.elev+'m elev');
+      return parts.join(' ');
+    }).join('; ');
+  return`This week: swim ${cur.swim.toFixed?cur.swim.toFixed(1):cur.swim}km, bike ${cur.bike.toFixed?cur.bike.toFixed(1):cur.bike}km, run ${cur.run.toFixed?cur.run.toFixed(1):cur.run}km, ${cur.strength} strength sessions, ${cur.hyrox} hyrox.
+Last week: swim ${last.swim.toFixed?last.swim.toFixed(1):last.swim}km, bike ${last.bike}km, run ${last.run}km.
+Metrics: VO2max ${m.vo2max.at?.(-1)?.val||'?'}, FTP ${m.ftp.at?.(-1)?.val||'?'}W, CSS ${m.css.at?.(-1)?.val||'?'}/100m, run threshold ${m.threshold.at?.(-1)?.val||'?'}/km, maxHR ${m.maxhr||'?'}.
+Recent activities (most recent first): ${recent||'none logged — connect Strava or log sessions'}.`;
+}
+window.enAiCoach=async function(){enLoad('Reviewing your last 2 weeks…');try{
+  const out=await groq(`Give a short weekly coaching message based on this endurance athlete's data. Note what's going well and the single most important thing to change.\n\n${dataSummary()}`);
+  enOut(`<h4><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Weekly Coaching</h4>${esc(out)}`);}catch(e){enErr(e);}};
+window.enAiOvertraining=async function(){enLoad('Checking training load…');try{
+  const out=await groq(`Analyze for overtraining risk. Flag if weekly volume jumped >10%, intensity distribution is off, or recovery looks insufficient.\n\n${dataSummary()}`);
+  enOut(`<h4><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M4 3v6a4 4 0 0 0 8 0V3M8 13v3a5 5 0 0 0 10 0v-1M2 3h4M16 3h4"/><circle cx="18" cy="15" r="2"/></svg> Overtraining Check</h4>${esc(out)}`);}catch(e){enErr(e);}};
+// Average pace from the last 5 Strava/manual activities of a discipline
+function avgPace(disc){
+  const acts=allSessions().filter(x=>x.type===disc&&x.pace).slice(-5);
+  if(!acts.length)return null;
+  return acts[acts.length-1].pace; // most recent real pace as the reference
+}
+window.enAiPace=async function(){
+  const refs=['run','bike','swim'].map(d=>{const p=avgPace(d);return p?d+' '+p:null;}).filter(Boolean).join(', ');
+  const dist=prompt('Target distance (e.g. "10km run", "1500m swim", "40km bike"):'+(refs?'\n\nYour recent paces: '+refs:''));if(!dist)return;
+  const time=prompt('Goal time (e.g. "45:00"):');if(!time)return;
+  enLoad('Calculating pace…');try{
+    const out=await groq(`For a target of ${dist} in ${time}, give the required pace (per km for run/bike, per 100m for swim), plus 2-3 split checkpoints. ${refs?'Their recent actual paces are: '+refs+'. Note whether the goal is realistic vs their current pace.':''} Be precise with numbers.`);
+    enOut(`<h4>⏱️ Pace for ${esc(dist)} in ${esc(time)}</h4>${esc(out)}`);}catch(e){enErr(e);}};
+window.enAiStrategy=async function(){
+  const race=prompt('Race (e.g. "Olympic triathlon", "70.3", "Marathon"):');if(!race)return;
+  const goal=prompt('Goal time (e.g. "2:30:00"):');if(!goal)return;
+  enLoad('Building race strategy…');try{
+    const out=await groq(`Create a split strategy for a ${race} with goal time ${goal}. Break down target time/pace per discipline (and transitions if triathlon), plus pacing advice for each leg.\n\nAthlete data:\n${dataSummary()}`);
+    enOut(`<h4><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="m9 4-6 2v14l6-2 6 2 6-2V4l-6 2zM9 4v14M15 6v14"/></svg>️ ${esc(race)} Strategy · ${esc(goal)}</h4>${esc(out)}`);}catch(e){enErr(e);}};
+window.enAiRaceDay=async function(){
+  const race=prompt('Race type (Sprint / Olympic / 70.3 / Ironman / Marathon):','70.3');if(!race)return;
+  const startTime=prompt('Race start time (e.g. "07:00"):','07:00');
+  enLoad('Generating race-day protocol…');try{
+    const out=await groq(`Create a detailed race-day protocol for a ${race} starting at ${startTime}. Include: wake-up time, breakfast (what & when), warm-up routine, nutrition per hour during the race, and hydration plan. Be specific with timings and amounts.`);
+    enOut(`<h4><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M4 21V4M4 4h13l-2 4 2 4H4"/></svg> ${esc(race)} Race-Day Protocol</h4>${esc(out)}`);}catch(e){enErr(e);}};
+window.enAiPredict=async function(){
+  const q=prompt('What do you want to predict?\n(e.g. "When will I run sub-45min 10km?" or "How long to cycle 3000km total?")');
+  if(!q)return;
+  enLoad('Analyzing all your data…');try{
+    const s=eload();
+    const sys='You are an elite endurance performance analyst. Analyze the athlete\'s data and give a realistic, numbers-based prediction. Structure your answer with: ESTIMATE (a concrete time/date), CONFIDENCE (low/medium/high — based on how much data exists), KEY LIMITERS (what is holding them back), NEXT STEPS (2-3 actionable items), WEEKLY VOLUME NEEDED. If there is not enough logged data to predict well, clearly say what specific data is still needed.';
+    const svCount=stravaSessions().length;
+    const out=await groq(`Athlete question: "${q}"\n\nData available:\n${dataSummary()}\nTotal activities: ${allSessions().length} (${svCount} from Strava). Races: ${s.races.length}.`,sys);
+    // confidence badge
+    let conf='medium';const lo=/confidence[:\s]*low/i.test(out),hi=/confidence[:\s]*high/i.test(out);
+    if(lo)conf='low';else if(hi)conf='high';
+    const cc={low:'#ff8a8a',medium:'#fbbf24',high:'#6ee7b7'}[conf];
+    enOut(`<h4><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg> Prediction <span class="en-conf" style="background:${cc}22;color:${cc}">${conf} confidence</span></h4>${esc(out)}`);
+    s.predictions.unshift({q,answer:out,date:todayK()});if(s.predictions.length>20)s.predictions.length=20;esave(s);
+  }catch(e){enErr(e);}};
+
+// ════════ BOOT ════════
+window.enRender=enRender; // allow the Strava module to refresh this panel
+enRender();
+window.addEventListener('storage',e=>{if(e.key===EK||e.key===PO||e.key===CAL||e.key==='strava_data_v1')enRender();});
+const _es=localStorage.setItem.bind(localStorage);
+localStorage.setItem=function(k,v){_es(k,v);if(k===PO||k===CAL||k==='strava_data_v1'){try{enRender();}catch(e){}}};
+if(window.initCloudSync){window.initCloudSync({appKey:'endurance',syncedKeys:[EK],onApplied:enRender});}
+})();
+
 (function(){
 'use strict';
 const GK='gym_v1', PO='po_coach_v1';
@@ -2813,4 +3343,671 @@ window.lwSaveClose=function(){
   try{if(window.gxRender)window.gxRender();}catch(e){}
 };
 })();
+
+(function(){
+  function init(){
+    const shell=document.querySelector('.po-shell');
+    if(!shell||document.getElementById('trTabBar'))return;
+    const enRoot=document.getElementById('enRoot');
+    if(!enRoot)return;
+
+    // Build sub-tab bar
+    const bar=document.createElement('div');
+    bar.id='trTabBar';bar.className='tr-tabbar';
+    bar.innerHTML='<button class="tr-tab on" data-pane="gym"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M3 14c1.5 0 3-.5 4-2M4 12c0-3 1-6 5-6 3 0 5 2 6 4l3 2c1 .7 1.5 2 1 3-.5 1.2-2 1.5-3 1l-2-1c0 2-1 4-4 4-4 0-6-3-6-6M14 10l-2 1.5"/></svg> 💪 Gym</button>'+
+                  '<button class="tr-tab" data-pane="end"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><circle cx="14" cy="5" r="2"/><path d="M11 21l1.5-5-3-2 2-5 3 2 2 1M7 12l2-4M13 16l3 1 1 4M9 21l1-4"/></svg> 🏃 Endurance</button>'+
+                  '<button class="tr-tab" data-pane="plan">📅 Plan</button>';
+
+    // Panes
+    const gymPane=document.createElement('div');gymPane.id='trGymPane';gymPane.className='tr-pane on';
+    const endPane=document.createElement('div');endPane.id='trEndPane';endPane.className='tr-pane';
+    const planPane=document.createElement('div');planPane.id='trPlanPane';planPane.className='tr-pane';
+
+    // Distribute existing children: enRoot + stravaRoot → endurance, rest → gym
+    const stravaRoot=document.getElementById('stravaRoot');
+    const kids=Array.prototype.slice.call(shell.children);
+    kids.forEach(function(k){
+      if(k===enRoot||k===stravaRoot)endPane.appendChild(k);
+      else gymPane.appendChild(k);
+    });
+    shell.appendChild(bar);
+    shell.appendChild(gymPane);
+    shell.appendChild(endPane);
+    shell.appendChild(planPane);
+
+    function setPane(pane){
+      bar.querySelectorAll('.tr-tab').forEach(function(x){x.classList.toggle('on',x.dataset.pane===pane);});
+      gymPane.classList.toggle('on',pane==='gym');
+      endPane.classList.toggle('on',pane==='end');
+      planPane.classList.toggle('on',pane==='plan');
+      const fabs=document.querySelector('.gx-fabs');
+      if(fabs)fabs.style.display=pane==='gym'?'':'none';
+      try{localStorage.setItem('tr_subtab',pane);}catch(e){}
+      window.scrollTo(0,0);
+      if(pane==='plan')window.tcRender&&window.tcRender();
+    }
+    bar.querySelectorAll('.tr-tab').forEach(function(b){
+      b.addEventListener('click',function(){setPane(b.dataset.pane);});
+    });
+
+    // Restore last sub-tab
+    let saved='gym';
+    try{saved=localStorage.getItem('tr_subtab')||'gym';}catch(e){}
+    if(saved==='end')setPane('end');
+    else if(saved==='plan')setPane('plan');
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);
+  else init();
+})();
+
+(function(){
+'use strict';
+const SK='strava_data_v1';
+function sload(){try{return JSON.parse(localStorage.getItem(SK))||{activities:[],lastSync:null};}catch{return{activities:[],lastSync:null};}}
+function ssave(s){localStorage.setItem(SK,JSON.stringify(s));}
+
+// Strava activity type → our discipline
+function discOf(a){
+  const t=(a.type||a.sport_type||'').toLowerCase();
+  const name=(a.name||'').toLowerCase();
+  if(/hyrox/.test(name))return'hyrox';
+  if(/swim/.test(t))return'swim';
+  if(/ride|cycl|bike/.test(t))return'bike';
+  if(/run/.test(t))return'run';
+  if(/weight|workout|crossfit|strength/.test(t))return'strength';
+  return'other';
+}
+const DISC_ICON={
+  swim:'<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="17" cy="7" r="2"/><path d="M2 16c1.5 0 1.5 1 3 1s1.5-1 3-1 1.5 1 3 1 1.5-1 3-1 1.5 1 3 1 1.5-1 3-1M5.5 13l4-3 3 2 3.5-2.5"/></svg>',
+  bike:'<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2zM12 17.5 9 9l3-2 3 4h3M9 9l-3 1"/></svg>',
+  run:'<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="14" cy="5" r="2"/><path d="M11 21l1.5-5-3-2 2-5 3 2 2 1M7 12l2-4M13 16l3 1 1 4M9 21l1-4"/></svg>',
+  strength:'<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.4 14.4 9.6 9.6M3 7l3-3 3 3-3 3zM15 15l3-3 3 3-3 3zM6.5 9.5 4 12M17.5 14.5 20 12"/></svg>',
+  hyrox:'<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.4-.5-2-1-3-1.1-2.1-.2-4 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.2.4-2.3 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>',
+  other:'<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/></svg>'
+};
+
+function weekStart(){const x=new Date();const dow=(x.getDay()+6)%7;x.setDate(x.getDate()-dow);x.setHours(0,0,0,0);return x;}
+function inWeek(dateStr){const d=new Date(dateStr);const ws=weekStart();const we=new Date(ws);we.setDate(ws.getDate()+7);return d>=ws&&d<we;}
+
+function map(a){
+  const disc=discOf(a);
+  const distKm=(a.distance||0)/1000;
+  const durMin=(a.moving_time||a.elapsed_time||0)/60;
+  let pace='';
+  if(disc==='run'&&distKm>0)pace=(durMin/distKm).toFixed(2)+'/km';
+  else if(disc==='swim'&&distKm>0)pace=(durMin/(distKm*10)).toFixed(2)+'/100m';
+  else if(disc==='bike'&&durMin>0)pace=(distKm/(durMin/60)).toFixed(1)+'km/h';
+  return{
+    id:a.id, type:a.type||a.sport_type, disc, name:a.name||a.type,
+    date:a.start_date_local||a.start_date,
+    distanceKm:Math.round(distKm*100)/100, durationMin:Math.round(durMin),
+    durationS:a.moving_time||a.elapsed_time||0,
+    pace, avgHr:a.average_heartrate||null, maxHr:a.max_heartrate||null,
+    cadence:a.average_cadence||null, elevM:a.total_elevation_gain||null,
+    calories:a.calories||(a.kilojoules?Math.round(a.kilojoules):null),
+    workout_type:a.workout_type!=null?a.workout_type:null,
+    isRace:a.workout_type===1||a.workout_type===11, // 1=run race, 11=ride race
+    splits:a.splits_metric?a.splits_metric.map(s=>({km:s.split,timeS:s.moving_time,paceS:s.moving_time})):null
+  };
+}
+// Format seconds → mm:ss or h:mm:ss
+function fmtTime(sec){sec=Math.round(sec);const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=sec%60;return(h>0?h+':'+String(m).padStart(2,'0'):m)+':'+String(s).padStart(2,'0');}
+// Strava run best_effort name → endurance PR key
+const EFFORT_KEY={'1k':'run1','5k':'run5','10k':'run10','Half-Marathon':'run21','Marathon':'run42'};
+// Update strava_data_v1.prs from an activity's best_efforts (run)
+function captureBestEfforts(store,efforts){
+  if(!Array.isArray(efforts))return;
+  store.prs=store.prs||{};
+  efforts.forEach(ef=>{
+    const key=EFFORT_KEY[ef.name];if(!key)return;
+    const sec=ef.elapsed_time||ef.moving_time;if(!sec)return;
+    const ex=store.prs[key];
+    if(!ex||sec<ex.seconds){store.prs[key]={seconds:sec,value:fmtTime(sec),date:(ef.start_date_local||'').slice(0,10)};}
+  });
+}
+
+// ── OAuth (client-managed, full activity:read_all scope) ──
+const STRAVA_CLIENT_ID='253728';
+function authorizeUrl(){
+  const redirect=location.origin+'/api/strava-callback';
+  return 'https://www.strava.com/oauth/authorize?client_id='+STRAVA_CLIENT_ID
+    +'&response_type=code&redirect_uri='+encodeURIComponent(redirect)
+    +'&approval_prompt=auto&scope=read,activity:read_all';
+}
+function getRefresh(){return sload().refresh||'';}
+function beginAuth(){
+  // OAuth must run in the top window (not the iframe)
+  try{ (window.top||window).location.href=authorizeUrl(); }
+  catch(e){ window.location.href=authorizeUrl(); }
+}
+async function getAccessToken(){
+  const refresh=getRefresh();
+  if(!refresh)return null;
+  const r=await fetch('/api/strava-refresh',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({refresh_token:refresh})});
+  const txt=await r.text();
+  let j; try{j=JSON.parse(txt);}catch{throw new Error('Bad token response');}
+  if(!r.ok)throw new Error(safeErr(txt));
+  // Strava rotates refresh tokens on each refresh — persist the new one
+  if(j.refresh_token){const s=sload();s.refresh=j.refresh_token;ssave(s);}
+  return j.access_token;
+}
+
+window.svConnect=function(){
+  if(!getRefresh()){ setStatus('Opening Strava…'); beginAuth(); return; }
+  sync();
+};
+
+async function sync(){
+  setStatus('Syncing from Strava…');
+  try{
+    const access=await getAccessToken();
+    if(!access){ beginAuth(); return; }
+    const hdr={headers:{'Authorization':'Bearer '+access}};
+    const r=await fetch('/api/strava-data?path=/athlete/activities&per_page=100&page=1',hdr);
+    const txt=await r.text();
+    if(!r.ok)throw new Error(safeErr(txt));
+    let list; try{list=JSON.parse(txt);}catch{throw new Error('Bad response from Strava');}
+    if(!Array.isArray(list))throw new Error(list&&list.message?list.message:'Unexpected response');
+    const acts=list.map(map);
+    const s=sload(); s.prs=s.prs||{};
+    // enrich the 10 most recent with detail (splits + calories + best_efforts)
+    for(const a of acts.slice(0,10)){
+      try{
+        const dr=await fetch('/api/strava-data?path=/activities/'+a.id,hdr);
+        if(dr.ok){const d=JSON.parse(await dr.text());
+          a.calories=d.calories||a.calories;
+          if(d.splits_metric)a.splits=d.splits_metric.map(x=>({km:x.split,timeS:x.moving_time}));
+          if(d.best_efforts)captureBestEfforts(s,d.best_efforts); // run PRs
+        }
+      }catch(e){}
+    }
+    s.activities=acts;s.lastSync=Date.now();ssave(s);
+    render();
+    // refresh the endurance module so spider/analysis/PRs pick up new data
+    if(window.enRender)try{window.enRender();}catch(e){}
+  }catch(e){
+    const m=String(e.message||e);
+    if(/authorization|scope|401|unauthor/i.test(m)){
+      setStatus('Access expired or missing permission — reconnecting…');
+      const s=sload();s.refresh='';ssave(s);
+      setTimeout(beginAuth,800);
+    } else {
+      setStatus('Sync failed: '+m);
+    }
+  }
+}
+function safeErr(t){
+  try{const j=JSON.parse(t);
+    if(j.errors&&j.errors.length){const e=j.errors[0];return (j.message||'Error')+' ('+(e.field||e.resource||'')+' '+(e.code||'')+')';}
+    return j.error||j.message||t;
+  }catch{return (t||'').slice(0,120);}
+}
+function setStatus(msg){const el=document.getElementById('svStatus');if(el){el.style.display='';el.textContent=msg;}}
+
+function render(){
+  const root=document.getElementById('stravaRoot');if(!root)return;
+  const s=sload();
+  const connected=s.activities.length>0;
+  // weekly volume per discipline
+  const vol={swim:0,bike:0,run:0,strength:0,hyrox:0};
+  s.activities.forEach(a=>{if(!inWeek(a.date))return;
+    if(a.disc==='swim'||a.disc==='bike'||a.disc==='run')vol[a.disc]+=a.distanceKm;
+    else if(a.disc==='strength'||a.disc==='hyrox')vol[a.disc]+=1;});
+  const last=s.lastSync?new Date(s.lastSync).toLocaleString('en',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'never';
+
+  let html=`<div class="sv-card">
+    <div class="sv-head">
+      <div class="sv-logo"><svg viewBox="0 0 24 24" width="15" height="15" fill="#fff"><path d="M15.4 21.6 12 14.9l-3.4 6.7H3.2L12 4l8.8 17.6z" opacity=".4"/><path d="M12 14.9l-2.1 4.2H6.6L12 8.3l5.4 10.8h-3.3z"/></svg></div>
+      <div><div class="sv-title">Strava</div><div class="sv-sub">${connected?'Last synced '+last:'Not connected'}</div></div>
+      <button class="sv-btn ${connected?'sec':''}" onclick="window.svConnect()">${connected?'Sync':'Connect Strava'}</button>
+    </div>
+    <div class="sv-status" id="svStatus" style="${connected?'display:none':''}"></div>`;
+
+  if(connected){
+    html+=`<div class="sv-vol">
+      ${volBox('swim','Swim',vol.swim,'km')}
+      ${volBox('bike','Bike',vol.bike,'km')}
+      ${volBox('run','Run',vol.run,'km')}
+    </div>
+    <div class="sv-vol" style="grid-template-columns:1fr 1fr;margin-top:8px">
+      ${volBox('strength','Strength',vol.strength,'×')}
+      ${volBox('hyrox','Hyrox',vol.hyrox,'×')}
+    </div>
+    <div style="font-size:12px;color:rgba(255,255,255,.4);margin:16px 0 4px;text-transform:uppercase;letter-spacing:.06em">Recent activities</div>`;
+    s.activities.slice(0,8).forEach(a=>{
+      const meta=[a.distanceKm?a.distanceKm+'km':null,a.durationMin?a.durationMin+'min':null,a.pace||null,a.avgHr?Math.round(a.avgHr)+'bpm':null].filter(Boolean).join(' · ');
+      html+=`<div class="sv-act">
+        <div class="sv-act-ico">${DISC_ICON[a.disc]||DISC_ICON.other}</div>
+        <div class="sv-act-body"><div class="sv-act-name">${esc(a.name)}</div><div class="sv-act-meta">${meta} · ${new Date(a.date).toLocaleDateString('en',{month:'short',day:'numeric'})}</div></div>
+      </div>`;
+    });
+  }
+  html+=`</div>`;
+  root.innerHTML=html;
+}
+function volBox(disc,label,val,unit){
+  const v=val%1?val.toFixed(1):val;
+  return`<div class="sv-vol-box"><span class="sv-vol-ico">${DISC_ICON[disc]}</span><div class="sv-vol-val">${v}<span style="font-size:11px;color:rgba(255,255,255,.4)">${unit}</span></div><div class="sv-vol-label">${label}</div></div>`;
+}
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+window.svSync=sync;
+
+// Capture OAuth tokens if redirected back with a hash, then return to the shell
+(function(){
+  if(location.hash.indexOf('strava_refresh=')>=0){
+    const p=new URLSearchParams(location.hash.slice(1));
+    const s=sload();s.refresh=p.get('strava_refresh')||s.refresh;ssave(s);
+    // After OAuth we're at gym.html as the TOP window — go back to the dashboard
+    if(window.self===window.top){ location.replace('/'); return; }
+    history.replaceState(null,'',location.pathname+location.search);
+    setTimeout(sync,300);
+  }
+})();
+
+render();
+window.addEventListener('storage',e=>{if(e.key===SK)render();});
+if(window.initCloudSync){window.initCloudSync({appKey:'strava',syncedKeys:[SK],onApplied:render});}
+})();
+
+(function(){
+'use strict';
+const TSK='training_calendar_v1';
+const LSK='life_calendar_v1';
+const SUPA_URL='PASTE-YOUR-SUPABASE-PROJECT-URL-HERE';
+const SUPA_KEY='PASTE-YOUR-SUPABASE-PUBLISHABLE-KEY-HERE';
+const GROQ_MODEL='llama-3.3-70b-versatile';
+
+const DISC={
+  run:     {label:'🏃 Run',     color:'#6ee7b7',short:'Run'},
+  bike:    {label:'🚴 Bike',    color:'#f59e0b',short:'Bike'},
+  swim:    {label:'🏊 Swim',    color:'#38bdf8',short:'Swim'},
+  strength:{label:'💪 Strength',color:'#a78bfa',short:'Strength'},
+  hyrox:   {label:'🔥 Hyrox',  color:'#fb923c',short:'Hyrox'},
+  race:    {label:'🏁 Race',    color:'#f43f5e',short:'Race'},
+  rest:    {label:'😴 Rest',    color:'#6b7280',short:'Rest'},
+};
+const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+let tcSt={view:'week',year:new Date().getFullYear(),month:new Date().getMonth(),selDate:null,sessions:[]};
+let tcEditId=null,tcAddDate=null;
+
+/* storage */
+function tcLoad(){try{tcSt.sessions=JSON.parse(localStorage.getItem(TSK))||[];}catch(e){tcSt.sessions=[];}}
+function tcSave(){
+  try{localStorage.setItem(TSK,JSON.stringify(tcSt.sessions));}catch(e){}
+  syncSupa();
+  syncToLifeCal();
+}
+async function syncSupa(){
+  if(!SUPA_URL.includes('PASTE')&&window.supabase){
+    try{const db=window.supabase.createClient(SUPA_URL,SUPA_KEY);
+      await db.from('app_state').upsert({key:TSK,data:tcSt.sessions,updated_at:new Date().toISOString()},{onConflict:'key'});}
+    catch(e){}
+  }
+}
+
+/* sync completed sessions → life_calendar_v1 as read-only training events */
+function syncToLifeCal(){
+  try{
+    let lc=JSON.parse(localStorage.getItem(LSK))||[];
+    // Remove old training-sourced entries
+    lc=lc.filter(e=>e.source!=='training');
+    // Add all planned+completed sessions (life cal will render them read-only)
+    tcSt.sessions.forEach(s=>{
+      lc.push({
+        id:'tr_'+s.id,source:'training',type:'training',
+        title:(DISC[s.discipline]||{label:s.name}).label,
+        date:s.date,startTime:s.time||null,endTime:null,
+        allDay:!s.time,color:null,notes:null,repeat:null,alert:null,
+        trainingColor:(DISC[s.discipline]||{color:'#6b7280'}).color
+      });
+    });
+    localStorage.setItem(LSK,JSON.stringify(lc));
+  }catch(e){}
+}
+
+/* helpers */
+function p2(n){return String(n).padStart(2,'0')}
+function today(){const d=new Date();return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())}
+function pd(s){const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)}
+function dk(y,m,d){return y+'-'+p2(m+1)+'-'+p2(d)}
+function uid(){return 'tc_'+Date.now().toString(36)+Math.random().toString(36).slice(2,5)}
+function fmt12(t){if(!t)return'';const[h,m]=t.split(':').map(Number);return(h%12||12)+':'+p2(m)+(h>=12?' PM':' AM')}
+function sessOn(ds){return tcSt.sessions.filter(s=>s.date===ds)}
+function weekDays(ds){
+  const d=pd(ds),dow=d.getDay(),mon=(dow===0?-6:1)-dow;
+  const s=new Date(d);s.setDate(d.getDate()+mon);
+  return Array.from({length:7},(_,i)=>{const x=new Date(s);x.setDate(s.getDate()+i);return dk(x.getFullYear(),x.getMonth(),x.getDate());});
+}
+
+/* nav title */
+function tcNavTitle(){
+  if(tcSt.view==='month')return MONTHS[tcSt.month]+' <span>'+tcSt.year+'</span>';
+  if(tcSt.view==='week'){
+    const days=weekDays(tcSt.selDate||today()),s=pd(days[0]),e=pd(days[6]);
+    const sm=MONTHS[s.getMonth()].slice(0,3),em=MONTHS[e.getMonth()].slice(0,3);
+    return(sm===em?sm+' '+s.getDate()+'–'+e.getDate():sm+' '+s.getDate()+' – '+em+' '+e.getDate())+' <span>'+s.getFullYear()+'</span>';
+  }
+  const d=pd(tcSt.selDate||today());
+  return DAYS[d.getDay()]+', '+MONTHS[d.getMonth()].slice(0,3)+' '+d.getDate()+' <span>'+d.getFullYear()+'</span>';
+}
+
+/* ── render into trPlanPane ── */
+function tcRender(){
+  const pane=document.getElementById('trPlanPane');if(!pane||!pane.classList.contains('on'))return;
+  tcLoad();
+
+  const todayStr=today();
+  const days=weekDays(tcSt.selDate||todayStr);
+  const maxVol=Math.max(1,...days.map(d=>sessOn(d).reduce((a,s)=>a+(s.duration||0),0)));
+
+  // Week summary
+  const allSess=days.flatMap(d=>sessOn(d));
+  const totalMin=allSess.reduce((a,s)=>a+(s.duration||0),0);
+  const totalKm=allSess.filter(s=>s.distance).reduce((a,s)=>a+(s.distance||0),0);
+  const byDisc={};allSess.forEach(s=>{byDisc[s.discipline]=(byDisc[s.discipline]||0)+(s.duration||0);});
+  let sumHtml=`<div class="tc-sum-pill"><span class="tc-sum-dot" style="background:#0A84FF"></span><span class="tc-sum-val">${Math.round(totalMin/60*10)/10}h</span><span class="tc-sum-lbl">total</span></div>`;
+  if(totalKm>0)sumHtml+=`<div class="tc-sum-pill"><span class="tc-sum-val">${Math.round(totalKm*10)/10}</span><span class="tc-sum-lbl">km</span></div>`;
+  Object.entries(byDisc).forEach(([d,m])=>{const dc=DISC[d]||DISC.run;sumHtml+=`<div class="tc-sum-pill"><span class="tc-sum-dot" style="background:${dc.color}"></span><span class="tc-sum-val">${m}m</span><span class="tc-sum-lbl">${dc.short}</span></div>`;});
+
+  let monthGridHtml='';
+  if(tcSt.view==='month'){
+    const first=new Date(tcSt.year,tcSt.month,1),last=new Date(tcSt.year,tcSt.month+1,0);
+    const fdow=(first.getDay()+6)%7;
+    const cells=[];
+    for(let i=0;i<fdow;i++){const d=new Date(tcSt.year,tcSt.month,-(fdow-i-1));cells.push({ds:dk(d.getFullYear(),d.getMonth(),d.getDate()),other:true});}
+    for(let d=1;d<=last.getDate();d++)cells.push({ds:dk(tcSt.year,tcSt.month,d),other:false});
+    while(cells.length%7!==0){const idx=cells.length-fdow-last.getDate()+1;const d=new Date(tcSt.year,tcSt.month+1,idx);cells.push({ds:dk(d.getFullYear(),d.getMonth(),d.getDate()),other:true});}
+    monthGridHtml=`<div class="tc-mo-wdays">`+['Mo','Tu','We','Th','Fr','Sa','Su'].map(d=>`<div class="tc-mo-wd">${d}</div>`).join('')+`</div>
+    <div class="tc-mo-grid" id="tcMoGrid">`+cells.map(c=>{
+      const d=pd(c.ds),isT=c.ds===todayStr;
+      const dots=sessOn(c.ds).slice(0,4).map(s=>`<div class="tc-mo-dot" style="background:${(DISC[s.discipline]||DISC.run).color}"></div>`).join('');
+      return`<div class="tc-mo-cell${c.other?' other':''}${isT?' today':''}" data-date="${c.ds}">
+        <div class="tc-mo-num">${d.getDate()}</div>
+        <div class="tc-mo-dots">${dots}</div>
+      </div>`;
+    }).join('')+`</div>`;
+  }
+
+  let dayViewHtml='';
+  if(tcSt.view==='day'){
+    const ds=tcSt.selDate||todayStr,d=pd(ds);
+    const sess=sessOn(ds);
+    const dayName=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][d.getDay()];
+    dayViewHtml=`<div class="tc-day-view">
+      <div class="tc-day-hdr">${dayName}, ${MONTHS[d.getMonth()].slice(0,3)} ${d.getDate()}</div>
+      ${!sess.length?'<div style="text-align:center;padding:32px 0;color:rgba(255,255,255,.3);font-size:14px">No sessions — tap + to add</div>':''}
+      ${sess.map(s=>{const dc=DISC[s.discipline]||DISC.run;const meta=[];
+        if(s.time)meta.push(fmt12(s.time));if(s.duration)meta.push(s.duration+' min');
+        if(s.distance)meta.push(s.distance+' km');if(s.intensity)meta.push(s.intensity);
+        return`<div class="tc-day-card" data-id="${s.id}">
+          <div class="tc-dcard-top"><span class="tc-dcard-icon">${dc.label.split(' ')[0]}</span>
+            <span class="tc-dcard-title">${s.name}</span>
+            <span class="tc-dcard-badge" style="background:${dc.color}">${dc.short}</span>
+            ${s.aiGen?'<span title="AI">🤖</span>':''}
+          </div>
+          <div class="tc-dcard-meta">${meta.join(' · ')}${s.notes?'<br><span style="opacity:.7">'+s.notes+'</span>':''}</div>
+          ${!s.done?`<button class="tc-dcard-done" data-did="${s.id}">✓ Mark done</button>`:'<div style="color:#30d158;font-size:12px;font-weight:600;margin-top:6px">✓ Completed</div>'}
+        </div>`;
+      }).join('')}
+    </div>`;
+  }
+
+  pane.innerHTML=`<div class="tc-wrap">
+    <div class="tc-nav">
+      <div class="tc-nav-arrows">
+        <button class="tc-nav-btn" id="tcPrev">‹</button>
+        <button class="tc-nav-btn" id="tcNext">›</button>
+      </div>
+      <div class="tc-nav-title">${tcNavTitle()}</div>
+      <button class="tc-today-btn" id="tcTodayBtn">Today</button>
+    </div>
+    <div class="tc-vsw"><div class="tc-vsw-inner">
+      <button class="tc-vbtn${tcSt.view==='week'?' on':''}" data-v="week">Week</button>
+      <button class="tc-vbtn${tcSt.view==='month'?' on':''}" data-v="month">Month</button>
+      <button class="tc-vbtn${tcSt.view==='day'?' on':''}" data-v="day">Day</button>
+    </div></div>
+    <div class="tc-ai-bar">
+      <button class="tc-ai-btn" id="tcAiWeek">🤖 Plan my week</button>
+      <button class="tc-ai-btn" id="tcAiMonth">📅 Plan my month</button>
+    </div>
+    <div class="tc-week-sum">${sumHtml}</div>
+    ${tcSt.view==='month'?monthGridHtml:''}
+    ${tcSt.view==='week'?`
+    <div class="tc-week-hdr" id="tcWeekHdr">${days.map(ds=>{const d=pd(ds),isT=ds===todayStr;
+      return`<div class="tc-wday${isT?' today':''}" data-date="${ds}">
+        <div class="tc-wday-name">${DAYS[d.getDay()].slice(0,1)}</div>
+        <div class="tc-wday-num">${d.getDate()}</div>
+      </div>`;}).join('')}</div>
+    <div class="tc-vol-row">${days.map(ds=>{const vol=sessOn(ds).reduce((a,s)=>a+(s.duration||0),0);
+      return`<div><div class="tc-vol-bar-wrap"><div class="tc-vol-bar" style="width:${Math.round(vol/maxVol*100)}%"></div></div>
+      <div class="tc-vol-lbl">${vol?vol+'m':''}</div></div>`;}).join('')}</div>
+    <div class="tc-week-cols" id="tcWeekCols">${days.map(ds=>{
+      const sess=sessOn(ds);
+      return`<div class="tc-day-col" data-date="${ds}">${sess.map(s=>{
+        const dc=DISC[s.discipline]||DISC.run;const meta=[];
+        if(s.duration)meta.push(s.duration+'m');if(s.distance)meta.push(s.distance+'km');if(s.intensity)meta.push(s.intensity);
+        return`<div class="tc-sess${s.done?' done':''}${s.aiGen?' ai-gen':''}" data-id="${s.id}" style="background:${dc.color}">
+          <div class="tc-sess-icon">${dc.label.split(' ')[0]}</div>
+          <div class="tc-sess-name">${s.name}</div>
+          <div class="tc-sess-meta">${meta.join(' · ')}</div>
+        </div>`;}).join('')}</div>`;}).join('')}</div>
+    `:''}
+    ${dayViewHtml}
+  </div>`;
+
+  // Wire events
+  pane.querySelector('#tcPrev')?.addEventListener('click',tcPrev);
+  pane.querySelector('#tcNext')?.addEventListener('click',tcNext);
+  pane.querySelector('#tcTodayBtn')?.addEventListener('click',()=>{const d=new Date();tcSt.year=d.getFullYear();tcSt.month=d.getMonth();tcSt.selDate=today();tcRender();});
+  pane.querySelectorAll('.tc-vbtn').forEach(b=>b.addEventListener('click',()=>{tcSt.view=b.dataset.v;if(!tcSt.selDate)tcSt.selDate=today();tcRender();}));
+
+  // Month cell tap
+  pane.querySelector('#tcMoGrid')?.addEventListener('click',e=>{
+    const cell=e.target.closest('[data-date]');if(!cell)return;
+    tcSt.selDate=cell.dataset.date;tcSt.view='day';tcRender();
+  });
+
+  // Week day header tap → day view
+  pane.querySelector('#tcWeekHdr')?.querySelectorAll('[data-date]').forEach(el=>el.addEventListener('click',()=>{tcSt.selDate=el.dataset.date;tcSt.view='day';tcRender();}));
+
+  // Week session tap → detail; empty column tap → add
+  pane.querySelector('#tcWeekCols')?.addEventListener('click',e=>{
+    const sEl=e.target.closest('[data-id]');
+    if(sEl){openTcDet(sEl.dataset.id);return;}
+    const col=e.target.closest('[data-date]');
+    if(col)openTcSheet(col.dataset.date,null);
+  });
+
+  // Day view
+  pane.querySelectorAll('.tc-day-card').forEach(el=>el.addEventListener('click',e=>{
+    if(e.target.closest('.tc-dcard-done'))return;openTcDet(el.dataset.id);
+  }));
+  pane.querySelectorAll('.tc-dcard-done').forEach(btn=>btn.addEventListener('click',e=>{
+    e.stopPropagation();const s=tcSt.sessions.find(x=>x.id===btn.dataset.did);
+    if(s){s.done=true;tcSave();tcRender();}
+  }));
+
+  // AI
+  pane.querySelector('#tcAiWeek')?.addEventListener('click',tcAiWeek);
+  pane.querySelector('#tcAiMonth')?.addEventListener('click',tcAiMonth);
+}
+window.tcRender=tcRender;
+
+function tcPrev(){
+  if(tcSt.view==='week'){const d=pd(tcSt.selDate||today());d.setDate(d.getDate()-7);tcSt.selDate=dk(d.getFullYear(),d.getMonth(),d.getDate());}
+  else if(tcSt.view==='month'){tcSt.month--;if(tcSt.month<0){tcSt.month=11;tcSt.year--;}}
+  else{const d=pd(tcSt.selDate||today());d.setDate(d.getDate()-1);tcSt.selDate=dk(d.getFullYear(),d.getMonth(),d.getDate());}
+  tcRender();
+}
+function tcNext(){
+  if(tcSt.view==='week'){const d=pd(tcSt.selDate||today());d.setDate(d.getDate()+7);tcSt.selDate=dk(d.getFullYear(),d.getMonth(),d.getDate());}
+  else if(tcSt.view==='month'){tcSt.month++;if(tcSt.month>11){tcSt.month=0;tcSt.year++;}}
+  else{const d=pd(tcSt.selDate||today());d.setDate(d.getDate()+1);tcSt.selDate=dk(d.getFullYear(),d.getMonth(),d.getDate());}
+  tcRender();
+}
+
+/* ── Add/edit sheet ── */
+function openTcSheet(date,id){
+  tcEditId=id;tcAddDate=date;
+  const ex=id?tcSt.sessions.find(s=>s.id===id):null;
+  document.getElementById('tcShTitle').textContent=id?'Edit Session':'New Session';
+  document.getElementById('tcShDel').style.display=id?'block':'none';
+  document.getElementById('tcSName').value=ex?.name||'';
+  document.getElementById('tcSDate').value=ex?.date||date||today();
+  document.getElementById('tcSTime').value=ex?.time||'07:00';
+  document.getElementById('tcSDur').value=ex?.duration||'';
+  document.getElementById('tcSDist').value=ex?.distance||'';
+  document.getElementById('tcSInt').value=ex?.intensity||'';
+  document.getElementById('tcSHR').value=ex?.hrZone||'';
+  document.getElementById('tcSNotes').value=ex?.notes||'';
+  const selD=ex?.discipline||'run';
+  document.querySelectorAll('.tc-disc-chip').forEach(c=>{
+    c.classList.toggle('sel',c.dataset.d===selD);
+    if(c.dataset.d===selD){const dc=DISC[selD]||DISC.run;c.style.background=dc.color;c.style.borderColor=dc.color;}
+    else{c.style.background='';c.style.borderColor='';}
+  });
+  document.getElementById('tcSheet').classList.add('open');
+  document.getElementById('tcScrim').classList.add('show');
+  setTimeout(()=>document.getElementById('tcSName').focus(),300);
+}
+function closeTcSheet(){document.getElementById('tcSheet').classList.remove('open');document.getElementById('tcScrim').classList.remove('show');}
+
+document.getElementById('tcShCancel').addEventListener('click',closeTcSheet);
+document.getElementById('tcScrim').addEventListener('click',()=>{closeTcSheet();closeTcDet();});
+
+document.getElementById('tcDiscRow').addEventListener('click',e=>{
+  const chip=e.target.closest('[data-d]');if(!chip)return;
+  document.querySelectorAll('.tc-disc-chip').forEach(c=>{c.classList.remove('sel');c.style.background='';c.style.borderColor='';});
+  chip.classList.add('sel');
+  const dc=DISC[chip.dataset.d]||DISC.run;chip.style.background=dc.color;chip.style.borderColor=dc.color;
+});
+
+function doSaveTcSession(){
+  const name=document.getElementById('tcSName').value.trim();
+  if(!name){document.getElementById('tcSName').style.outline='2px solid #FF3B30';setTimeout(()=>document.getElementById('tcSName').style.outline='',1500);return;}
+  const disc=document.querySelector('.tc-disc-chip.sel')?.dataset.d||'run';
+  const s={
+    id:tcEditId||uid(),discipline:disc,name,
+    date:document.getElementById('tcSDate').value,
+    time:document.getElementById('tcSTime').value||null,
+    duration:Number(document.getElementById('tcSDur').value)||null,
+    distance:Number(document.getElementById('tcSDist').value)||null,
+    intensity:document.getElementById('tcSInt').value||null,
+    hrZone:document.getElementById('tcSHR').value||null,
+    notes:document.getElementById('tcSNotes').value.trim()||null,
+    done:tcEditId?(tcSt.sessions.find(x=>x.id===tcEditId)?.done||false):false,
+    aiGen:tcEditId?(tcSt.sessions.find(x=>x.id===tcEditId)?.aiGen||false):false,
+  };
+  if(tcEditId){const i=tcSt.sessions.findIndex(x=>x.id===tcEditId);if(i>=0)tcSt.sessions[i]=s;}
+  else tcSt.sessions.push(s);
+  tcSave();closeTcSheet();tcRender();
+}
+document.getElementById('tcShSave').addEventListener('click',doSaveTcSession);
+document.getElementById('tcShSave2').addEventListener('click',doSaveTcSession);
+document.getElementById('tcShDel').addEventListener('click',()=>{
+  if(!tcEditId||!confirm('Delete this session?'))return;
+  tcSt.sessions=tcSt.sessions.filter(s=>s.id!==tcEditId);
+  tcSave();closeTcSheet();tcRender();
+});
+
+/* ── Detail sheet ── */
+function openTcDet(id){
+  const s=tcSt.sessions.find(x=>x.id===id);if(!s)return;
+  const dc=DISC[s.discipline]||DISC.run;
+  const meta=[];if(s.date)meta.push(s.date);if(s.time)meta.push(fmt12(s.time));
+  if(s.duration)meta.push(s.duration+' min');if(s.distance)meta.push(s.distance+' km');
+  if(s.intensity)meta.push(s.intensity);if(s.hrZone)meta.push(s.hrZone);if(s.aiGen)meta.push('🤖 AI');
+  document.getElementById('tcDetBody').innerHTML=`
+    <div class="tc-det-badge" style="background:${dc.color};color:rgba(0,0,0,.85)">${dc.label}</div>
+    <div class="tc-det-title">${s.name}</div>
+    <div class="tc-det-meta">${meta.join(' · ')}${s.notes?'<br><br>'+s.notes:''}</div>
+    ${s.done?'<div style="color:#30d158;font-size:14px;font-weight:600;margin-top:10px">✓ Completed</div>':''}
+    <div class="tc-det-actions">
+      <button class="tc-det-complete" id="tcDetDone">${s.done?'✓ Done':'Mark as done'}</button>
+      <button class="tc-det-del" id="tcDetDelBtn">Delete</button>
+    </div>`;
+  document.getElementById('tcDetDone').addEventListener('click',()=>{
+    const sess=tcSt.sessions.find(x=>x.id===id);if(sess){sess.done=!sess.done;tcSave();closeTcDet();tcRender();}
+  });
+  document.getElementById('tcDetDelBtn').addEventListener('click',()=>{
+    if(!confirm('Delete?'))return;
+    tcSt.sessions=tcSt.sessions.filter(x=>x.id!==id);tcSave();closeTcDet();tcRender();
+  });
+  document.getElementById('tcDet').classList.add('open');
+  document.getElementById('tcScrim').classList.add('show');
+}
+function closeTcDet(){document.getElementById('tcDet').classList.remove('open');}
+
+/* ── Groq AI planning ── */
+function getGroqKey(){return localStorage.getItem('groq_api_key')||'';}
+async function callGroq(prompt,btnEl){
+  const key=getGroqKey();if(!key){alert('Add your Groq API key in Settings (gear icon)');return null;}
+  document.getElementById('tcAiLoading').classList.add('show');if(btnEl)btnEl.disabled=true;
+  try{
+    const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+      body:JSON.stringify({model:GROQ_MODEL,messages:[{role:'user',content:prompt}],temperature:.7,max_tokens:2500})});
+    if(!r.ok)throw new Error('Groq error '+r.status);
+    return(await r.json()).choices[0].message.content;
+  }catch(e){alert('AI error: '+e.message);return null;}
+  finally{document.getElementById('tcAiLoading').classList.remove('show');if(btnEl)btnEl.disabled=false;}
+}
+function parseAiSessions(raw){const m=raw.match(/\[[\s\S]*\]/);if(!m)throw new Error('No JSON');return JSON.parse(m[0]);}
+
+async function tcAiWeek(){
+  const days=weekDays(tcSt.selDate||today());
+  const recent=tcSt.sessions.slice(-14).map(s=>({d:s.discipline,n:s.name,dur:s.duration,done:s.done}));
+  const strava=JSON.parse(localStorage.getItem('strava_data_v1')||'{}');
+  const prompt=`You are a triathlon/Hyrox coach. Create a 7-day training plan.
+Week: ${days.join(', ')}
+Recent sessions: ${JSON.stringify(recent)}
+Strava: ${JSON.stringify((strava.activities||[]).slice(-5).map(a=>({type:a.type,dist:a.distance,time:a.moving_time})))}
+
+Rules: include ≥1 rest day, vary intensity, realistic durations.
+
+Return ONLY a JSON array (no markdown):
+[{"date":"YYYY-MM-DD","discipline":"run|bike|swim|strength|hyrox|race|rest","name":"string","duration":60,"distance":10,"intensity":"Easy|Tempo|Interval|Race Pace","hrZone":"Z1|Z2|Z3|Z4|Z5","notes":"string"}]`;
+  const raw=await callGroq(prompt);
+  if(!raw)return;
+  try{
+    const sess=parseAiSessions(raw);
+    sess.forEach(s=>{if(!s.date||!s.discipline||!s.name)return;
+      tcSt.sessions.push({id:uid(),discipline:s.discipline,name:s.name,date:s.date,time:null,
+        duration:s.duration||null,distance:s.distance||null,intensity:s.intensity||null,
+        hrZone:s.hrZone||null,notes:s.notes||null,done:false,aiGen:true});
+    });
+    tcSave();tcRender();
+  }catch(e){alert('Could not parse AI response: '+e.message);}
+}
+
+async function tcAiMonth(){
+  const d=new Date(),start=today();
+  const allDays=Array.from({length:28},(_,i)=>{const x=new Date(d);x.setDate(d.getDate()+i);return dk(x.getFullYear(),x.getMonth(),x.getDate());});
+  const recent=tcSt.sessions.slice(-14).map(s=>({d:s.discipline,n:s.name,dur:s.duration}));
+  const prompt=`Create a 4-week periodized training plan (Wk1=Base, Wk2=Build, Wk3=Peak, Wk4=Taper).
+Dates: ${allDays[0]} to ${allDays[27]}
+Recent: ${JSON.stringify(recent)}
+Include rest days. Return ONLY a JSON array with same structure as before.`;
+  const raw=await callGroq(prompt);
+  if(!raw)return;
+  try{
+    const sess=parseAiSessions(raw);
+    sess.forEach(s=>{if(!s.date||!s.discipline||!s.name)return;
+      tcSt.sessions.push({id:uid(),discipline:s.discipline,name:s.name,date:s.date,time:null,
+        duration:s.duration||null,distance:s.distance||null,intensity:s.intensity||null,
+        hrZone:s.hrZone||null,notes:s.notes||null,done:false,aiGen:true});
+    });
+    tcSave();tcRender();
+  }catch(e){alert('Could not parse AI response: '+e.message);}
+}
+
+/* storage listener */
+window.addEventListener('storage',e=>{if(e.key===TSK){tcLoad();const p=document.getElementById('trPlanPane');if(p&&p.classList.contains('on'))tcRender();}});
+
+/* Add button from FAB — expose globally */
+window.tcOpenAddSheet=function(date){openTcSheet(date||today(),null);};
+
 })();

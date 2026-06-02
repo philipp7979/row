@@ -1,38 +1,61 @@
+﻿<body>
+
 <!-- ════════ OTHERS SUB-TABS ════════ -->
 <div class="ot-tabbar">
   <button class="ot-tab on" id="otTab-thoughts" onclick="otSwitch('thoughts')">Thoughts</button>
   <button class="ot-tab" id="otTab-bible" onclick="otSwitch('bible')">Bible</button>
+  <button class="ot-tab" id="otTab-grades" onclick="otSwitch('grades')">School</button>
 </div>
 
-<!-- ════════ BIBLE READING PANE ════════ -->
-<div class="page ot-pane" id="mainPage">
+<!-- ════════ THOUGHTS & PROJECTS ════════ -->
+<div class="page ot-pane on" id="thoughtsPane">
+  <div id="thoughtsRoot"></div>
+</div>
 
-  <!-- Backlog banner (shown if 3+ days missed) -->
-  <div id="backlogBanner" style="display:none;margin-top:16px"></div>
+<div class="page ot-pane" id="mainPage" style="padding-bottom:calc(80px + env(safe-area-inset-bottom))">
 
-  <!-- TODAY -->
-  <div class="section-title" style="margin-top:16px">Today's Reading</div>
-  <div class="card" id="todayCard"></div>
+  <!-- Backlog banner (shown only if 5+ days missed) -->
+  <div id="backlogBanner" style="display:none;margin-top:12px"></div>
 
-  <!-- STREAK + QUICK STATS -->
-  <div class="section-title">Streak</div>
-  <div class="card" id="streakCard"></div>
+  <!-- TODAY — always visible: reading + mark read + streak + dots -->
+  <div class="card" id="todayCard" style="margin-top:12px"></div>
 
-  <!-- CALENDAR -->
-  <div class="section-title">Last 30 Days</div>
-  <div class="card" id="calCard"></div>
+  <!-- Hidden cards still needed by old render fns — kept off-screen -->
+  <div id="streakCard" style="display:none"></div>
+  <div id="calCard" style="display:none"></div>
 
-  <!-- PROGRESS -->
-  <div class="section-title">Overall Progress</div>
-  <div class="card" id="progressCard"></div>
+  <!-- PROGRESS — collapsed by default -->
+  <div class="bx-section">
+    <button class="bx-toggle" onclick="bxToggle('bxProgress','progressCard')">
+      <span>📖 Progress</span>
+      <span class="bx-arrow" id="bxProgressArrow">▾</span>
+    </button>
+    <div class="bx-body" id="bxProgress">
+      <div class="card" id="progressCard" style="border-radius:0 0 var(--r2) var(--r2);border-top:none;margin-top:0"></div>
+    </div>
+  </div>
 
-  <!-- STATS -->
-  <div class="section-title">Stats</div>
-  <div class="card" id="statsCard"></div>
+  <!-- STATS — collapsed by default -->
+  <div class="bx-section">
+    <button class="bx-toggle" onclick="bxToggle('bxStats','statsCard')">
+      <span>📊 Stats</span>
+      <span class="bx-arrow" id="bxStatsArrow">▾</span>
+    </button>
+    <div class="bx-body" id="bxStats">
+      <div class="card" id="statsCard" style="border-radius:0 0 var(--r2) var(--r2);border-top:none;margin-top:0"></div>
+    </div>
+  </div>
 
-  <!-- PLANS MANAGEMENT -->
-  <div class="section-title">Plans</div>
-  <div class="card" id="plansCard"></div>
+  <!-- PLANS — collapsed by default -->
+  <div class="bx-section">
+    <button class="bx-toggle" onclick="bxToggle('bxPlans','plansCard')">
+      <span>📋 Manage Plans</span>
+      <span class="bx-arrow" id="bxPlansArrow">▾</span>
+    </button>
+    <div class="bx-body" id="bxPlans">
+      <div class="card" id="plansCard" style="border-radius:0 0 var(--r2) var(--r2);border-top:none;margin-top:0"></div>
+    </div>
+  </div>
 
 </div>
 
@@ -88,3 +111,10 @@
     <button class="modal-btn sec" onclick="closePlanModal()">Cancel</button>
   </div>
 </div>
+
+
+
+<!-- ════════════════ GRADES MODULE ════════════════ -->
+<div class="ot-pane" id="gradesPane" style="min-height:100vh;background:#0a0a0b"></div>
+
+<!-- ════════════════ THOUGHTS & PROJECTS MODULE ════════════════ -->

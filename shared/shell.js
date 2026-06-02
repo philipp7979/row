@@ -42,9 +42,9 @@ function switchTab(tab) {
   });
   curTab = tab;
   if (tab === 'others') {
-    // Bible + Thoughts share mod-others container
+    // Bible (includes Thoughts + Grades/School tabs inline)
     const el = document.getElementById('mod-others');
-    loadModule('bible', el).then(() => loadModule('thoughts', el));
+    loadModule('bible', el);
   } else if (tab === 'main') {
     // Main loads todo list; life-calendar CSS+JS boot after #cal-root exists
     loadModule('main').then(() => loadModule('life-calendar', document.getElementById('mod-main')));
