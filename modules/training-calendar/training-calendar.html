@@ -1,0 +1,187 @@
+﻿<div class="tr-app" id="trApp">
+  <div class="tr-nav">
+    <button class="tr-nav-btn" id="trPrev">‹</button>
+    <div class="tr-nav-title" id="trTitle">Week <span>2026</span></div>
+    <button class="tr-nav-btn" id="trNext">›</button>
+  </div>
+  <div class="tr-view-sw">
+    <button class="tr-view-btn active" data-view="week">Week</button>
+    <button class="tr-view-btn" data-view="month">Month</button>
+    <button class="tr-view-btn" data-view="day">Day</button>
+  </div>
+  <div class="tr-ai-bar">
+    <button class="tr-ai-btn" id="aiWeekBtn"><span>🤖</span> Plan my week</button>
+    <button class="tr-ai-btn" id="aiMonthBtn"><span>📅</span> Plan my month</button>
+  </div>
+  <div class="tr-groq-banner" id="groqBanner">Set GROQ_API_KEY in the script to enable AI planning.</div>
+
+  <!-- Week view -->
+  <div id="viewWeek" style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+    <div class="tr-week-summary" id="trWeekSummary"></div>
+    <div class="tr-week-hdr" id="trWeekHdr"></div>
+    <div class="tr-vol-row" id="trVolRow"></div>
+    <div class="tr-week-body"><div class="tr-week-cols" id="trWeekCols"></div></div>
+  </div>
+
+  <!-- Month view -->
+  <div id="viewMonth" style="display:none;flex:1;flex-direction:column;overflow:hidden">
+    <div class="tr-mo-weekdays">
+      <div class="tr-mo-wd">S</div><div class="tr-mo-wd">M</div><div class="tr-mo-wd">T</div>
+      <div class="tr-mo-wd">W</div><div class="tr-mo-wd">T</div><div class="tr-mo-wd">F</div><div class="tr-mo-wd">S</div>
+    </div>
+    <div class="tr-month"><div class="tr-month-grid" id="trMonthGrid"></div></div>
+  </div>
+
+  <!-- Day view -->
+  <div id="viewDay" style="display:none;flex:1;overflow:hidden">
+    <div class="tr-day-view" id="trDayView"></div>
+  </div>
+</div>
+
+<button class="tr-fab" id="trFab">+</button>
+
+<!-- Detail sheet -->
+<div class="tr-det-overlay" id="trDetOverlay"></div>
+<div class="tr-detail" id="trDetail"><div class="cal-handle"></div><div id="trDetContent"></div></div>
+
+<!-- AI loading -->
+<div class="tr-ai-loading" id="aiLoading">
+  <div class="tr-ai-spinner"></div>
+  <div class="tr-ai-loading-text" id="aiLoadingText">Groq is building your training plan…</div>
+</div>
+
+<!-- ===== Apple Calendar Style Add/Edit Modal ===== -->
+<div class="ac-overlay" id="acOverlay"></div>
+<div class="ac-modal" id="acModal">
+  <div class="ac-handle"></div>
+  <div class="ac-topbar">
+    <button class="ac-tb-btn" id="acClose">✕</button>
+    <span class="ac-tb-title">New Session</span>
+    <button class="ac-tb-btn ac-tb-ok" id="acDone">✓</button>
+  </div>
+  <div class="ac-seg-wrap">
+    <div class="ac-segment">
+      <button class="ac-seg-btn active">Session</button>
+      <button class="ac-seg-btn">Race</button>
+    </div>
+  </div>
+
+  <div class="ac-content">
+
+    <!-- Group 1: Name -->
+    <div class="ac-group">
+      <div class="ac-group-row">
+        <input class="ac-title-inp" id="acName" type="text" placeholder="Session Name" autocomplete="off">
+      </div>
+      <div class="ac-group-sep"></div>
+      <div class="ac-group-row">
+        <input class="ac-loc-inp" id="acLocation" type="text" placeholder="Location (optional)" autocomplete="off">
+      </div>
+    </div>
+
+    <!-- Group 2: Date & Time -->
+    <div class="ac-group">
+      <div class="ac-group-row">
+        <span class="ac-row-label">All Day</span>
+        <div class="ac-toggle" id="acAllDayToggle"></div>
+      </div>
+      <div class="ac-group-sep"></div>
+      <div class="ac-group-row">
+        <span class="ac-row-label">Start</span>
+        <div class="ac-dt-pills">
+          <button class="ac-date-pill" id="acStartDateBtn">01.01.2026</button>
+          <button class="ac-time-pill" id="acStartTimeBtn">07:00</button>
+        </div>
+      </div>
+      <div class="ac-inline-panel" id="acCalPanel">
+        <div class="ac-group-sep"></div>
+        <div class="ac-mini-nav">
+          <div class="ac-mini-month-title" id="acMiniMonthTitle">January 2026 <span class="chevron">›</span></div>
+          <div style="display:flex;gap:4px">
+            <button class="ac-mini-arrow" id="acMiniPrev">‹</button>
+            <button class="ac-mini-arrow" id="acMiniNext">›</button>
+          </div>
+        </div>
+        <div class="ac-mini-wdays">
+          <div class="ac-mini-wd">Mo</div><div class="ac-mini-wd">Tu</div>
+          <div class="ac-mini-wd">We</div><div class="ac-mini-wd">Th</div>
+          <div class="ac-mini-wd">Fr</div><div class="ac-mini-wd">Sa</div>
+          <div class="ac-mini-wd">Su</div>
+        </div>
+        <div class="ac-mini-grid" id="acMiniGrid"></div>
+      </div>
+      <div class="ac-inline-panel" id="acTimePanel">
+        <div class="ac-group-sep"></div>
+        <div class="ac-time-picker-wrap">
+          <div class="ac-pick-outer">
+            <div class="ac-pick-sel-bar"></div>
+            <div class="ac-pick-col" id="acHourCol"></div>
+            <div class="ac-pick-colon">:</div>
+            <div class="ac-pick-col" id="acMinCol"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Group 3: Discipline -->
+    <div class="ac-group">
+      <div class="ac-group-row ac-row-tap" id="acDiscRow">
+        <span class="ac-row-label">Discipline</span>
+        <div class="ac-row-right">
+          <div class="ac-disc-dot" id="acDiscDot" style="background:#6ee7b7"></div>
+          <span class="ac-row-value" id="acDiscVal">Run</span>
+          <span class="ac-row-chevron">›</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Group 4: Training Details -->
+    <div class="ac-group">
+      <div class="ac-group-row">
+        <span class="ac-row-label">Duration</span>
+        <input class="ac-number-inp" id="acDuration" type="number" placeholder="min" min="1" max="600" style="width:80px">
+      </div>
+      <div class="ac-group-sep"></div>
+      <div class="ac-group-row">
+        <span class="ac-row-label">Distance</span>
+        <input class="ac-number-inp" id="acDistance" type="number" placeholder="km" step="0.1" min="0" style="width:80px">
+      </div>
+      <div class="ac-group-sep"></div>
+      <div class="ac-group-row">
+        <span class="ac-row-label">Intensity</span>
+        <select class="ac-sel-inp" id="acIntensity">
+          <option value="">—</option>
+          <option>Easy</option><option>Tempo</option>
+          <option>Interval</option><option>Race Pace</option>
+        </select>
+      </div>
+      <div class="ac-group-sep"></div>
+      <div class="ac-group-row">
+        <span class="ac-row-label">HR Zone</span>
+        <select class="ac-sel-inp" id="acHrZone">
+          <option value="">—</option>
+          <option value="Z1">Z1 — Recovery</option>
+          <option value="Z2">Z2 — Aerobic</option>
+          <option value="Z3">Z3 — Tempo</option>
+          <option value="Z4">Z4 — Threshold</option>
+          <option value="Z5">Z5 — VO2Max</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Group 5: Notes -->
+    <div class="ac-group">
+      <div class="ac-group-row">
+        <textarea class="ac-notes-inp" id="acNotes" placeholder="Notes / planned exercises…" rows="3"></textarea>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Discipline picker sheet -->
+<div class="ac-opt-sheet" id="acDiscSheet">
+  <div class="ac-opt-title">Select Discipline</div>
+  <div class="ac-opt-group" id="acDiscOptions"></div>
+  <button class="ac-opt-cancel" id="acDiscCancel">Cancel</button>
+</div>

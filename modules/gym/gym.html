@@ -1,0 +1,593 @@
+﻿<div class="po-shell">
+  <button class="po-day-pill" type="button" id="dayPill" title="Tap to switch the day filter to today's split">
+    <span class="po-day-date" id="dayPillDate">—</span>
+    <span class="po-day-sep">·</span>
+    <span class="po-day-split" id="dayPillSplit">—</span>
+  </button>
+
+  <!-- ════════ START WORKOUT ════════ -->
+  <button id="lwStartBtn" type="button" onclick="lwOpenStart()">
+    <span class="lw-start-ico">▶</span>
+    <span>Start Workout</span>
+  </button>
+
+  <!-- ════════ COACH+ FEATURE PANEL ════════ -->
+  <div id="gxRoot"></div>
+
+  <!-- ════════ ENDURANCE MODULE ════════ -->
+  <div id="enRoot"></div>
+
+  <!-- ════════ STRAVA ════════ -->
+  <div id="stravaRoot"></div>
+
+  <!-- WEIGHT + PROGRESS PHOTOS -->
+  <div class="wt-section">
+    <div class="wt-divider"><span>WEIGHT</span></div>
+
+    <div class="wt-card">
+      <div class="wt-row">
+        <span class="wt-num" id="wtNum">—</span>
+        <span class="wt-unit" id="wtUnit">kg</span>
+      </div>
+      <div class="wt-delta hidden" id="wtDelta"></div>
+      <div class="wt-streak hidden" id="wtStreak"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.4-.5-2-1-3-1.1-2.1-.2-4 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.2.4-2.3 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg><span id="wtStreakNum">0 day streak</span></div>
+
+      <div class="wt-empty" id="wtEmpty">Log your first weight to start tracking.</div>
+
+      <div class="wt-chart-wrap hidden" id="wtChartWrap">
+        <div class="wt-chart-yaxis">
+          <span id="wtYAxisMax">—</span>
+          <span id="wtYAxisMin">—</span>
+        </div>
+        <svg class="wt-chart" viewBox="0 0 320 130" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="wtFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#6ee7b7" stop-opacity="0.25"/>
+              <stop offset="100%" stop-color="#6ee7b7" stop-opacity="0"/>
+            </linearGradient>
+            <filter id="wtGlow"><feGaussianBlur stdDeviation="1.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          </defs>
+          <line class="wt-grid" x1="0" y1="20" x2="320" y2="20"></line>
+          <line class="wt-grid" x1="0" y1="65" x2="320" y2="65"></line>
+          <line class="wt-grid" x1="0" y1="110" x2="320" y2="110"></line>
+          <g id="wtChartContent"></g>
+        </svg>
+        <div class="wt-meta" id="wtMeta">0 entries</div>
+      </div>
+
+      <div class="wt-legend hidden" id="wtLegend">
+        <span class="wt-legend-item"><span class="wt-legend-dot"></span>DAILY</span>
+        <span class="wt-legend-item"><span class="wt-legend-dot wt-legend-dot-avg"></span>7-DAY AVG</span>
+      </div>
+
+      <!-- Composition estimate — uses strength trend + weight trend to guess
+           how much of recent weight change was muscle vs fat. -->
+      <div class="wt-comp hidden" id="wtComp">
+        <div class="wt-comp-h">
+          <span class="wt-comp-label">Composition estimate</span>
+          <span class="wt-comp-window" id="wtCompWindow">last 30d</span>
+        </div>
+        <div class="wt-comp-headline" id="wtCompHeadline">—</div>
+        <div class="wt-comp-bars" id="wtCompBars"></div>
+        <div class="wt-comp-foot" id="wtCompFoot">—</div>
+      </div>
+
+      <div class="wt-locked hidden" id="wtLocked">
+        <div class="wt-locked-info">
+          <span class="wt-locked-check"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span>
+          <div>
+            <div class="wt-locked-label">LOGGED TODAY</div>
+            <div class="wt-locked-value" id="wtLockedValue">— kg</div>
+          </div>
+        </div>
+        <button class="wt-edit-btn" id="wtEditBtn">Edit</button>
+      </div>
+
+      <div class="wt-input-row" id="wtInputRow">
+        <div class="wt-input-top">
+          <input type="number" step="0.1" class="wt-input" id="wtInput" placeholder="Enter weight" inputmode="decimal" aria-label="Today's weight">
+          <span class="wt-unit-static" id="wtUnitStatic">kg</span>
+          <button class="wt-save-btn" id="wtSaveBtn">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <button class="wt-progress-link" id="wtProgressLink" type="button" aria-label="Open progress photos">
+      <div>
+        <div class="wt-progress-label">PROGRESS PHOTOS</div>
+        <div class="wt-progress-count" id="wtProgressCount">0 photos</div>
+      </div>
+      <span class="wt-progress-arrow">→</span>
+    </button>
+  </div>
+
+  <!-- Progress photos overlay -->
+  <div class="wt-overlay" id="wtOverlay" aria-hidden="true">
+    <div class="wt-overlay-inner">
+      <div class="wt-overlay-h">
+        <button class="wt-back" id="wtBack" aria-label="Back">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </button>
+        <div class="wt-overlay-title">Progress</div>
+      </div>
+      <div class="wt-overlay-actions">
+        <button class="wt-overlay-action wt-overlay-primary" id="wtTakePhotoBtn">Take Photo</button>
+        <button class="wt-overlay-action wt-overlay-secondary" id="wtFromLibraryBtn">From Library</button>
+      </div>
+      <input type="file" id="wtFileCamera" accept="image/*" capture="environment" style="display:none">
+      <input type="file" id="wtFileLibrary" accept="image/*" style="display:none">
+      <div class="wt-photo-grid" id="wtPhotoGrid">
+        <div class="wt-photo-empty">No photos yet · tap Take Photo to start</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Camera modal -->
+  <div class="wt-cam" id="wtCam" aria-hidden="true">
+    <div class="wt-cam-stage">
+      <video class="wt-cam-video" id="wtCamVideo" autoplay playsinline muted></video>
+      <canvas id="wtCamCanvas" style="display:none"></canvas>
+    </div>
+    <div class="wt-cam-actions">
+      <button class="wt-cam-btn" id="wtCamCancel">Cancel</button>
+      <button class="wt-cam-shutter" id="wtCamShutter" aria-label="Capture"></button>
+      <button class="wt-cam-btn" id="wtCamFlip" aria-label="Flip camera">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Photo viewer — has two modes: single (one photo) and compare (two photos side-by-side) -->
+  <div class="wt-viewer" id="wtViewer" data-mode="single" aria-hidden="true">
+
+    <!-- SINGLE MODE -->
+    <div class="wt-viewer-single">
+      <div class="wt-viewer-stage">
+        <img id="wtViewerImg" alt="" style="max-width:100%; max-height:100%; object-fit:contain;">
+      </div>
+      <div class="wt-viewer-meta">
+        <div class="wt-viewer-date" id="wtViewerDate">—</div>
+        <div class="wt-viewer-weight" id="wtViewerWeight">—</div>
+      </div>
+      <div class="wt-viewer-actions">
+        <button class="wt-viewer-btn wt-viewer-compare" id="wtViewerCompare">Compare</button>
+        <button class="wt-viewer-btn wt-viewer-close" id="wtViewerClose">Close</button>
+        <button class="wt-viewer-btn wt-viewer-delete" id="wtViewerDelete">Delete</button>
+      </div>
+    </div>
+
+    <!-- COMPARE MODE -->
+    <div class="wt-viewer-compare-view">
+      <div class="wt-compare-stage">
+        <div class="wt-compare-side" id="wtCmpSideA">
+          <img id="wtCmpImgA" alt="">
+          <div class="wt-compare-meta-line" id="wtCmpMetaA">—</div>
+        </div>
+        <button type="button" class="wt-compare-side wt-compare-other" id="wtCmpSideB" title="Tap to compare to a different photo" aria-label="Compare to a different photo">
+          <img id="wtCmpImgB" alt="">
+          <div class="wt-compare-meta-line" id="wtCmpMetaB">—</div>
+        </button>
+      </div>
+      <div class="wt-compare-headline" id="wtCompareHeadline">—</div>
+      <div class="wt-viewer-actions">
+        <button class="wt-viewer-btn wt-viewer-back" id="wtCompareBack">← Back</button>
+        <button class="wt-viewer-btn wt-viewer-close" id="wtCompareClose">Close</button>
+        <button class="wt-viewer-btn wt-viewer-delete" id="wtCompareDelete">Delete</button>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="po-header">
+    <h1 class="po-title" id="appTitle">Progressive Overload Coach</h1>
+    <button class="po-icon-btn" id="settingsBtn" title="Settings" aria-label="Settings">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
+  </div>
+
+  <div class="card">
+    <!-- Filters -->
+    <div class="po-filters">
+      <div class="po-seg-row">
+        <span class="po-seg-label">Gym</span>
+        <div class="po-seg-control" id="gymSeg"></div>
+      </div>
+      <div class="po-seg-row">
+        <span class="po-seg-label">Day</span>
+        <div class="po-seg-control" id="daySeg"></div>
+      </div>
+    </div>
+
+    <!-- Exercise -->
+    <div class="po-sub-section">
+      <div class="po-sub-title">Exercise</div>
+      <div class="po-exercise-bar">
+        <select class="po-ex-select" id="exSelect"></select>
+        <button class="po-btn-icon" id="addExBtn" title="Add exercise" aria-label="Add">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+        <button class="po-btn-icon" id="editExBtn" title="Edit / delete" aria-label="Edit">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
+        </button>
+      </div>
+      <div class="po-no-ex" id="noExMsg" style="display:none">No exercises here yet. Tap <strong>+</strong> to add one.</div>
+    </div>
+
+    <!-- Log a set -->
+    <div class="po-sub-section">
+      <div class="po-sub-title">Log today's top set</div>
+      <div class="po-bw-banner" id="bwBanner">Bodyweight — log reps only</div>
+      <div class="po-last-set" id="lastSet">
+        <span class="po-last-label">Last time</span>
+        <span class="po-last-value" id="lastSetValue"></span>
+        <span class="po-last-meta" id="lastSetMeta"></span>
+      </div>
+      <div class="po-log-grid" id="logGrid">
+        <div class="po-field" id="weightField">
+          <label id="weightLabel">Weight (kg)</label>
+          <div class="po-weight-row">
+            <button class="po-w-btn" id="weightDownBtn" type="button">−</button>
+            <input type="number" id="weightInput" step="0.5" inputmode="decimal" placeholder="0">
+            <button class="po-w-btn" id="weightUpBtn" type="button">+</button>
+          </div>
+        </div>
+        <div class="po-field">
+          <label>Reps</label>
+          <div class="po-reps-row" id="repsRow" data-value="8">
+            <button type="button" class="po-reps-pill" data-v="4">4</button>
+            <button type="button" class="po-reps-pill" data-v="5">5</button>
+            <button type="button" class="po-reps-pill" data-v="6">6</button>
+            <button type="button" class="po-reps-pill" data-v="7">7</button>
+            <button type="button" class="po-reps-pill active" data-v="8">8</button>
+            <button type="button" class="po-reps-pill" data-v="9">9</button>
+            <button type="button" class="po-reps-pill" data-v="10">10</button>
+            <button type="button" class="po-reps-pill" data-v="11">11</button>
+            <button type="button" class="po-reps-pill" data-v="12">12</button>
+          </div>
+        </div>
+      </div>
+      <!-- Warm-up + RPE row -->
+      <div style="display:flex;align-items:center;gap:12px;margin:10px 0 4px;flex-wrap:wrap">
+        <label style="display:flex;align-items:center;gap:7px;font-size:13px;color:rgba(255,255,255,.7);cursor:pointer">
+          <input type="checkbox" id="gxWarmup" style="width:18px;height:18px;accent-color:#fbbf24">
+          Warm-up set
+        </label>
+        <div style="display:flex;align-items:center;gap:6px;margin-left:auto">
+          <span style="font-size:13px;color:rgba(255,255,255,.5)">RPE</span>
+          <select id="gxRpe" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:5px 8px;color:#fff;font-family:inherit;font-size:13px">
+            <option value="">—</option>
+            <option>6</option><option>6.5</option><option>7</option><option>7.5</option>
+            <option>8</option><option>8.5</option><option>9</option><option>9.5</option><option>10</option>
+          </select>
+        </div>
+      </div>
+      <button class="po-btn-primary" id="logBtn">Log set</button>
+    </div>
+
+    <!-- Prescription -->
+    <div class="po-sub-section">
+      <div class="po-sub-title">Next session</div>
+      <div id="rxWrap"></div>
+    </div>
+
+    <!-- Stats -->
+    <div class="po-sub-section">
+      <div class="po-sub-title">Stats</div>
+      <div class="po-stats-row">
+        <div class="po-stat-box">
+          <div class="po-stat-label" id="oneRmLabel">Est. 1RM</div>
+          <div class="po-stat-val" id="oneRm">—<span class="po-unit" id="oneRmUnit">kg</span></div>
+        </div>
+        <div class="po-stat-box">
+          <div class="po-stat-label">Best set</div>
+          <div class="po-stat-val" id="bestSet">—</div>
+        </div>
+        <div class="po-stat-box">
+          <div class="po-stat-label">Sessions</div>
+          <div class="po-stat-val" id="sessionCount">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Trend -->
+    <div class="po-sub-section">
+      <div class="po-sub-title">Trend (last 10 sessions)</div>
+      <div class="po-spark-wrap">
+        <svg class="po-spark-svg" id="sparkline" viewBox="0 0 300 60" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="sparkGrad" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stop-color="rgba(255,255,255,0.18)"/>
+              <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <div class="po-spark-empty" id="sparkEmpty">Need 2+ sessions for trend</div>
+      </div>
+    </div>
+
+    <!-- History -->
+    <div class="po-sub-section">
+      <div class="po-sub-title">History</div>
+      <div id="historyCard">
+        <div class="po-empty">No logs yet.</div>
+      </div>
+    </div>
+
+    <!-- Today's Workout — every set logged today, grouped by exercise.
+         "Mark done" stamps the day so the past-workouts list shows it
+         as a completed session. The volume here also feeds the
+         composition estimate at the top of the page. -->
+    <div class="po-sub-section">
+      <div class="po-sub-title">Today's workout</div>
+      <div class="po-tw" id="poTw">
+        <div class="po-tw-head">
+          <div>
+            <div class="po-tw-eyebrow" id="poTwDateLabel">TODAY</div>
+            <div class="po-tw-summary">
+              <span class="po-tw-summary-num" id="poTwSetCount">0</span>
+              <span class="po-tw-summary-label">sets</span>
+              <span class="po-tw-summary-sep">·</span>
+              <span class="po-tw-summary-vol" id="poTwTotalVol">0 kg lifted</span>
+            </div>
+          </div>
+          <button class="po-tw-done-btn" id="poTwDoneBtn" type="button">Mark workout done</button>
+        </div>
+        <ul class="po-tw-list" id="poTwList"></ul>
+        <div class="po-tw-empty" id="poTwEmpty">No sets logged today — log one above and it'll appear here.</div>
+      </div>
+
+      <button type="button" class="po-tw-past-toggle" id="poTwPastToggle" aria-expanded="false">
+        <span>Past workouts <span class="po-tw-past-count" id="poTwPastCount">0</span></span>
+        <span class="po-tw-past-arrow" id="poTwPastArrow">▾</span>
+      </button>
+      <div class="po-tw-past-body" id="poTwPastBody" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Add / Edit Exercise Modal -->
+<div class="po-modal-bg" id="exModalBg">
+  <div class="po-modal">
+    <h3 id="exModalTitle">Add exercise</h3>
+    <div class="po-field">
+      <label style="font-size:11px;color:var(--text-3);font-weight:700;letter-spacing:0.04em;text-transform:uppercase">Name</label>
+      <input type="text" id="exName" placeholder="e.g. Incline DB press">
+    </div>
+    <div class="po-field">
+      <label style="font-size:11px;color:var(--text-3);font-weight:700;letter-spacing:0.04em;text-transform:uppercase">Gym</label>
+      <div class="po-modal-seg" id="exGymSeg"></div>
+    </div>
+    <div class="po-field">
+      <label style="font-size:11px;color:var(--text-3);font-weight:700;letter-spacing:0.04em;text-transform:uppercase">Day</label>
+      <div class="po-modal-seg" id="exDaySeg"></div>
+    </div>
+    <label class="po-bw-toggle">
+      <input type="checkbox" id="exBw">
+      Bodyweight (track reps only, no weight)
+    </label>
+    <div class="po-field" id="exStartWeightField">
+      <label style="font-size:11px;color:var(--text-3);font-weight:700;letter-spacing:0.04em;text-transform:uppercase">Starting weight</label>
+      <input type="number" id="exStartWeight" step="0.5" placeholder="20" value="20">
+    </div>
+    <div class="po-log-grid" id="exNumFields">
+      <div class="po-field">
+        <label style="font-size:11px;color:var(--text-3);font-weight:700;letter-spacing:0.04em;text-transform:uppercase">Reps min</label>
+        <input type="number" id="exRepMin" value="6">
+      </div>
+      <div class="po-field">
+        <label style="font-size:11px;color:var(--text-3);font-weight:700;letter-spacing:0.04em;text-transform:uppercase">Reps max</label>
+        <input type="number" id="exRepMax" value="8">
+      </div>
+    </div>
+    <div class="po-field" id="exStepField">
+      <label style="font-size:11px;color:var(--text-3);font-weight:700;letter-spacing:0.04em;text-transform:uppercase">Increment</label>
+      <input type="number" id="exStep" step="0.5" value="2.5">
+    </div>
+    <div class="po-modal-actions">
+      <button class="po-btn-secondary" id="exModalCancel">Cancel</button>
+      <button class="po-btn-primary" id="exModalSave">Save</button>
+    </div>
+    <span class="po-delete-link" id="exDelete" style="display:none">Delete this exercise</span>
+  </div>
+</div>
+
+<!-- Rotation editor modal -->
+<div class="po-modal-bg" id="rotModalBg">
+  <div class="po-modal">
+    <h3>Edit split rotation</h3>
+    <p style="font-size:12px;color:var(--text-3);margin:-6px 0 14px;line-height:1.45;">
+      Days cycle in this order, repeating forever. Today is whichever entry is highlighted.
+      Use <strong>Today is →</strong> to jump the cycle to a different starting day.
+    </p>
+    <div class="rot-list" id="rotList"></div>
+    <button class="po-add-row-btn" id="rotAddBtn">+ Add day</button>
+    <div class="po-modal-actions">
+      <button class="po-btn-secondary" id="rotCancel">Cancel</button>
+      <button class="po-btn-primary" id="rotSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="po-modal-bg" id="setModalBg">
+  <div class="po-modal" style="max-width: 480px;">
+    <h3>Settings</h3>
+
+    <div class="po-set-section">
+      <h4>Units</h4>
+      <div class="po-modal-seg" id="setUnitsSeg">
+        <button data-u="kg">kg</button>
+        <button data-u="lb">lb</button>
+      </div>
+    </div>
+
+    <div class="po-set-section">
+      <h4>Gyms</h4>
+      <div class="po-set-list" id="setGyms"></div>
+      <button class="po-add-row-btn" id="setAddGym">+ Add gym</button>
+    </div>
+
+    <div class="po-set-section">
+      <h4>Days</h4>
+      <div class="po-set-list" id="setDays"></div>
+      <button class="po-add-row-btn" id="setAddDay">+ Add day</button>
+    </div>
+
+    <div class="po-set-section">
+      <h4>Data</h4>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="po-btn-secondary" id="setExport">Export JSON</button>
+        <button class="po-btn-secondary" id="setImport">Import JSON</button>
+        <button class="po-btn-secondary" id="setReset" style="color:var(--bad);border-color:rgba(255,138,138,0.3)">Reset all</button>
+      </div>
+      <input type="file" id="setImportFile" accept=".json" style="display:none">
+    </div>
+
+    <div class="po-modal-actions">
+      <button class="po-btn-primary" id="setModalClose">Done</button>
+    </div>
+  </div>
+</div>
+
+
+<div id="gxPrToast"><span class="star"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg></span><span id="gxPrText">New PR!</span></div>
+
+<div id="gxRestPill">
+  <span class="gx-rest-time" id="gxRestTime">1:30</span>
+  <button class="gx-rest-add" onclick="gxRestAdd(15)">+15</button>
+  <button class="gx-rest-x" onclick="gxRestStop()"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+</div>
+
+
+<!-- Plate calculator modal -->
+<div class="gx-modal" id="gxPlateModal">
+  <div class="gx-modal-scrim" onclick="gxCloseModal('gxPlateModal')"></div>
+  <div class="gx-modal-panel">
+    <div class="gx-modal-handle"></div>
+    <div class="gx-modal-title">Plate Calculator</div>
+    <div class="gx-field"><label>Target weight</label><input type="number" id="gxPlateTarget" placeholder="100" oninput="gxCalcPlates()"></div>
+    <div class="gx-field"><label>Bar weight</label><input type="number" id="gxPlateBar" value="20" oninput="gxCalcPlates()"></div>
+    <div class="gx-plate-bar" id="gxPlateVisual"><div class="gx-plate-empty">Enter a target weight</div></div>
+    <div class="gx-plate-list" id="gxPlateList"></div>
+    <div class="gx-field" style="margin-top:14px"><label>Available plates (each side)</label>
+      <div class="gx-chips" id="gxPlateChips"></div>
+    </div>
+    <button class="gx-mbtn sec" onclick="gxCloseModal('gxPlateModal')">Close</button>
+  </div>
+</div>
+
+<!-- Rest timer setup modal -->
+<div class="gx-modal" id="gxRestModal">
+  <div class="gx-modal-scrim" onclick="gxCloseModal('gxRestModal')"></div>
+  <div class="gx-modal-panel">
+    <div class="gx-modal-handle"></div>
+    <div class="gx-modal-title">Rest Timer</div>
+    <div class="gx-chips" style="margin-bottom:16px">
+      <div class="gx-chip" onclick="gxStartRest(30)">30s</div>
+      <div class="gx-chip" onclick="gxStartRest(60)">60s</div>
+      <div class="gx-chip" onclick="gxStartRest(90)">90s</div>
+      <div class="gx-chip" onclick="gxStartRest(120)">120s</div>
+    </div>
+    <button class="gx-mbtn sec" onclick="gxCloseModal('gxRestModal')">Cancel</button>
+  </div>
+</div>
+
+<!-- Measurement add modal -->
+<div class="gx-modal" id="gxMeasModal">
+  <div class="gx-modal-scrim" onclick="gxCloseModal('gxMeasModal')"></div>
+  <div class="gx-modal-panel">
+    <div class="gx-modal-handle"></div>
+    <div class="gx-modal-title">Log Measurements (cm)</div>
+    <div class="gx-field"><label>Chest</label><input type="number" id="gxMeasChest" step="0.1"></div>
+    <div class="gx-field"><label>Arms</label><input type="number" id="gxMeasArms" step="0.1"></div>
+    <div class="gx-field"><label>Waist</label><input type="number" id="gxMeasWaist" step="0.1"></div>
+    <div class="gx-field"><label>Legs</label><input type="number" id="gxMeasLegs" step="0.1"></div>
+    <div class="gx-field"><label>Shoulders</label><input type="number" id="gxMeasShoulders" step="0.1"></div>
+    <button class="gx-mbtn pri" onclick="gxSaveMeas()">Save</button>
+    <button class="gx-mbtn sec" onclick="gxCloseModal('gxMeasModal')">Cancel</button>
+  </div>
+</div>
+
+<!-- Mesocycle modal -->
+<div class="gx-modal" id="gxMesoModal">
+  <div class="gx-modal-scrim" onclick="gxCloseModal('gxMesoModal')"></div>
+  <div class="gx-modal-panel">
+    <div class="gx-modal-handle"></div>
+    <div class="gx-modal-title">Plan Mesocycle</div>
+    <div class="gx-field"><label>Goal</label>
+      <select id="gxMesoGoal"><option value="hypertrophy">Hypertrophy</option><option value="strength">Strength</option><option value="peaking">Peaking</option></select>
+    </div>
+    <div class="gx-field"><label>Length (weeks)</label>
+      <select id="gxMesoWeeks"><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option></select>
+    </div>
+    <div class="gx-field"><label>Start date</label><input type="date" id="gxMesoStart"></div>
+    <button class="gx-mbtn pri" onclick="gxSaveMeso()">Start Block</button>
+    <button class="gx-mbtn sec" onclick="gxCloseModal('gxMesoModal')">Cancel</button>
+  </div>
+</div>
+
+
+<!-- Start modal -->
+<div class="gx-modal" id="lwStartModal">
+  <div class="gx-modal-scrim" onclick="gxCloseModal('lwStartModal')"></div>
+  <div class="gx-modal-panel">
+    <div class="gx-modal-handle"></div>
+    <div class="gx-modal-title">Start Workout</div>
+    <div id="lwStartOpts"></div>
+    <button class="gx-mbtn sec" onclick="gxCloseModal('lwStartModal')">Cancel</button>
+  </div>
+</div>
+
+<!-- Full-screen live workout -->
+<div id="lwScreen">
+  <div class="lw-top">
+    <div>
+      <div class="lw-stopwatch" id="lwTime">0:00</div>
+      <div class="lw-wname" id="lwName">Workout</div>
+    </div>
+    <button class="lw-top-btn" onclick="lwOpenJump()" title="Exercise list"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+  </div>
+  <div class="lw-vol">Volume: <b id="lwVol">0</b> <span id="lwVolUnit">kg</span> · <span id="lwSetTotal">0</span> sets</div>
+
+  <div class="lw-body" id="lwBody"></div>
+
+  <div class="lw-bottom">
+    <div class="lw-prog-bar"><div class="lw-prog-fill" id="lwProgFill" style="width:0%"></div></div>
+    <div class="lw-prog-text"><span id="lwProgText">0 / 0 exercises</span><span id="lwProgPct">0%</span></div>
+    <div class="lw-next" id="lwNext"></div>
+    <button class="lw-finish-btn" onclick="lwConfirmFinish()">Finish Workout</button>
+  </div>
+
+  <!-- Rest overlay -->
+  <div id="lwRest">
+    <div class="lw-rest-label">Rest</div>
+    <div class="lw-rest-circle">
+      <svg viewBox="0 0 240 240">
+        <circle class="lw-rest-track" cx="120" cy="120" r="110"/>
+        <circle class="lw-rest-prog" id="lwRestProg" cx="120" cy="120" r="110" stroke-dasharray="691.15" stroke-dashoffset="0"/>
+      </svg>
+      <div class="lw-rest-num" id="lwRestNum">1:30</div>
+    </div>
+    <div class="lw-rest-next" id="lwRestNext"></div>
+    <div class="lw-rest-btns">
+      <button class="lw-rest-btn lw-rest-add" onclick="lwRestAdd(15)">+15s</button>
+      <button class="lw-rest-btn lw-rest-skip" onclick="lwRestSkip()">Skip <svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></button>
+    </div>
+    <div class="lw-rest-durs" id="lwRestDurs"></div>
+  </div>
+
+  <!-- Jump list -->
+  <div id="lwJump">
+    <div class="lw-top" style="border:none;padding:0 0 10px">
+      <div class="lw-stopwatch" style="font-size:18px">Exercises</div>
+      <button class="lw-top-btn" onclick="document.getElementById('lwJump').classList.remove('show')"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+    </div>
+    <div id="lwJumpList" style="overflow-y:auto"></div>
+  </div>
+
+  <!-- PR flash -->
+  <div id="lwPrFlash"><span class="star"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg></span><span id="lwPrText">PR!</span></div>
+
+  <!-- Summary -->
+  <div id="lwSummary"></div>
+</div>

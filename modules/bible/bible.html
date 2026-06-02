@@ -1,0 +1,90 @@
+<!-- ════════ OTHERS SUB-TABS ════════ -->
+<div class="ot-tabbar">
+  <button class="ot-tab on" id="otTab-thoughts" onclick="otSwitch('thoughts')">Thoughts</button>
+  <button class="ot-tab" id="otTab-bible" onclick="otSwitch('bible')">Bible</button>
+</div>
+
+<!-- ════════ BIBLE READING PANE ════════ -->
+<div class="page ot-pane" id="mainPage">
+
+  <!-- Backlog banner (shown if 3+ days missed) -->
+  <div id="backlogBanner" style="display:none;margin-top:16px"></div>
+
+  <!-- TODAY -->
+  <div class="section-title" style="margin-top:16px">Today's Reading</div>
+  <div class="card" id="todayCard"></div>
+
+  <!-- STREAK + QUICK STATS -->
+  <div class="section-title">Streak</div>
+  <div class="card" id="streakCard"></div>
+
+  <!-- CALENDAR -->
+  <div class="section-title">Last 30 Days</div>
+  <div class="card" id="calCard"></div>
+
+  <!-- PROGRESS -->
+  <div class="section-title">Overall Progress</div>
+  <div class="card" id="progressCard"></div>
+
+  <!-- STATS -->
+  <div class="section-title">Stats</div>
+  <div class="card" id="statsCard"></div>
+
+  <!-- PLANS MANAGEMENT -->
+  <div class="section-title">Plans</div>
+  <div class="card" id="plansCard"></div>
+
+</div>
+
+<!-- PLAN SETUP MODAL -->
+<div id="planModal">
+  <div class="modal-scrim" onclick="closePlanModal()"></div>
+  <div class="modal-panel">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modalTitle">Choose a Reading Plan</div>
+    <div class="modal-sub">You can run multiple plans simultaneously</div>
+
+    <div id="presetOptions">
+      <div class="plan-option" id="opt-bible_1_year" onclick="selectPlan('bible_1_year')">
+        <div><div class="plan-option-name">Bible in 1 Year</div><div class="plan-option-desc">~3 chapters/day · 365 days · All 1,189 chapters</div></div>
+        <div class="plan-check" id="chk-bible_1_year"></div>
+      </div>
+      <div class="plan-option" id="opt-nt_90" onclick="selectPlan('nt_90')">
+        <div><div class="plan-option-name">New Testament in 90 Days</div><div class="plan-option-desc">~3 chapters/day · 90 days · 260 chapters</div></div>
+        <div class="plan-check" id="chk-nt_90"></div>
+      </div>
+      <div class="plan-option" id="opt-psalms_proverbs" onclick="selectPlan('psalms_proverbs')">
+        <div><div class="plan-option-name">Psalms &amp; Proverbs</div><div class="plan-option-desc">Monthly cycle · 6 chapters/day · Wisdom literature</div></div>
+        <div class="plan-check" id="chk-psalms_proverbs"></div>
+      </div>
+      <div class="plan-option" id="opt-custom" onclick="selectPlan('custom')">
+        <div><div class="plan-option-name">Custom Plan</div><div class="plan-option-desc">Choose your own books and chapters</div></div>
+        <div class="plan-check" id="chk-custom"></div>
+      </div>
+    </div>
+
+    <div class="custom-fields" id="customFields">
+      <div class="field-label">Daily Reading</div>
+      <div class="field-row">
+        <div>
+          <div style="font-size:12px;color:var(--t3);margin-bottom:4px">Book</div>
+          <select class="field-select" id="customBook"></select>
+        </div>
+        <div>
+          <div style="font-size:12px;color:var(--t3);margin-bottom:4px">Chapters per day</div>
+          <input type="number" class="field-input" id="customChapters" value="3" min="1" max="10">
+        </div>
+      </div>
+      <div class="field-label" style="margin-top:4px">Plan name</div>
+      <input type="text" class="field-input" id="customName" placeholder="e.g. Old Testament" style="margin-bottom:10px">
+    </div>
+
+    <div style="margin-top:8px">
+      <div style="font-size:13px;color:var(--t3);margin-bottom:6px">Start date</div>
+      <input type="date" class="field-input" id="planStartDate" style="width:auto">
+    </div>
+
+    <button class="modal-btn pri" id="addPlanBtn" onclick="addPlan()">Add Plan</button>
+    <button class="modal-btn sec" onclick="closePlanModal()">Cancel</button>
+  </div>
+</div>

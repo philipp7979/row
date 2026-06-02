@@ -1,0 +1,64 @@
+﻿
+<!-- log session modal -->
+<div class="gx-modal" id="enLogModal">
+  <div class="gx-modal-scrim" onclick="gxCloseModal('enLogModal')"></div>
+  <div class="gx-modal-panel">
+    <div class="gx-modal-handle"></div>
+    <div class="gx-modal-title" id="enLogTitle">Log Session</div>
+    <div id="enLogFields"></div>
+    <button class="gx-mbtn pri" onclick="enSaveSession()">Save Session</button>
+    <button class="gx-mbtn sec" onclick="gxCloseModal('enLogModal')">Cancel</button>
+  </div>
+</div>
+
+<!-- metric input modal -->
+<div class="gx-modal" id="enMetricModal">
+  <div class="gx-modal-scrim" onclick="gxCloseModal('enMetricModal')"></div>
+  <div class="gx-modal-panel">
+    <div class="gx-modal-handle"></div>
+    <div class="gx-modal-title" id="enMetricTitle">Log Metric</div>
+    <div class="gx-field"><label id="enMetricLabel">Value</label><input type="number" id="enMetricInput" step="0.1"></div>
+    <button class="gx-mbtn pri" onclick="enSaveMetric()">Save</button>
+    <button class="gx-mbtn sec" onclick="gxCloseModal('enMetricModal')">Cancel</button>
+  </div>
+</div>
+
+<!-- race modal -->
+<div class="gx-modal" id="enRaceModal">
+  <div class="gx-modal-scrim" onclick="gxCloseModal('enRaceModal')"></div>
+  <div class="gx-modal-panel">
+    <div class="gx-modal-handle"></div>
+    <div class="gx-modal-title">Log Triathlon Race</div>
+    <div class="gx-field"><label>Race type</label>
+      <select id="enRaceType"><option>Sprint</option><option>Olympic</option><option>70.3</option><option>Ironman</option></select>
+    </div>
+    <div class="gx-field"><label>Date</label><input type="date" id="enRaceDate"></div>
+    <div class="en-stations">
+      <div class="en-station"><label>Swim (mm:ss)</label><input id="enRaceSwim" placeholder="32:00"></div>
+      <div class="en-station"><label>T1 (mm:ss)</label><input id="enRaceT1" placeholder="2:30"></div>
+      <div class="en-station"><label>Bike (h:mm:ss)</label><input id="enRaceBike" placeholder="1:10:00"></div>
+      <div class="en-station"><label>T2 (mm:ss)</label><input id="enRaceT2" placeholder="1:45"></div>
+      <div class="en-station"><label>Run (h:mm:ss)</label><input id="enRaceRun" placeholder="48:00"></div>
+      <div class="en-station"><label>Total (h:mm:ss)</label><input id="enRaceTotal" placeholder="2:34:00"></div>
+    </div>
+    <button class="gx-mbtn pri" style="margin-top:12px" onclick="enSaveRace()">Save Race</button>
+    <button class="gx-mbtn sec" onclick="gxCloseModal('enRaceModal')">Cancel</button>
+  </div>
+</div>
+
+<!-- targets modal -->
+<div class="gx-modal" id="enTargetModal">
+  <div class="gx-modal-scrim" onclick="gxCloseModal('enTargetModal')"></div>
+  <div class="gx-modal-panel">
+    <div class="gx-modal-handle"></div>
+    <div class="gx-modal-title">Weekly Targets</div>
+    <div class="gx-field"><label>Swim (km)</label><input type="number" id="enTgtSwim" step="0.5"></div>
+    <div class="gx-field"><label>Bike (km)</label><input type="number" id="enTgtBike" step="1"></div>
+    <div class="gx-field"><label>Run (km)</label><input type="number" id="enTgtRun" step="0.5"></div>
+    <div class="gx-field"><label>Strength (sets)</label><input type="number" id="enTgtStrength"></div>
+    <div class="gx-field"><label>Hyrox (sessions)</label><input type="number" id="enTgtHyrox"></div>
+    <div class="gx-field"><label>Rest days</label><input type="number" id="enTgtRest"></div>
+    <button class="gx-mbtn pri" onclick="enSaveTargets()">Save Targets</button>
+    <button class="gx-mbtn sec" onclick="gxCloseModal('enTargetModal')">Cancel</button>
+  </div>
+</div>

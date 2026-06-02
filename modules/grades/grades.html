@@ -1,0 +1,174 @@
+﻿<div class="g-app" id="gradesApp">
+  <!-- Rendered by JS -->
+</div>
+
+<!-- Detail view (full-screen slide-over) -->
+<div class="detail-overlay" id="detailOverlay">
+  <div class="detail-header">
+    <button class="detail-back" id="detailBack">←</button>
+    <div class="detail-title" id="detailTitle">Subject</div>
+    <button class="g-icon-btn" id="detailEditBtn" title="Edit subject">✎</button>
+    <button class="g-icon-btn" id="detailDeleteBtn" title="Delete subject" style="color:rgba(255,59,48,.7)">🗑</button>
+  </div>
+  <div class="detail-body" id="detailBody"></div>
+</div>
+
+<button class="g-fab" id="mainFab">+</button>
+
+<!-- Overlay -->
+<div class="overlay" id="mainOverlay"></div>
+
+<!-- Add/Edit Grade Sheet -->
+<div class="sheet" id="gradeSheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <div class="sheet-title" id="gradeSheetTitle">Add Grade</div>
+    <button class="sheet-close" id="gradeSheetClose">✕</button>
+  </div>
+  <div class="sheet-scroll">
+    <div class="f-section-title">Grade Type</div>
+    <div class="type-chips" id="gradeTypeChips"></div>
+    <div class="f-group">
+      <div class="f-row">
+        <span class="f-label">Grade</span>
+        <input class="f-inp" id="gradeValue" type="number" min="1" max="6" step="0.5" placeholder="1–6" style="width:80px;font-weight:700;font-size:20px">
+      </div>
+      <div class="f-sep"></div>
+      <div class="f-row">
+        <span class="f-label">Date</span>
+        <input class="f-inp" id="gradeDate" type="date" style="width:140px">
+      </div>
+      <div class="f-sep"></div>
+      <div class="f-row">
+        <span class="f-label">Note</span>
+        <input class="f-inp" id="gradeNote" type="text" placeholder="Optional…" style="width:180px">
+      </div>
+    </div>
+    <div class="f-group" id="groupingOptions" style="display:none">
+      <div class="f-row f-tap" id="gradeGroupToggle">
+        <span class="f-label">Part of Test Group</span>
+        <div class="g-icon-btn" id="gradeGroupIcon" style="background:transparent;font-size:14px">○</div>
+      </div>
+      <div id="gradeGroupIdRow" style="display:none">
+        <div class="f-sep"></div>
+        <div class="f-row">
+          <span class="f-label">Group Name</span>
+          <input class="f-inp" id="gradeGroupId" type="text" placeholder="e.g. Tests Q1…" style="width:150px">
+        </div>
+      </div>
+    </div>
+    <div class="f-group">
+      <div class="f-row f-tap" id="addToCalToggle">
+        <span class="f-label">Add date to Life Calendar</span>
+        <div class="g-icon-btn" id="addToCalIcon" style="background:transparent;font-size:14px">○</div>
+      </div>
+    </div>
+    <div style="margin-top:6px">
+      <button class="btn btn-pri" id="gradeSaveBtn">Save</button>
+      <button class="btn btn-danger" id="gradeDeleteBtn" style="display:none">Delete Grade</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add/Edit Subject Sheet -->
+<div class="sheet" id="subjectSheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <div class="sheet-title" id="subjectSheetTitle">New Subject</div>
+    <button class="sheet-close" id="subjectSheetClose">✕</button>
+  </div>
+  <div class="sheet-scroll">
+    <div class="f-group">
+      <div class="f-row">
+        <span class="f-label">Name</span>
+        <input class="f-inp-full" id="subjName" type="text" placeholder="e.g. Mathematik" autocomplete="off" style="text-align:right">
+      </div>
+      <div class="f-sep"></div>
+      <div class="f-row">
+        <span class="f-label">Teacher</span>
+        <input class="f-inp" id="subjTeacher" type="text" placeholder="Optional…" style="width:160px">
+      </div>
+    </div>
+    <div class="f-section-title">Color</div>
+    <div class="color-swatches" id="colorSwatches"></div>
+
+    <div class="f-section-title">Grade Weights</div>
+    <div class="f-group">
+      <div class="f-row">
+        <span class="f-label">Written %</span>
+        <input class="f-inp" id="writtenW" type="number" min="0" max="100" value="60" style="width:70px">
+      </div>
+      <div class="f-sep"></div>
+      <div class="f-row">
+        <span class="f-label">Oral %</span>
+        <input class="f-inp" id="oralW" type="number" min="0" max="100" value="40" style="width:70px">
+      </div>
+      <div class="f-sep"></div>
+      <div class="f-row" id="weightSumRow">
+        <span class="f-label">Sum</span>
+        <span class="f-value" id="weightSum" style="font-weight:700">100%</span>
+      </div>
+    </div>
+
+    <div class="f-section-title">Written Grade Types <span style="font-size:11px;color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0">(weights within written)</span></div>
+    <div id="writtenTypesList"></div>
+    <button class="g-add-btn" id="addWrittenTypeBtn" style="margin-bottom:12px">+ Add type</button>
+
+    <div class="f-section-title">Planned This Semester</div>
+    <div class="f-group">
+      <div class="f-row">
+        <span class="f-label">Klausuren</span>
+        <input class="f-inp" id="plannedKlausuren" type="number" min="0" value="4" style="width:60px">
+      </div>
+      <div class="f-sep"></div>
+      <div class="f-row">
+        <span class="f-label">Tests</span>
+        <input class="f-inp" id="plannedTests" type="number" min="0" value="6" style="width:60px">
+      </div>
+      <div class="f-sep"></div>
+      <div class="f-row">
+        <span class="f-label">Oral grades</span>
+        <input class="f-inp" id="plannedOral" type="number" min="0" value="2" style="width:60px">
+      </div>
+    </div>
+
+    <div class="f-section-title">Notes</div>
+    <div class="f-group">
+      <div class="f-row">
+        <textarea class="f-inp-full" id="subjNotes" placeholder="Notes about this subject…" rows="3"
+          style="resize:none;line-height:1.5"></textarea>
+      </div>
+    </div>
+
+    <button class="btn btn-pri" id="subjectSaveBtn">Save Subject</button>
+    <button class="btn btn-danger" id="subjectDeleteBtn" style="display:none;margin-top:0">Delete Subject</button>
+  </div>
+</div>
+
+<!-- AI Sheet -->
+<div class="sheet" id="aiSheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <div class="sheet-title">AI Tutor</div>
+    <button class="sheet-close" id="aiSheetClose">✕</button>
+  </div>
+  <div class="sheet-scroll">
+    <div id="aiSubjectContext" style="font-size:13px;color:var(--text2);margin-bottom:12px"></div>
+    <button class="ai-btn" id="aiAnalyzeBtn">
+      <span>📊</span><span>Analyze my grades & give advice</span>
+    </button>
+    <button class="ai-btn" id="aiStudyPlanBtn">
+      <span>📅</span><span>Create a study plan for next Klausur</span>
+    </button>
+    <button class="ai-btn" id="aiExplainBtn">
+      <span>💡</span><span>Explain a topic</span>
+    </button>
+    <div id="aiTopicRow" style="display:none;margin-bottom:10px">
+      <input class="f-inp-full" id="aiTopicInput" type="text" placeholder="Which topic should I explain?"
+        style="background:var(--surface3);padding:12px 14px;border-radius:12px;font-size:15px">
+    </div>
+    <div class="ai-result" id="aiResult"></div>
+  </div>
+</div>
+
+<div class="g-toast" id="toast"></div>

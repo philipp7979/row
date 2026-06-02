@@ -1,0 +1,200 @@
+﻿<main>
+  <!-- ════════ HEALTH LAB ════════ -->
+  <div id="healthLab"></div>
+
+  <!-- ===== WHOOP card ===== -->
+  
+
+  <div class="whoop-section">
+    <div class="section-title">Whoop</div>
+    <div class="whoop-card">
+
+      <!-- DISCONNECTED -->
+      <div id="whoopDisconnected" class="whoop-disconnected">
+        <div class="whoop-brand">
+          <span class="whoop-brand-mark">W</span>
+          <span class="whoop-brand-text">WHOOP</span>
+        </div>
+        <div class="whoop-disconnected-title">Not connected</div>
+        <div class="whoop-disconnected-sub">Link your account to see live recovery, sleep, and strain.</div>
+        <button id="whoopConnectBtn" class="whoop-connect-btn" type="button">
+          Connect WHOOP
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 5 20 12 13 19"/></svg>
+        </button>
+        <div id="whoopAuthStatus" class="whoop-auth-status"></div>
+      </div>
+
+      <!-- CONNECTED -->
+      <div id="whoopConnected" class="whoop-connected" style="display:none">
+        <div class="whoop-header">
+          <div class="whoop-brand">
+            <span class="whoop-brand-mark">W</span>
+            <span class="whoop-brand-text">WHOOP</span>
+            <span class="whoop-live-tag"><span class="whoop-live-dot"></span>live</span>
+          </div>
+          <div class="whoop-header-right">
+            <span id="whoopUpdated" class="whoop-updated">loading…</span>
+            <button id="whoopRefreshBtn" class="whoop-refresh-btn" title="Refresh" aria-label="Refresh">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M20.49 15A9 9 0 1 1 5.64 5.64L23 10"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div id="whoopCalibrating" class="whoop-calibrating" style="display:none">
+          <span class="whoop-cal-dot"></span>
+          WHOOP is still calibrating — early scores may shift over the next few weeks
+        </div>
+
+        <div class="whoop-ring-wrap">
+          <svg class="whoop-ring" viewBox="0 0 220 220" aria-hidden="true">
+            <circle class="whoop-ring-track" cx="110" cy="110" r="96"/>
+            <circle class="whoop-ring-fill"  cx="110" cy="110" r="96" id="whoopRecoveryRingFill"/>
+          </svg>
+          <div class="whoop-ring-center">
+            <div id="whoopRecoveryScore" class="whoop-ring-num">—</div>
+            <div class="whoop-ring-unit">recovery</div>
+            <div id="whoopRecoveryLabel" class="whoop-ring-label">—</div>
+          </div>
+        </div>
+
+        <div id="whoopStages" class="whoop-stages" style="display:none">
+          <div class="whoop-stages-head">
+            <span class="whoop-stages-eyebrow">Sleep stages</span>
+            <span class="whoop-stages-meta" id="whoopStagesMeta"></span>
+          </div>
+          <div class="whoop-stages-bar">
+            <div class="whoop-stage whoop-stage-rem"   id="whoopStageRem"   style="width:0%"></div>
+            <div class="whoop-stage whoop-stage-deep"  id="whoopStageDeep"  style="width:0%"></div>
+            <div class="whoop-stage whoop-stage-light" id="whoopStageLight" style="width:0%"></div>
+            <div class="whoop-stage whoop-stage-awake" id="whoopStageAwake" style="width:0%"></div>
+          </div>
+          <div class="whoop-stages-legend">
+            <div class="whoop-stages-leg"><span class="whoop-stages-dot d-rem"></span>REM <span id="whoopStageRemTxt" class="whoop-stages-num">—</span></div>
+            <div class="whoop-stages-leg"><span class="whoop-stages-dot d-deep"></span>Deep <span id="whoopStageDeepTxt" class="whoop-stages-num">—</span></div>
+            <div class="whoop-stages-leg"><span class="whoop-stages-dot d-light"></span>Light <span id="whoopStageLightTxt" class="whoop-stages-num">—</span></div>
+            <div class="whoop-stages-leg"><span class="whoop-stages-dot d-awake"></span>Awake <span id="whoopStageAwakeTxt" class="whoop-stages-num">—</span></div>
+          </div>
+        </div>
+
+        <div class="whoop-stats">
+          <div class="whoop-stat"><span class="whoop-zone" id="whoopZoneSleep"></span><div class="whoop-stat-label">Sleep</div><div class="whoop-stat-value" id="whoopSleepScore">—</div><div class="whoop-stat-sub" id="whoopSleepDuration">—</div></div>
+          <div class="whoop-stat"><span class="whoop-zone" id="whoopZoneStrain"></span><div class="whoop-stat-label">Strain</div><div class="whoop-stat-value" id="whoopStrain">—</div><div class="whoop-stat-sub">today</div></div>
+          <div class="whoop-stat"><span class="whoop-zone" id="whoopZoneHrv"></span><div class="whoop-stat-label">HRV</div><div class="whoop-stat-value" id="whoopHrv">—</div><div class="whoop-stat-sub">ms</div></div>
+          <div class="whoop-stat"><span class="whoop-zone" id="whoopZoneRhr"></span><div class="whoop-stat-label">RHR</div><div class="whoop-stat-value" id="whoopRhr">—</div><div class="whoop-stat-sub">bpm</div></div>
+        </div>
+
+        <div id="whoopBio" class="whoop-bio" style="display:none">
+          <div class="whoop-bio-item"><span class="whoop-zone" id="whoopZoneSkin"></span><span class="whoop-bio-label">Skin temp</span><span class="whoop-bio-val" id="whoopSkinTemp">—</span></div>
+          <div class="whoop-bio-item"><span class="whoop-zone" id="whoopZoneSpo2"></span><span class="whoop-bio-label">Blood O₂</span><span class="whoop-bio-val" id="whoopSpo2">—</span></div>
+          <div class="whoop-bio-item"><span class="whoop-zone" id="whoopZoneResp"></span><span class="whoop-bio-label">Resp rate</span><span class="whoop-bio-val" id="whoopResp">—</span></div>
+        </div>
+
+        <div class="whoop-legend">
+          <span class="whoop-legend-item"><span class="whoop-zone z-good"></span>Good</span>
+          <span class="whoop-legend-item"><span class="whoop-zone z-norm"></span>Normal</span>
+          <span class="whoop-legend-item"><span class="whoop-zone z-warn"></span>Watch</span>
+          <span class="whoop-legend-item"><span class="whoop-zone z-bad"></span>High / Low</span>
+        </div>
+
+        <div id="whoopVerdict" class="whoop-verdict" style="display:none">
+          <div class="whoop-verdict-head">
+            <span class="whoop-verdict-eyebrow">Today's call</span>
+            <span id="whoopVerdictBadge" class="whoop-verdict-badge"></span>
+          </div>
+          <div id="whoopVerdictHeadline" class="whoop-verdict-headline"></div>
+          <div id="whoopVerdictReasons" class="whoop-verdict-reasons"></div>
+          <div id="whoopVerdictAvoid" class="whoop-verdict-avoid" style="display:none">
+            <span class="whoop-verdict-avoid-label">Avoid today:</span> <span id="whoopVerdictAvoidText"></span>
+          </div>
+        </div>
+
+        <button id="whoopDisconnectBtn" class="whoop-disconnect-btn" type="button">Disconnect</button>
+      </div>
+    </div>
+  </div>
+  
+
+  <!-- Nutrition embedded -->
+  <div id="hsecNutrition">
+  <div class="section-title" id="nutritionTitle">Nutrition</div>
+  <div style="background:rgba(255,255,255,0.025);border:1px solid transparent;border-radius:22px;box-shadow:0 1px 0 0 rgba(255,255,255,0.06) inset,0 12px 40px rgba(0,0,0,0.45),0 1px 2px rgba(0,0,0,0.25);overflow:hidden;margin-bottom:32px">
+    <iframe src="food.html?embed=1" id="foodEmbed"
+      style="width:100%;height:560px;border:none;display:block;background:#000"
+      allow="camera;microphone">
+    </iframe>
+  </div>
+  </div>
+  
+
+  <div id="hsecStack">
+  <div class="section-title">Daily Stack</div>
+
+  <div class="stack-card">
+    <div class="stack-ticker" id="stackTicker">
+      <span class="stack-ticker-dot"></span>
+      <span class="stack-ticker-label">STACK</span>
+      <span class="stack-ticker-sep">·</span>
+      <span class="stack-ticker-msg" id="stackTickerMsg">All caught up — keep it rolling</span>
+      <span class="stack-ticker-count" id="stackTickerCount">0/0</span>
+    </div>
+
+    <div class="stack-head">
+      <div class="sf-eyebrow">Daily stack</div>
+      <div class="sf-title">Tap each as you take it</div>
+      <div class="stack-progress-text" id="stackProgressText">— / — taken today · resets at 6 AM</div>
+    </div>
+
+    <div class="stack-progress-track">
+      <div id="stackProgressBar" class="stack-progress-fill"></div>
+    </div>
+
+    <div id="stackGroups"></div>
+
+    <div class="stack-add-wrap">
+      <div class="sf-eyebrow stack-add-label">Add to stack</div>
+      <div class="stack-add-row">
+        <div class="stack-name-wrap">
+          <input id="stackAddName" type="text" placeholder="Name (e.g. B-complex)" class="stack-input" autocomplete="off" spellcheck="false" />
+          <div id="stackSearchResults" class="stack-search-results" hidden></div>
+        </div>
+        <input id="stackAddDose" type="text" placeholder="Dose (e.g. 1 cap)" class="stack-input" />
+        <select id="stackAddWindow" class="stack-input stack-select">
+          <option value="morning">Morning</option>
+          <option value="lunch">Lunch</option>
+          <option value="evening">Evening</option>
+          <option value="anytime">Anytime</option>
+        </select>
+        <button id="stackAddBtn" class="stack-add-btn">+ Add</button>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <section id="water" class="water-embed">
+    <div class="section-title">Water Tracker</div>
+    <div class="water-iframe-wrap">
+      <iframe src="po-water.html" class="water-iframe" id="waterIframe" loading="lazy" title="Water Tracker" scrolling="no"></iframe>
+    </div>
+  </section>
+  
+
+  <div class="attribution">// editable template · all data stays in your browser</div>
+</main>
+
+
+
+
+<!-- ════════════════ HEALTH LAB MODULE ════════════════ -->
+
+
+<div id="hlModal">
+  <div class="hl-modal-scrim" onclick="hlCloseModal()"></div>
+  <div class="hl-modal-panel" id="hlModalPanel"></div>
+</div>
+
+
+
+<!-- Reorder Health tab sections: Nutrition → Water → Whoop → Health Lab → Daily Stack -->
+
+
+<!-- ════════════════ WITHINGS INTEGRATION ════════════════ -->

@@ -1,0 +1,21 @@
+﻿<style>
+.tr-tabbar{
+  position:sticky;top:0;z-index:30;
+  display:flex;gap:8px;
+  background:#0a0a0b;
+  padding:12px 0 14px;margin:-6px 0 10px;
+}
+.tr-tab{
+  flex:1;padding:12px;
+  border:1px solid var(--border);background:var(--bg-card);
+  border-radius:13px;color:var(--text-2);
+  font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:7px;
+  transition:background .18s,color .18s,border-color .18s;
+}
+.tr-tab.on{background:#fff;color:#000;border-color:#fff}
+.tr-tab:active{transform:scale(.98)}
+.tr-pane{display:none;animation:trFade .25s ease}
+.tr-pane.on{display:block}
+@keyframes trFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+</style>

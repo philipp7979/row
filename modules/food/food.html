@@ -1,0 +1,235 @@
+﻿<!-- ══════════════════════════════════════════════════════
+     ONBOARDING
+══════════════════════════════════════════════════════ -->
+<div id="ob">
+  <div class="ob-nav">
+    <button class="ob-back" id="obBack" onclick="obPrev()">‹</button>
+    <span class="ob-title" id="obNavTitle">Basics</span>
+  </div>
+  <div class="ob-prog"><div class="ob-prog-fill" id="obProgFill"></div></div>
+
+  <div class="ob-body" id="obBody">
+    <!-- screens injected by JS -->
+  </div>
+  <div class="ob-foot">
+    <button class="ob-btn" id="obNext" onclick="obNext()">Next</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     MAIN APP
+══════════════════════════════════════════════════════ -->
+<div id="app">
+  <div class="app-header">
+    <div class="app-nav">
+      <button class="app-back" onclick="goBack()">
+        <svg width="10" height="17" viewBox="0 0 10 17" fill="none"><path d="M9 1L1.5 8.5L9 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Health</span>
+      </button>
+      <div style="display:flex;align-items:center;gap:0">
+        <button class="app-nav-btn" onclick="shiftDay(-1)" style="font-size:20px;opacity:.5">‹</button>
+        <span class="app-nav-title" id="appDateTitle">Today</span>
+        <button class="app-nav-btn" onclick="shiftDay(1)" style="font-size:20px;opacity:.5">›</button>
+      </div>
+      <button class="app-nav-btn" onclick="openSettings()" style="font-size:18px;opacity:.5" title="Settings"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82L4.2 7.12a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+    </div>
+    <div class="week-strip" id="weekStrip"></div>
+    <div class="macro-bars" id="macroBars"></div>
+  </div>
+
+  <div class="app-scroll" id="appScroll">
+    <div id="foodLog"></div>
+  </div>
+
+  <div class="app-sbar">
+    <div class="app-sbar-wrap" onclick="openAddSheet('search','')">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8e8e93" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" placeholder="Search food…" id="appSbarInput" readonly onclick="openAddSheet('search','')">
+    </div>
+    <button class="app-add-btn" onclick="openAddSheet('scan','')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Add Food
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     ADD FOOD SHEET
+══════════════════════════════════════════════════════ -->
+<div id="add-sheet">
+  <div class="as-scrim" onclick="closeAddSheet()"></div>
+  <div class="as-panel">
+    <div class="as-handle"></div>
+    <div class="as-macro-bar">
+      <div class="as-macro-item"><div class="as-macro-val" id="asMkcal">0</div><div class="as-macro-unit"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.4-.5-2-1-3-1.1-2.1-.2-4 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.2.4-2.3 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> kcal</div></div>
+      <div class="as-macro-item"><div class="as-macro-val" id="asMpro">0</div><div class="as-macro-unit">P g</div></div>
+      <div class="as-macro-item"><div class="as-macro-val" id="asMfat">0</div><div class="as-macro-unit">F g</div></div>
+      <div class="as-macro-item"><div class="as-macro-val" id="asMcarb">0</div><div class="as-macro-unit">C g</div></div>
+    </div>
+    <div class="add-tabs">
+      <button class="add-tab" onclick="switchAddTab('scan')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;margin-right:4px"><rect x="2" y="7" width="4" height="10"/><rect x="18" y="7" width="4" height="10"/><line x1="6" y1="12" x2="18" y2="12"/></svg>Scan
+      </button>
+      <button class="add-tab" onclick="switchAddTab('search')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;margin-right:4px"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Search
+      </button>
+      <button class="add-tab" onclick="switchAddTab('quickadd')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;margin-right:4px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Quick Add
+      </button>
+      <button class="add-tab" onclick="switchAddTab('library')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;margin-right:4px"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>Library
+      </button>
+      <button class="add-tab" onclick="switchAddTab('aidesc')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;margin-right:4px"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>AI Describe
+      </button>
+    </div>
+    <div class="add-content">
+
+      <!-- SCAN -->
+      <div class="add-panel" id="panel-scan">
+        <div class="scan-toggle">
+          <button class="scan-mode on" id="scanModeBarcode" onclick="setScanMode('barcode')">Barcode</button>
+          <button class="scan-mode" id="scanModeLabel" onclick="setScanMode('label')">Label</button>
+          <button class="scan-mode" id="scanModeMeal" onclick="setScanMode('meal')">Meal Photo</button>
+        </div>
+        <div class="viewfinder" id="viewfinder">
+          <div class="vf-placeholder" id="vfPlaceholder">
+            <div class="vf-placeholder-icon"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="3"/></svg></div>
+            <div>Tap Start Camera to begin</div>
+          </div>
+          <video id="scanVideo" autoplay muted playsinline style="display:none"></video>
+          <canvas id="scanCanvas" style="display:none"></canvas>
+          <div class="vf-overlay" id="scanOverlay" style="display:none">
+            <div class="scan-box"></div>
+          </div>
+        </div>
+        <button class="scan-capture-btn" id="scanCaptureBtn" onclick="handleScanCapture()" style="display:none">Stop Camera</button>
+        <div id="scanResult" style="display:none" class="scan-result-card">
+          <div class="scan-result-name" id="scanResultName"></div>
+          <div class="scan-result-macros" id="scanResultMacros"></div>
+          <div style="display:flex;gap:8px">
+            <input type="number" id="scanResultQty" style="flex:1;background:#2c2c2e;border:none;border-radius:8px;padding:10px 12px;font-size:16px;font-weight:600;color:#fff;outline:none" value="100">
+            <span style="display:flex;align-items:center;color:var(--t3);font-size:14px" id="scanResultUnit">g</span>
+          </div>
+          <button class="scan-add-btn" style="margin-top:10px" onclick="addScanResult()">Add to Log</button>
+        </div>
+        <div id="scanStatus" style="margin-top:10px;font-size:14px;color:var(--t3);text-align:center"></div>
+      </div>
+
+      <!-- SEARCH -->
+      <div class="add-panel" id="panel-search">
+        <div class="srch-field">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8e8e93" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" placeholder="Search for a food" id="srchInput" oninput="handleSearch(this.value)">
+        </div>
+        <div id="srchResults"></div>
+      </div>
+
+      <!-- QUICK ADD -->
+      <div class="add-panel" id="panel-quickadd">
+        <div class="qa-est" id="qaEst">Macro Calories Estimate: 0 kcal</div>
+        <div class="qa-rows">
+          <div class="qa-row2">
+            <span class="qa-row2-label">Energy</span>
+            <div class="qa-row2-right">
+              <input class="qa-row2-input" type="number" id="qaKcal" placeholder="optional" oninput="updateQaEst()" inputmode="decimal">
+              <span class="qa-row2-unit">kcal</span>
+            </div>
+          </div>
+          <div class="qa-row2">
+            <span class="qa-row2-label">Protein</span>
+            <div class="qa-row2-right">
+              <input class="qa-row2-input" type="number" id="qaPro" placeholder="optional" oninput="updateQaEst()" inputmode="decimal">
+              <span class="qa-row2-unit">g</span>
+            </div>
+          </div>
+          <div class="qa-row2">
+            <span class="qa-row2-label">Fat</span>
+            <div class="qa-row2-right">
+              <input class="qa-row2-input" type="number" id="qaFat" placeholder="optional" oninput="updateQaEst()" inputmode="decimal">
+              <span class="qa-row2-unit">g</span>
+            </div>
+          </div>
+          <div class="qa-row2">
+            <span class="qa-row2-label">Carbs</span>
+            <div class="qa-row2-right">
+              <input class="qa-row2-input" type="number" id="qaCarb" placeholder="optional" oninput="updateQaEst()" inputmode="decimal">
+              <span class="qa-row2-unit">g</span>
+            </div>
+          </div>
+          <div class="qa-row2" style="border-bottom:none">
+            <span class="qa-row2-label">Name</span>
+            <div class="qa-row2-right">
+              <input class="qa-row2-input" type="text" id="qaName" placeholder="optional" style="width:140px;text-align:right;font-weight:500">
+            </div>
+          </div>
+        </div>
+        <div class="qa-btns">
+          <button class="qa-btn sec" onclick="clearQa()">Quick Add</button>
+          <button class="qa-btn pri" onclick="logQuickAdd()">Log Foods</button>
+        </div>
+      </div>
+
+      <!-- LIBRARY -->
+      <div class="add-panel" id="panel-library">
+        <div class="lib-toggle">
+          <button class="lib-tab-btn on" id="libTabRecipes" onclick="switchLibTab('recipes')">Recipes</button>
+          <button class="lib-tab-btn" id="libTabFoods" onclick="switchLibTab('foods')">Foods</button>
+        </div>
+        <div class="lib-panel on" id="libRecipes"></div>
+        <div class="lib-panel" id="libFoods"></div>
+      </div>
+
+      <!-- AI DESCRIBE -->
+      <div class="add-panel" id="panel-aidesc">
+        <div style="font-size:16px;font-weight:700;margin-bottom:8px;color:#fff">Meal Description</div>
+        <textarea class="ai-desc-area" id="aiDescText" placeholder="Describe your meal, e.g: 3 scrambled eggs and two slices of sourdough toast" rows="6" oninput="checkAiKey()"></textarea>
+        <button class="ai-find-btn" id="aiFindBtn" onclick="runAiDescribe()">Find Foods</button>
+        <div id="aiDescResult" style="margin-top:14px"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SETTINGS MODAL
+══════════════════════════════════════════════════════ -->
+<div id="settings-modal" style="display:none;position:fixed;inset:0;z-index:160">
+  <div style="position:fixed;inset:0;background:rgba(0,0,0,.7)" onclick="closeSettings()"></div>
+  <div style="position:fixed;bottom:0;left:0;right:0;background:#1c1c1e;border-radius:20px 20px 0 0;padding:20px;padding-bottom:max(28px,env(safe-area-inset-bottom))">
+    <div style="width:36px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;margin:0 auto 20px"></div>
+    <div style="font-size:20px;font-weight:700;color:#fff;margin-bottom:6px">Settings</div>
+    <div style="font-size:14px;color:#8e8e93;margin-bottom:20px">Manage your nutrition profile</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <button onclick="restartOnboarding()" style="width:100%;padding:15px 16px;background:#2c2c2e;color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:600;text-align:left;display:flex;align-items:center;gap:12px">
+        <span style="font-size:20px"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5M21 12a9 9 0 0 1-15 6.7L3 16M3 21v-5h5"/></svg></span>
+        <div><div>Redo Setup</div><div style="font-size:13px;color:#8e8e93;font-weight:400;margin-top:2px">Change your goal, diet or program</div></div>
+      </button>
+      <button onclick="clearFoodLog()" style="width:100%;padding:15px 16px;background:#2c2c2e;color:#f87171;border:none;border-radius:12px;font-size:16px;font-weight:600;text-align:left;display:flex;align-items:center;gap:12px">
+        <span style="font-size:20px"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/></svg></span>
+        <div><div>Clear Today's Log</div><div style="font-size:13px;color:#8e8e93;font-weight:400;margin-top:2px">Remove all food entries for today</div></div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     FOOD DETAIL MODAL
+══════════════════════════════════════════════════════ -->
+<div id="food-detail">
+  <div class="fd-scrim" onclick="closeFoodDetail()"></div>
+  <div class="fd-panel">
+    <div class="fd-handle"></div>
+    <div class="fd-name" id="fdName"></div>
+    <div class="fd-macros" id="fdMacros"></div>
+    <div class="fd-qty-row">
+      <input type="number" id="fdQty" min="0.1" step="any" oninput="updateFdMacros()">
+      <span class="fd-qty-unit" id="fdQtyUnit">g</span>
+    </div>
+    <div class="fd-btns">
+      <button class="fd-del" onclick="deleteFoodEntry()"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/></svg></button>
+      <button class="fd-save" onclick="saveFoodEntry()">Save</button>
+    </div>
+  </div>
+</div>
