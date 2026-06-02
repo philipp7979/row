@@ -7,10 +7,7 @@
   --r:14px;
   --kcal:#3b82f6; --pro:#f87171; --fat:#fbbf24; --carb:#34d399;
   --font:-apple-system,BlinkMacSystemFont,'SF Pro Text','Helvetica Neue',Arial,sans-serif;
-}
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{background:#0c0c0e;color:#fff;font-family:var(--font);min-height:100vh;overflow-x:hidden;overscroll-behavior:none;-webkit-font-smoothing:antialiased}
-input,select,textarea{font-size:16px;font-family:var(--font);color:#fff}
+}input,select,textarea{font-size:16px;font-family:var(--font);color:#fff}
 button{font-family:var(--font);cursor:pointer}
 
 /* ── ONBOARDING (dark) ── */

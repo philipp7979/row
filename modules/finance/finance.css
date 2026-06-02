@@ -30,42 +30,7 @@
   --font: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   color-scheme: dark;
-}
-
-* { box-sizing: border-box; margin: 0; padding: 0; }
-
-html, body {
-  background: var(--bg-deep);
-  color: var(--text-primary);
-  font-family: var(--font);
-  -webkit-font-smoothing: antialiased;
-  min-height: 100%;
-}
-
-/* Backdrop — black with subtle warm + cool washes */
-body::before {
-  content: '';
-  position: fixed;
-  inset: -10%;
-  z-index: -2;
-  background:
-    radial-gradient(60% 45% at 82% 14%, rgba(224, 118, 88, 0.16) 0%, transparent 55%),
-    radial-gradient(55% 45% at 18% 90%, rgba(180, 180, 200, 0.06) 0%, transparent 55%),
-    linear-gradient(180deg, #0A0A0B 0%, #050506 100%);
-  filter: blur(40px) saturate(1.05);
-  pointer-events: none;
-}
-body::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  background-image: radial-gradient(rgba(255,255,255,0.014) 1px, transparent 1px);
-  background-size: 3px 3px;
-  opacity: 0.7;
-  pointer-events: none;
-}
-
+}/* Backdrop — black with subtle warm + cool washes */
 .shell {
   max-width: 880px;
   margin: 0 auto;
@@ -145,13 +110,7 @@ body::after {
 }
 
 /* Sections: hide non-active when bottom tabs are in use */
-.section[hidden] { display: none !important; }
-
-/* Hide scrollbars everywhere */
-html, body { scrollbar-width: none; -ms-overflow-style: none; }
-*::-webkit-scrollbar { width: 0 !important; height: 0 !important; display: none !important; }
-
-/* Section title with reorder controls */
+.section[hidden] { display: none !important; }/* Section title with reorder controls */
 .section { margin-bottom: 18px; }
 .section-title {
   font-size: 10.5px;

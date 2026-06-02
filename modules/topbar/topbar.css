@@ -89,11 +89,7 @@
 .bottombar-tab-icon svg { display: block; }
 .bottombar-tab.active { color: #FAFAFA; }
 .bottombar-tab.active .bottombar-tab-icon { opacity: 1; }
-.bottombar-tab:active .bottombar-tab-icon { transform: scale(0.88); }
-body.has-bottombar {
-  padding-bottom: calc(72px + env(safe-area-inset-bottom)) !important;
-}
-@media (max-width: 480px) {
+.bottombar-tab:active .bottombar-tab-icon { transform: scale(0.88); }@media (max-width: 480px) {
   .topbar { padding-left: 10px; padding-right: 10px; gap: 6px; }
   .topbar-water-pill { padding: 8px 11px; gap: 6px; }
   .topbar-pill-count { font-size: 12px; }
@@ -102,18 +98,14 @@ body.has-bottombar {
   .topbar-finance-icon { font-size: 18px; }
   .bottombar-tab-icon { font-size: 22px; }
   .bottombar-tab { font-size: 10px; }
-}
-html, body { -webkit-text-size-adjust: 100%; }
-@media (max-width: 768px) {
+}@media (max-width: 768px) {
   html { touch-action: pan-y; }
   ::-webkit-scrollbar { width: 0; height: 0; display: none; }
   html, body { scrollbar-width: none; -ms-overflow-style: none; }
 }
 .modal-bg, .modal, .po-modal-bg, .po-modal, .wt-overlay, .wt-viewer {
   overscroll-behavior: contain;
-}
-body.topbar-modal-open { overflow: hidden; touch-action: none; }
-@media (max-width: 480px) {
+}@media (max-width: 480px) {
   .modal-bg, .po-modal-bg {
     padding: 0 !important;
     align-items: stretch !important;

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#0a0a0b">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../../shared/supabase.js"></script>
+<script src="../../modules/sync/sync.js" defer></script>
+<link rel="stylesheet" href="water.css">
+</head>
+<body>
+<script>(function(){
+  fetch('water.html').then(r=>r.text()).then(h=>{document.body.insertAdjacentHTML('beforeend',h);});
+})();</script>
+<script src="water.js"></script>
+</body>
+</html>

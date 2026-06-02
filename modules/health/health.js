@@ -1359,29 +1359,4 @@ async function fetchAll(){
 if(load().refresh) fetchAll();
 window.withingsSync=fetchAll;
 })();
-
-
-/* ── Load food and water sub-modules into health tab ── */
-(function(){
-  async function loadInline(name, containerId) {
-    const el = document.getElementById(containerId);
-    if (!el) return;
-    const base = 'modules/' + name + '/' + name;
-    try {
-      const [html, css] = await Promise.all([
-        fetch(base + '.html').then(r => r.text()),
-        fetch(base + '.css').then(r => r.text()),
-      ]);
-      const style = document.createElement('style');
-      style.textContent = css;
-      document.head.appendChild(style);
-      el.insertAdjacentHTML('beforeend', html);
-      const s = document.createElement('script');
-      s.src = base + '.js';
-      document.head.appendChild(s);
-    } catch(e) { console.warn('loadInline failed:', name, e); }
-  }
-  loadInline('food',  'foodEmbed');
-  loadInline('water', 'waterModuleRoot');
-})();
 })();

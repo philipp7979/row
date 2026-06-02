@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#0c0c0e">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../../shared/supabase.js"></script>
+<script src="../../shared/groq.js"></script>
+<script src="../../modules/sync/sync.js" defer></script>
+<link rel="stylesheet" href="food.css">
+</head>
+<body>
+<script>/* inject fragment */(function(){
+  const d=document.createElement('div');d.id='_root';document.body.appendChild(d);
+  fetch('food.html').then(r=>r.text()).then(h=>{d.insertAdjacentHTML('beforeend',h);});
+})();</script>
+<script src="food.js"></script>
+</body>
+</html>

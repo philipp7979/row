@@ -6,10 +6,7 @@
   --orange:#F59E0B;--red:#f87171;
   --r:16px;--r2:22px;
   --font:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;
-}
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{background:var(--bg);color:var(--t1);font-family:var(--font);min-height:100vh;overflow-x:hidden;overscroll-behavior:none;-webkit-font-smoothing:antialiased}
-button,input,select,textarea{font-family:var(--font);font-size:16px}
+}button,input,select,textarea{font-family:var(--font);font-size:16px}
 button{cursor:pointer}
 
 /* ── SHELL ── */

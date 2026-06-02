@@ -6,11 +6,7 @@
   --divider:rgba(255,255,255,.08);
   --font:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;
   --font-mono:ui-monospace,'SF Mono',Menlo,monospace;
-}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
-html,body{background:var(--bg);color:var(--text);font-family:var(--font);
-  -webkit-font-smoothing:antialiased;overflow-x:hidden;min-height:100vh}
-::-webkit-scrollbar{width:0}
+}::-webkit-scrollbar{width:0}
 input,textarea,select{-webkit-appearance:none;appearance:none}
 input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:2px;
   background:var(--surface3);outline:none;cursor:pointer}

@@ -14,10 +14,7 @@
   --font: -apple-system,"SF Pro Display","SF Pro Text","Helvetica Neue","Inter",sans-serif;
   --c-swim:#38bdf8;--c-bike:#f59e0b;--c-run:#6ee7b7;
   --c-strength:#a78bfa;--c-hyrox:#fb923c;--c-race:#f43f5e;--c-rest:#6b7280;
-}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:var(--font);-webkit-font-smoothing:antialiased;overflow-x:hidden}
-::-webkit-scrollbar{width:0;height:0}
+}::-webkit-scrollbar{width:0;height:0}
 
 /* ---- App shell ---- */
 .tr-app{display:flex;flex-direction:column;height:100vh;max-width:700px;margin:0 auto;overflow:hidden}
