@@ -1,0 +1,30 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#0a0a0b">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../../shared/supabase.js"></script>
+<script src="../../shared/groq.js"></script>
+<script src="../../shared/profile.js"></script>
+<script src="../../modules/sync/sync.js" defer></script>
+<link rel="stylesheet" href="../../shared/shared.css">
+<link rel="stylesheet" href="training-calendar.css">
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#0a0a0b;overflow-x:hidden;overscroll-behavior:none;
+  -webkit-font-smoothing:antialiased;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;}
+body{overflow-y:auto;padding-bottom:calc(80px + env(safe-area-inset-bottom))}
+</style>
+</head>
+<body>
+<script>
+fetch('training-calendar.html').then(function(r){return r.text();}).then(function(h){
+  document.body.insertAdjacentHTML('beforeend',h);
+  var s=document.createElement('script');s.src='training-calendar.js';document.head.appendChild(s);
+}).catch(function(e){console.error('Module load failed:',e);});
+</script>
+</body>
+</html>

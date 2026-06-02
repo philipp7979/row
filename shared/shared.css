@@ -72,13 +72,16 @@ html,body{
 }
 .sh-mod{
   position:absolute;inset:0;
-  display:none;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  display:none;
   background:#0a0a0b;
-  /* ensure content is never hidden behind the floating tab bar */
-  padding-bottom:calc(120px + env(safe-area-inset-bottom));
 }
 .sh-mod.active{display:block}
-.sh-mod-finance{position:fixed;inset:0;z-index:150;overflow-y:auto;background:#0a0a0b;padding-bottom:0}
+.sh-mod iframe{
+  position:absolute;inset:0;
+  width:100%;height:100%;
+  border:none;background:#0a0a0b;
+}
+.sh-mod-finance{position:fixed;inset:0;z-index:150;background:#0a0a0b}
 body.finance-open .sh-modules{top:0;bottom:0}
 body.finance-open .sh-bot-wrap{display:none}
 body.finance-open .sh-top{display:none}
