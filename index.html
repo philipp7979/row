@@ -217,7 +217,7 @@ body.finance-open .sh-top{ display:none; }
   <iframe src="main.html"   id="frame-main"    class="sh-frame active" allow="camera;microphone"></iframe>
   <iframe src="health.html" id="frame-health"  class="sh-frame" allow="camera"></iframe>
   <iframe src="gym.html"    id="frame-fitness" class="sh-frame"></iframe>
-  <iframe src="grades.html" id="frame-other"   class="sh-frame"></iframe>
+  <iframe src="bible.html"  id="frame-other"   class="sh-frame"></iframe>
   <iframe src="finance.html" id="frame-finance" class="sh-frame"></iframe>
 </div>
 
@@ -273,7 +273,7 @@ function switchTab(tab) {
     document.getElementById('tab-'+t).classList.toggle('active', t===tab);
   });
   curTab = tab;
-  const urls = {main:'main.html', health:'health.html', fitness:'gym.html', other:'grades.html'};
+  const urls = {main:'main.html', health:'health.html', fitness:'gym.html', other:'bible.html'};
   history.replaceState({tab}, '', urls[tab] || 'index.html');
 }
 
