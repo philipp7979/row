@@ -1,4 +1,3 @@
-(function(){
 
 'use strict';
 // Plate/utensils placeholder icon for foods without an image
@@ -1162,6 +1161,4 @@ function clearFoodLog(){
   window.addEventListener('storage',e=>{ if(e.key==='fl_open_add') handleOpenAddCmd(e.newValue); });
   // also honor a command that was set just before this frame finished loading
   try{ handleOpenAddCmd(localStorage.getItem('fl_open_add')); }catch(e){}
-})();
-
 })();

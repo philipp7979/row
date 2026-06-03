@@ -1,4 +1,3 @@
-(function(){
 'use strict';
 
 'use strict';
@@ -845,6 +844,4 @@ function otSwitch(pane){
 }
 (function(){
   try{var sv=localStorage.getItem('ot_subtab');if(sv==='bible')otSwitch('bible');else if(sv==='grades')otSwitch('grades');}catch(e){}
-})();
-
 })();

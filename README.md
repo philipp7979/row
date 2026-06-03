@@ -55,19 +55,46 @@ One click → Vercel signs you in, copies the repo to your GitHub, and deploys i
 
 ## How to use
 
-Open any `.html` file directly in your browser — no build step, no install.
+Open [index.html](index.html) in your browser — no build step, no install. It's a single-page shell with a bottom tab bar; every feature is a self-contained **module** that the shell lazy-loads into an `<iframe>` the first time you open its tab.
 
-| File | What it is |
-|---|---|
-| [index.html](index.html) | Goals tracker (Day Ring, Goal Ticker, To Do list) — the home page |
-| [health.html](health.html) | Supplement / daily stack tracker |
-| [po-water.html](po-water.html) | Water intake tracker |
-| [finance.html](finance.html) | Finances |
-| [gym.html](gym.html) | Progressive overload gym tracker |
-| [topbar.js](topbar.js) | Shared top bar — auto-injected into pages that `<script src="topbar.js">` |
+Each module stores its own state in browser `localStorage`. No accounts, no server.
 
-Each app stores its own state in browser `localStorage`. No accounts, no server.
+## Architecture
 
-## Building from scratch
+```
+index.html              — app shell: topbar, bottom tab bar, quick-add sheet, settings
+shared/
+  shared.css            — CSS variables, topbar, tab bar, modals (loaded by every module)
+  shell.js              — tab switching + lazy iframe loader, water widget, settings
+  supabase.js           — Supabase client config (cloud sync)
+  groq.js               — Groq API helper (AI features)
+  profile.js            — user profile / goals helpers
+modules/<name>/
+  index.html            — standalone page that loads the module (this is what the iframe points at)
+  <name>.html           — the module's markup fragment
+  <name>.css            — the module's styles
+  <name>.js             — the module's logic
+```
 
-[BUILD_DASHBOARD.md](BUILD_DASHBOARD.md) is the prompt I gave Claude to generate `index.html` — paste it into Claude if you want to rebuild that page yourself.
+The shell maps each bottom-bar tab to a module:
+
+| Tab | Module(s) | What it is |
+|---|---|---|
+| **Main** | `main` + `life-calendar` | Day Ring, Goal Ticker, To Do list, calendar |
+| **Health** | `health` (embeds `food` + `water` + `supplements`) | Whoop, nutrition, water, daily stack |
+| **Training** | `training` (loads `gym` + `endurance`) | Progressive-overload gym + endurance tracker |
+| **Others** | `bible` (with `thoughts` + `grades`) | Thoughts, Bible reading plan, School grades |
+| **Finance** (topbar) | `finance` | Net worth, subscriptions, orders, wishlist |
+
+`modules/sync/sync.js` and `modules/topbar/topbar.js` are shared helpers used by the modules.
+
+### Adding a new module
+
+1. Create `modules/<name>/` with `<name>.html`, `<name>.css`, `<name>.js`, and an `index.html` wrapper (copy an existing one — it loads the shared deps, the module CSS, then fetches the fragment and the JS).
+2. Add a tab button in `index.html` and an entry in `TAB_MODULE` in `shared/shell.js`.
+
+Functions called from inline `onclick=` handlers must be global (top-level `function foo(){}` or `window.foo = …`) — the module runs in its own iframe document, so there's no cross-module collision.
+
+## Deploy
+
+Push to any static host (GitHub Pages, Vercel, Netlify, Cloudflare Pages). There's no build step — the repo root is the web root, and `index.html` is the entry point.

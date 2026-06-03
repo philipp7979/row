@@ -629,7 +629,7 @@
   // Re-render when storage changes from another tab (or our bridged parent).
   window.addEventListener('storage', () => {
     loadToday(); loadTomorrow(); renderStreak();
-  })();
+  });
 })();
 (function() {
   if (typeof initCloudSync !== 'function') return;
