@@ -1,3 +1,6 @@
+
+/* restored body text color */
+body{color:var(--t1);}
 .th-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:16px;margin-bottom:14px}
 /* quick capture */
 .th-capture{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:14px;margin-bottom:14px}

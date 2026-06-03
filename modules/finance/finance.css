@@ -30,7 +30,10 @@
   --font: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   color-scheme: dark;
-}/* Backdrop — black with subtle warm + cool washes */
+}
+/* restored body text color */
+body{color:var(--text-primary);}
+/* Backdrop — black with subtle warm + cool washes */
 .shell {
   max-width: 880px;
   margin: 0 auto;

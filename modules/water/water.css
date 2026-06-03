@@ -14,7 +14,10 @@
   --info: #7DD3FC;
   --font: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif;
   --font-mono: ui-monospace, SF Mono, Menlo, Consolas, monospace;
-}.shell { max-width: 720px; margin: 0 auto; padding: 24px max(16px, env(safe-area-inset-right)) 80px max(16px, env(safe-area-inset-left)); }
+}
+/* restored body text color */
+body{color:var(--text-1);}
+.shell { max-width: 720px; margin: 0 auto; padding: 24px max(16px, env(safe-area-inset-right)) 80px max(16px, env(safe-area-inset-left)); }
 
 /* ----- Top day pill + header ----- */
 .day-pill {

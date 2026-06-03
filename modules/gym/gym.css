@@ -13,7 +13,10 @@
   --bad: #ff8a8a;
   --font: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif;
   --font-mono: ui-monospace, SF Mono, Menlo, Consolas, monospace;
-}.po-shell {
+}
+/* restored body text color */
+body{color:var(--text-1);}
+.po-shell {
   width: 100%; max-width: min(720px, 100vw);
   margin: 0 auto;
   padding: 24px max(16px, env(safe-area-inset-right)) calc(40px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));

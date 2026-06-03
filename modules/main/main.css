@@ -7,7 +7,10 @@
   --danger: #FF6B6B;
   --font: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-}@keyframes drift {
+}
+/* restored body text color */
+body{color:var(--text-secondary);}
+@keyframes drift {
   0%   { transform: translate3d(0,0,0); }
   100% { transform: translate3d(-22px, 14px, 0); }
 }

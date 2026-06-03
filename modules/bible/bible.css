@@ -6,7 +6,10 @@
   --orange:#F59E0B;--red:#f87171;
   --r:16px;--r2:22px;
   --font:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;
-}button,input,select,textarea{font-family:var(--font);font-size:16px}
+}
+/* restored body text color */
+body{color:var(--t1);}
+button,input,select,textarea{font-family:var(--font);font-size:16px}
 button{cursor:pointer}
 
 /* ── SHELL ── */

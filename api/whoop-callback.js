@@ -31,7 +31,7 @@ export default async function handler(req, res) {
       whoop_refresh:  refresh,
       whoop_expires:  String(Date.now() + expiresIn * 1000),
     }).toString();
-    res.writeHead(302, { Location: '/health.html#' + hash });
+    res.writeHead(302, { Location: '/modules/health/index.html#' + hash });
     res.end();
   } catch (e) {
     res.status(500).send('Unexpected: ' + (e.message || String(e)));

@@ -1,7 +1,6 @@
 // =============================================================
-// Shared cloud-sync helper. Each page calls initCloudSync({...}).
-// Replace the two placeholders with your Supabase project URL +
-// publishable key (same ones you used in topbar.js/gym.html).
+// Shared cloud-sync helper. Each module calls initCloudSync({...}).
+// Uses the Supabase project URL + publishable key from shared/supabase.js.
 // =============================================================
 (function () {
   'use strict';

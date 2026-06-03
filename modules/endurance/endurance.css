@@ -1,3 +1,6 @@
+
+/* restored body text color */
+body{color:var(--text-1);}
 .en-card{background:#111113;border:1px solid rgba(255,255,255,.06);border-radius:18px;padding:18px;margin-bottom:16px;box-shadow:0 12px 40px rgba(0,0,0,.45)}
 .en-title{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:14px;display:flex;align-items:center;gap:8px}
 .en-flag{margin-left:auto;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:700;text-transform:none;letter-spacing:.02em}

@@ -1,3 +1,6 @@
+
+/* restored body text color */
+body{color:var(--text-2,#fff);}
 .tr-tabbar{
   position:sticky;top:0;z-index:30;
   display:flex;gap:8px;

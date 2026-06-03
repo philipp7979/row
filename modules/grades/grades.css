@@ -6,7 +6,10 @@
   --divider:rgba(255,255,255,.08);
   --font:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;
   --font-mono:ui-monospace,'SF Mono',Menlo,monospace;
-}::-webkit-scrollbar{width:0}
+}
+/* restored body text color */
+body{color:var(--text);}
+::-webkit-scrollbar{width:0}
 input,textarea,select{-webkit-appearance:none;appearance:none}
 input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:2px;
   background:var(--surface3);outline:none;cursor:pointer}

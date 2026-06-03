@@ -1,3 +1,6 @@
+
+/* restored body text color */
+body{color:var(--text-primary);}
 .stack-card {
   background: rgba(255,255,255,0.025);
   border: 1px solid transparent;
@@ -327,4 +330,4 @@
   .stack-add-row .stack-input,
   .stack-add-row .stack-select,
   .stack-add-row .stack-add-btn { width: 100%; }
-  .stack-search-results { width: 100%; max-width: 100%; }
+  .stack-search-results { width: 100%; max-width: 100%; }

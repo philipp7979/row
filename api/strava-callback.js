@@ -39,7 +39,7 @@ export default async function handler(req, res) {
       strava_refresh: refresh,
       strava_expires: String(expiresAt * 1000),
     }).toString();
-    res.writeHead(302, { Location: '/gym.html#' + hash });
+    res.writeHead(302, { Location: '/modules/training/index.html#' + hash });
     res.end();
   } catch (e) {
     res.status(500).send('Unexpected: ' + (e.message || String(e)));

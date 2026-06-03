@@ -7,7 +7,10 @@
   --r:14px;
   --kcal:#3b82f6; --pro:#f87171; --fat:#fbbf24; --carb:#34d399;
   --font:-apple-system,BlinkMacSystemFont,'SF Pro Text','Helvetica Neue',Arial,sans-serif;
-}input,select,textarea{font-size:16px;font-family:var(--font);color:#fff}
+}
+/* restored body text color */
+body{color:#fff;}
+input,select,textarea{font-size:16px;font-family:var(--font);color:#fff}
 button{font-family:var(--font);cursor:pointer}
 
 /* ── ONBOARDING (dark) ── */
