@@ -831,12 +831,12 @@ function otSwitch(pane){
     if(gp&&!gp.dataset.loaded){
       gp.dataset.loaded='1';
       Promise.all([
-        fetch('modules/grades/grades.html').then(function(r){return r.text();}),
-        fetch('modules/grades/grades.css').then(function(r){return r.text();})
+        fetch('../grades/grades.html').then(function(r){return r.text();}),
+        fetch('../grades/grades.css').then(function(r){return r.text();})
       ]).then(function(res){
         var st=document.createElement('style');st.textContent=res[1];document.head.appendChild(st);
         gp.insertAdjacentHTML('beforeend',res[0]);
-        var s=document.createElement('script');s.src='modules/grades/grades.js';document.head.appendChild(s);
+        var s=document.createElement('script');s.src='../grades/grades.js';document.head.appendChild(s);
       }).catch(function(e){console.warn('grades load',e);});
     }
   }

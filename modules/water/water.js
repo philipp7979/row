@@ -513,6 +513,6 @@ const CONFIG = {
     syncedKeys: ['po_water_v1'],
     onApplied: function () { window.dispatchEvent(new Event('storage')); }
   });
-});
+})();
 
 })();

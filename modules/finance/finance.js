@@ -1500,6 +1500,6 @@
     syncedPrefixes: ['nw:'],
     onApplied: function () { window.dispatchEvent(new Event('storage')); }
   });
-});
+})();
 
 })();
