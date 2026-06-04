@@ -1,0 +1,79 @@
+<div class="goals-wrap">
+  <div class="goals-head">
+    <div class="goals-title">Goals</div>
+    <div class="goals-head-btns">
+      <button class="goals-ai-btn" id="goalsAiBtn" type="button">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>
+        Ask AI
+      </button>
+      <button class="goals-add-btn" id="goalsAddBtn" type="button" aria-label="Add goal">+</button>
+    </div>
+  </div>
+
+  <div id="goalsList" class="goals-list"></div>
+  <div id="goalsEmpty" class="goals-empty">No goals yet — tap + to add your first target.</div>
+
+  <!-- AI advice panel -->
+  <div id="goalsAiPanel" class="goals-ai-panel" hidden>
+    <div class="goals-ai-head">
+      <span class="goals-ai-eyebrow">AI Coach · your goals</span>
+      <button class="goals-ai-close" id="goalsAiClose" type="button">✕</button>
+    </div>
+    <div id="goalsAiBody" class="goals-ai-body"></div>
+  </div>
+</div>
+
+<!-- Add / edit goal modal -->
+<div class="goal-modal-bg" id="goalModalBg">
+  <div class="goal-modal">
+    <div class="goal-modal-handle"></div>
+    <div class="goal-modal-title" id="goalModalTitle">New Goal</div>
+
+    <div class="gm-field">
+      <label>Name</label>
+      <input type="text" id="gmName" placeholder="e.g. Cooper Test 3000m" autocomplete="off">
+    </div>
+
+    <div class="gm-field">
+      <label>Sport</label>
+      <div class="gm-sports" id="gmSports">
+        <button type="button" data-sport="run"      class="gm-sport">🏃</button>
+        <button type="button" data-sport="bike"     class="gm-sport">🚴</button>
+        <button type="button" data-sport="swim"     class="gm-sport">🏊</button>
+        <button type="button" data-sport="hyrox"    class="gm-sport">🔥</button>
+        <button type="button" data-sport="race"     class="gm-sport">🏁</button>
+      </div>
+    </div>
+
+    <div class="gm-row">
+      <div class="gm-field">
+        <label>Target date</label>
+        <input type="date" id="gmDate">
+      </div>
+      <div class="gm-field">
+        <label>Priority</label>
+        <div class="gm-pri" id="gmPri">
+          <button type="button" data-pri="A">A</button>
+          <button type="button" data-pri="B">B</button>
+          <button type="button" data-pri="C">C</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="gm-field">
+      <label>Target result</label>
+      <input type="text" id="gmTarget" placeholder="e.g. Sub 12h · 3000m · Finish" autocomplete="off">
+    </div>
+
+    <div class="gm-field">
+      <label>Notes — strategy, goal time</label>
+      <textarea id="gmNotes" rows="2" placeholder="Pacing plan, fuelling, anything to remember…"></textarea>
+    </div>
+
+    <div class="gm-actions">
+      <button class="gm-btn gm-del" id="gmDelete" type="button" hidden>Delete</button>
+      <button class="gm-btn gm-cancel" id="gmCancel" type="button">Cancel</button>
+      <button class="gm-btn gm-save" id="gmSave" type="button">Save</button>
+    </div>
+  </div>
+</div>

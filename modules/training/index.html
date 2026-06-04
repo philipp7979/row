@@ -11,54 +11,52 @@
 <script src="../../shared/sync.js" defer></script>
 <link rel="stylesheet" href="../../shared/shared.css">
 <link rel="stylesheet" href="training.css">
+<link rel="stylesheet" href="../../modules/goals/goals.css">
 <link rel="stylesheet" href="../../modules/gym/gym.css">
 <link rel="stylesheet" href="../../modules/endurance/endurance.css">
+<link rel="stylesheet" href="../../modules/training-calendar/training-calendar.css">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;background:#0a0a0b;overflow-x:hidden;overscroll-behavior:none;
   -webkit-font-smoothing:antialiased;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;}
-body{overflow-y:auto;padding-bottom:calc(80px + env(safe-area-inset-bottom))}
+body{overflow-y:auto;padding:14px 14px calc(80px + env(safe-area-inset-bottom))}
 </style>
 </head>
 <body>
 <script>
-// Load training shell, then gym HTML+JS, then endurance HTML+JS
+function loadJS(src){return new Promise(function(ok,fail){var s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=fail;document.head.appendChild(s);});}
+
 Promise.all([
   fetch('training.html').then(function(r){return r.text();}),
+  fetch('../../modules/goals/goals.html').then(function(r){return r.text();}),
   fetch('../../modules/gym/gym.html').then(function(r){return r.text();}),
-  fetch('../../modules/endurance/endurance.html').then(function(r){return r.text();})
+  fetch('../../modules/endurance/endurance.html').then(function(r){return r.text();}),
+  fetch('../../modules/training-calendar/training-calendar.html').then(function(r){return r.text();})
 ]).then(function(parts){
-  document.body.insertAdjacentHTML('beforeend', parts[0]);
-  // training.html has #trPaneGym and #trPaneEnd
-  document.getElementById('trPaneGym').insertAdjacentHTML('beforeend', parts[1]);
-  document.getElementById('trPaneEnd').insertAdjacentHTML('beforeend', parts[2]);
-  // Wire up tab buttons
+  document.body.insertAdjacentHTML('beforeend', parts[0]);          // training shell: #trGoals + panes
+  document.getElementById('trGoals').insertAdjacentHTML('beforeend', parts[1]);
+  document.getElementById('trPaneGym').insertAdjacentHTML('beforeend', parts[2]);
+  document.getElementById('trPaneEnd').insertAdjacentHTML('beforeend', parts[3]);
+  document.getElementById('trPanePlan').insertAdjacentHTML('beforeend', parts[4]);
   document.querySelectorAll('.tr-tab').forEach(function(btn){
     btn.addEventListener('click', function(){ trSwitch(btn.dataset.pane); });
   });
-  // Load gym JS then endurance JS
-  return new Promise(function(ok){
-    var s=document.createElement('script');
-    s.src='../../modules/gym/gym.js'; s.onload=ok; document.head.appendChild(s);
-  });
-}).then(function(){
-  return new Promise(function(ok){
-    var s=document.createElement('script');
-    s.src='../../modules/endurance/endurance.js'; s.onload=ok; document.head.appendChild(s);
-  });
+  // Load module JS in order; each wires to DOM that now exists
+  return loadJS('../../modules/goals/goals.js')
+    .then(function(){ return loadJS('../../modules/gym/gym.js'); })
+    .then(function(){ return loadJS('../../modules/endurance/endurance.js'); })
+    .then(function(){ return loadJS('../../modules/training-calendar/training-calendar.js'); });
 }).then(function(){
   var saved = localStorage.getItem('tr_subtab') || 'gym';
   trSwitch(saved);
-}).catch(function(e){console.error('training load failed:',e);});
+}).catch(function(e){ console.error('training load failed:', e); });
 
 function trSwitch(pane) {
-  document.querySelectorAll('.tr-tab').forEach(function(b){
-    b.classList.toggle('on', b.dataset.pane === pane);
+  document.querySelectorAll('.tr-tab').forEach(function(b){ b.classList.toggle('on', b.dataset.pane === pane); });
+  ['gym','end','plan'].forEach(function(p){
+    var el = document.getElementById(p === 'gym' ? 'trPaneGym' : p === 'end' ? 'trPaneEnd' : 'trPanePlan');
+    if (el) el.classList.toggle('on', p === pane);
   });
-  var gymPane = document.getElementById('trPaneGym');
-  var endPane = document.getElementById('trPaneEnd');
-  if (gymPane) gymPane.classList.toggle('on', pane === 'gym');
-  if (endPane) endPane.classList.toggle('on', pane === 'end');
   try { localStorage.setItem('tr_subtab', pane); } catch(e){}
 }
 window.trSwitch = trSwitch;

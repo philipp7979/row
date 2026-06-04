@@ -31,8 +31,8 @@ let trState = {
 function load(){try{trState.sessions=JSON.parse(localStorage.getItem(SK))||[];}catch(e){trState.sessions=[];}}
 function save(){try{localStorage.setItem(SK,JSON.stringify(trState.sessions));}catch(e){}syncSupa();}
 async function syncSupa(){
-  if(!SUPABASE_URL||SUPABASE_URL.includes('PASTE')||!window.supabase)return;
-  try{const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);await db.from('app_state').upsert({key:SK,data:trState.sessions,updated_at:new Date().toISOString()},{onConflict:'key'});}catch(e){}
+  if(!window.supaClient)return;
+  try{await window.supaClient().from('app_state').upsert({key:SK,data:trState.sessions,updated_at:new Date().toISOString()},{onConflict:'key'});}catch(e){}
 }
 
 function p2(n){return String(n).padStart(2,'0')}
@@ -92,11 +92,13 @@ function renderWeek(){
     const sess=sessionsOn(ds),lifeEvs=getLifeEventsOn(ds),conflict=lifeEvs.some(e=>e.type==='exam'||e.type==='appointment');
     let html=`<div class="tr-day-col" data-date="${ds}">`;
     if(conflict&&!sess.length)html+=`<div style="font-size:8px;color:rgba(244,63,94,.6);padding:3px;text-align:center">Busy</div>`;
+    const pGoal=primaryGoalId();
     sess.forEach(s=>{
       const dc=DISC[s.discipline]||DISC.run;const meta=[];
       if(s.duration)meta.push(s.duration+'min');if(s.distance)meta.push(s.distance+'km');if(s.intensity)meta.push(s.intensity);
-      html+=`<div class="tr-session${s.done?' done':''}${s.aiGen?' ai-gen':''}" data-id="${s.id}" style="background:${dc.color}">
-        <div class="tr-session-icon">${dc.label.split(' ')[0]}</div>
+      const glow=(s.goalId&&s.goalId===pGoal)?' goal-primary':'';
+      html+=`<div class="tr-session${s.done?' done':''}${s.aiGen?' ai-gen':''}${glow}" data-id="${s.id}" style="background:${dc.color}">
+        <div class="tr-session-icon">${dc.label.split(' ')[0]}${s.aiGen?' <span style="font-size:8px">🤖</span>':''}</div>
         <div class="tr-session-name">${s.name}</div>
         <div class="tr-session-meta">${meta.join(' · ')}</div></div>`;
     });
@@ -192,7 +194,7 @@ function openDetSheet(id){
       <button class="tr-det-complete" data-id="${s.id}">${s.done?'✓ Done':'Mark as done'}</button>
       <button class="tr-det-del" data-id="${s.id}">Delete</button>
     </div>`;
-  document.getElementById('trDetContent').querySelector('.tr-det-complete').addEventListener('click',()=>{const sess=trState.sessions.find(x=>x.id===id);if(sess){sess.done=!sess.done;save();closeDetSheet();render();}});
+  document.getElementById('trDetContent').querySelector('.tr-det-complete').addEventListener('click',()=>{const sess=trState.sessions.find(x=>x.id===id);if(sess){sess.done=!sess.done;if(sess.done)syncDoneToLife(sess);save();closeDetSheet();render();}});
   document.getElementById('trDetContent').querySelector('.tr-det-del').addEventListener('click',()=>{trState.sessions=trState.sessions.filter(x=>x.id!==id);save();closeDetSheet();render();});
   document.getElementById('trDetail').classList.add('open');
   document.getElementById('trDetOverlay').classList.add('open');
@@ -221,6 +223,7 @@ function openAddModal(date){
   document.getElementById('acDuration').value='';document.getElementById('acDistance').value='';
   document.getElementById('acIntensity').value='';document.getElementById('acHrZone').value='';
   document.getElementById('acNotes').value='';
+  populateGoalSelect('');
   updateModalUI();
   document.getElementById('acModal').classList.add('open');
   document.getElementById('acOverlay').classList.add('open');
@@ -319,6 +322,7 @@ document.getElementById('acDone').addEventListener('click',()=>{
     distance:Number(document.getElementById('acDistance').value)||null,
     intensity:document.getElementById('acIntensity').value||null,
     hrZone:document.getElementById('acHrZone').value||null,
+    goalId:document.getElementById('acGoal').value||null,
     notes:document.getElementById('acNotes').value.trim()||null,
     done:false,aiGen:false
   };
@@ -331,18 +335,43 @@ document.getElementById('acDone').addEventListener('click',()=>{
 function showAiLoader(t){document.getElementById('aiLoadingText').textContent=t||'Groq is building your plan…';document.getElementById('aiLoading').classList.add('show');}
 function hideAiLoader(){document.getElementById('aiLoading').classList.remove('show');}
 
+// Routes through shared/groq.js so buildMasterContext() (all training
+// goals, ranked by priority) is prepended to every plan request.
 async function callGroq(prompt){
-  const res=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+GROQ_API_KEY},body:JSON.stringify({model:'llama-3.3-70b-versatile',messages:[{role:'user',content:prompt}],temperature:.7,max_tokens:2500})});
-  if(!res.ok)throw new Error('Groq error '+res.status);return(await res.json()).choices[0].message.content;
+  return await window.callGroq([{role:'user',content:prompt}],{max_tokens:2500,temperature:.7});
 }
+function hasGroqKey(){return !!(window.groqKey && window.groqKey());}
 function parseAiSessions(raw){const m=raw.match(/\[[\s\S]*\]/);if(!m)throw new Error('No JSON array');return JSON.parse(m[0]);}
 
+/* ── Goal linking ── */
+function allGoals(){try{return JSON.parse(localStorage.getItem('training_goals_v1'))||[];}catch(e){return[];}}
+function primaryGoalId(){const g=(window.rankedGoals?window.rankedGoals():allGoals())[0];return g?g.id:null;}
+function populateGoalSelect(selId){
+  const sel=document.getElementById('acGoal');if(!sel)return;
+  const gs=allGoals();
+  sel.innerHTML='<option value="">—</option>'+gs.map(g=>`<option value="${g.id}"${g.id===selId?' selected':''}>${(g.name||'').replace(/</g,'&lt;')}</option>`).join('');
+}
+const SPORT_EMOJI={run:'🏃',bike:'🚴',swim:'🏊',strength:'💪',hyrox:'🔥',race:'🏁',rest:'😴'};
+/* Push a completed session into the Life Calendar as a sport-emoji entry. */
+function syncDoneToLife(s){
+  if(!s||!s.done)return;
+  try{
+    const evs=JSON.parse(localStorage.getItem('life_calendar_v1'))||[];
+    const evId='trdone_'+s.id;
+    if(evs.some(e=>e.id===evId))return;
+    evs.push({id:evId,title:(SPORT_EMOJI[s.discipline]||'🏋️'),date:s.date,time:s.time||null,kind:'training'});
+    localStorage.setItem('life_calendar_v1',JSON.stringify(evs));
+  }catch(e){}
+}
+
 document.getElementById('aiWeekBtn').addEventListener('click',async()=>{
-  if(!GROQ_API_KEY){document.getElementById('groqBanner').style.display='block';return;}
+  if(!hasGroqKey()){document.getElementById('groqBanner').style.display='block';return;}
   const days=weekDays(trState.selDate||today());
   const life=JSON.parse(localStorage.getItem('life_calendar_v1')||'[]').filter(e=>e.date>=days[0]&&e.date<=days[6]);
   const recent=trState.sessions.slice(-14).map(s=>({discipline:s.discipline,name:s.name,duration:s.duration,done:s.done}));
-  const prompt=`You are a triathlon/Hyrox coach. Create a 7-day training plan.\nWeek: ${days.join(', ')}\nLife events: ${JSON.stringify(life)}\nRecent history: ${JSON.stringify(recent)}\n\nReturn ONLY a JSON array:\n[{"date":"YYYY-MM-DD","discipline":"run|bike|swim|strength|hyrox|race|rest","name":"string","duration":60,"distance":10,"intensity":"Easy|Tempo|Interval|Race Pace","hrZone":"Z1|Z2|Z3|Z4|Z5","notes":"string"}]`;
+  let strava=[];try{strava=(JSON.parse(localStorage.getItem('strava_data_v1'))||{}).activities||[];strava=strava.slice(0,14).map(a=>({type:a.type,km:Math.round((a.distance||0)/100)/10,min:Math.round((a.moving_time||0)/60)}));}catch(e){}
+  let recovery=null;try{const w=JSON.parse(localStorage.getItem('whoop_data_v1'));const e=w&&(w.recoveries||w.data||[])[0];if(e)recovery=Math.round(e.score||e.recovery_score||0);}catch(e){}
+  const prompt=`You are a triathlon/Hyrox coach. Create a 7-day training plan focused on the athlete's #1 goal (see goal context above) while keeping base fitness for the other goals.\nWeek: ${days.join(', ')}\nLife events: ${JSON.stringify(life)}\nRecent planned sessions: ${JSON.stringify(recent)}\nStrava last 2 weeks: ${JSON.stringify(strava)}\nWhoop recovery today: ${recovery!=null?recovery+'%':'n/a'}\n\nReturn ONLY a JSON array:\n[{"date":"YYYY-MM-DD","discipline":"run|bike|swim|strength|hyrox|race|rest","name":"string","duration":60,"distance":10,"intensity":"Easy|Tempo|Interval|Race Pace","hrZone":"Z1|Z2|Z3|Z4|Z5","notes":"string"}]`;
   showAiLoader('Groq is planning your week…');document.getElementById('aiWeekBtn').disabled=true;
   try{const sessions=parseAiSessions(await callGroq(prompt));sessions.forEach(s=>{if(!s.date||!s.discipline||!s.name)return;trState.sessions.push({id:'ai_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),discipline:s.discipline,name:s.name,date:s.date,time:null,duration:s.duration||null,distance:s.distance||null,intensity:s.intensity||null,hrZone:s.hrZone||null,notes:s.notes||null,done:false,aiGen:true});});save();render();}
   catch(e){alert('AI planning failed: '+e.message);}
@@ -350,7 +379,7 @@ document.getElementById('aiWeekBtn').addEventListener('click',async()=>{
 });
 
 document.getElementById('aiMonthBtn').addEventListener('click',async()=>{
-  if(!GROQ_API_KEY){document.getElementById('groqBanner').style.display='block';return;}
+  if(!hasGroqKey()){document.getElementById('groqBanner').style.display='block';return;}
   const start=today();const allDays=Array.from({length:28},(_,i)=>{const d=parseD(start);d.setDate(d.getDate()+i);return dk(d.getFullYear(),d.getMonth(),d.getDate());});
   const life=JSON.parse(localStorage.getItem('life_calendar_v1')||'[]').filter(e=>e.date>=allDays[0]&&e.date<=allDays[27]);
   const recent=trState.sessions.slice(-14).map(s=>({discipline:s.discipline,name:s.name,duration:s.duration,done:s.done}));
@@ -370,8 +399,12 @@ document.addEventListener('keydown',e=>{
 });
 
 load();trState.selDate=today();
-if(!GROQ_API_KEY)document.getElementById('groqBanner').style.display='block';
+if(!hasGroqKey())document.getElementById('groqBanner').style.display='block';
 render();reqNotifs();
+
+// Cloud sync via the shared helper (writes/reads training_calendar_v1)
+if(window.initCloudSync){window.initCloudSync({appKey:'training-calendar',syncedKeys:[SK],onApplied:()=>{load();render();}});}
+window.addEventListener('storage',e=>{if(e.key===SK){load();render();}if(e.key==='training_goals_v1')render();});
 
 })();
 
