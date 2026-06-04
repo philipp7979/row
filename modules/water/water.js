@@ -192,22 +192,17 @@ const CONFIG = {
     const count = todayCount();
     const unitName = unitLabelPlural();
 
-    $('waterUnitLabel').textContent = unitName.toUpperCase() + ' DRANK TODAY';
     $('waterNum').textContent = count;
     $('waterTarget').textContent = '/ ' + targetUnits;
-    $('waterPlusLabel').textContent = 'Drank a ' + unitLabelSingular();
+    $('waterUnitLabel').textContent = unitName;
+    $('waterPlusLabel').textContent = unitLabelSingular().charAt(0).toUpperCase() + unitLabelSingular().slice(1);
 
-    // Progress bar with three zones: low (0-65%), healthy (65-100%), over (100-150%)
+    // Progress ring (r=85 → circumference ≈ 534)
     const pctRaw = (count / targetUnits) * 100;
-    const fillPct = Math.min(150, pctRaw) / 1.5;   // bar represents 0-150%
-    const fill = $('waterBarFill');
-    fill.style.width = fillPct + '%';
-    fill.classList.toggle('over', pctRaw > 100);
-    $('waterBarMin').textContent = '0';
-    $('waterBarMax').textContent = (Math.ceil(targetUnits * 1.5)) + '+';
-    // Healthy zone bands at 65% and 100%
-    $('waterBarZoneStart').style.left = (65 / 1.5) + '%';
-    $('waterBarZoneEnd').style.left   = (100 / 1.5) + '%';
+    const C = 534;
+    const ring = $('ringFill');
+    ring.style.strokeDashoffset = (C * (1 - Math.min(1, count / targetUnits))).toFixed(1);
+    ring.classList.toggle('over', pctRaw >= 100);
 
     // Helper text
     const helper = $('waterHelper');
@@ -220,9 +215,33 @@ const CONFIG = {
     // Disable minus when at zero
     $('waterMinusBtn').disabled = count <= 0;
 
+    // Compact stats: weekly average (last 7 days), daily goal, current streak
+    let sum7 = 0;
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(); d.setDate(d.getDate() - i);
+      sum7 += state.logs[dateKey(d)] || 0;
+    }
+    $('statWeekAvg').textContent = Math.round(sum7 / 7);
+    $('statTarget').textContent = targetUnits;
+    $('statStreak').textContent = computeStreak(targetUnits);
+
     renderWhy(calc, targetUnits);
     renderHistory();
     renderSparkline(targetUnits);
+  }
+
+  // Consecutive days (ending today or yesterday) that met the target
+  function computeStreak(target) {
+    let streak = 0;
+    const today = new Date();
+    // If today not yet met, start counting from yesterday so the streak doesn't read 0 mid-day
+    let startOffset = (state.logs[dateKey(today)] || 0) >= target ? 0 : 1;
+    for (let i = startOffset; i < 400; i++) {
+      const d = new Date(); d.setDate(d.getDate() - i);
+      if ((state.logs[dateKey(d)] || 0) >= target) streak++;
+      else break;
+    }
+    return streak;
   }
 
   function renderWhy(calc, targetUnits) {
@@ -312,13 +331,6 @@ const CONFIG = {
   $('waterMinusBtn').addEventListener('click', () => {
     setTodayCount(Math.max(0, todayCount() - 1));
     renderWater();
-  });
-
-  $('whyToggle').addEventListener('click', () => {
-    const body = $('whyBody');
-    const open = body.classList.contains('show');
-    body.classList.toggle('show');
-    $('whyToggle').setAttribute('aria-expanded', open ? 'false' : 'true');
   });
 
   // ============================================================

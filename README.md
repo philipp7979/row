@@ -67,6 +67,7 @@ shared/
   shared.css            — CSS variables, topbar, tab bar, modals (loaded by every module)
   shell.js              — tab switching + lazy iframe loader, water widget, settings
   supabase.js           — Supabase client config (cloud sync)
+  sync.js               — cloud-sync helper (initCloudSync), loaded by every module
   groq.js               — Groq API helper (AI features)
   profile.js            — user profile / goals helpers
 modules/<name>/
@@ -86,7 +87,7 @@ The shell maps each bottom-bar tab to a module:
 | **Others** | `bible` (with `thoughts` + `grades`) | Thoughts, Bible reading plan, School grades |
 | **Finance** (topbar) | `finance` | Net worth, subscriptions, orders, wishlist |
 
-`modules/sync/sync.js` and `modules/topbar/topbar.js` are shared helpers used by the modules.
+Cloud sync is wired through `shared/sync.js` (`initCloudSync`), which every module's wrapper page loads alongside `supabase.js`.
 
 ### Adding a new module
 
