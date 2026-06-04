@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
-<meta name="theme-color" content="#0a0a0b">
+<meta name="theme-color" content="#000000">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../../shared/supabase.js"></script>
 <script src="../../shared/groq.js"></script>
@@ -17,7 +17,7 @@
 <link rel="stylesheet" href="../../modules/training-calendar/training-calendar.css">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;background:#0a0a0b;overflow-x:hidden;overscroll-behavior:none;
+html,body{height:100%;background:var(--bg);overflow-x:hidden;overscroll-behavior:none;
   -webkit-font-smoothing:antialiased;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;}
 body{overflow-y:auto;padding:14px 14px calc(80px + env(safe-area-inset-bottom))}
 </style>
@@ -28,33 +28,33 @@ function loadJS(src){return new Promise(function(ok,fail){var s=document.createE
 
 Promise.all([
   fetch('training.html').then(function(r){return r.text();}),
-  fetch('../../modules/goals/goals.html').then(function(r){return r.text();}),
   fetch('../../modules/gym/gym.html').then(function(r){return r.text();}),
   fetch('../../modules/endurance/endurance.html').then(function(r){return r.text();}),
-  fetch('../../modules/training-calendar/training-calendar.html').then(function(r){return r.text();})
+  fetch('../../modules/training-calendar/training-calendar.html').then(function(r){return r.text();}),
+  fetch('../../modules/goals/goals.html').then(function(r){return r.text();})
 ]).then(function(parts){
-  document.body.insertAdjacentHTML('beforeend', parts[0]);          // training shell: #trGoals + panes
-  document.getElementById('trGoals').insertAdjacentHTML('beforeend', parts[1]);
-  document.getElementById('trPaneGym').insertAdjacentHTML('beforeend', parts[2]);
-  document.getElementById('trPaneEnd').insertAdjacentHTML('beforeend', parts[3]);
-  document.getElementById('trPanePlan').insertAdjacentHTML('beforeend', parts[4]);
+  document.body.insertAdjacentHTML('beforeend', parts[0]);
+  document.getElementById('trPaneGym').insertAdjacentHTML('beforeend', parts[1]);
+  document.getElementById('trPaneEnd').insertAdjacentHTML('beforeend', parts[2]);
+  document.getElementById('trPanePlan').insertAdjacentHTML('beforeend', parts[3]);
+  document.getElementById('trPaneGoals').insertAdjacentHTML('beforeend', parts[4]);
   document.querySelectorAll('.tr-tab').forEach(function(btn){
     btn.addEventListener('click', function(){ trSwitch(btn.dataset.pane); });
   });
-  // Load module JS in order; each wires to DOM that now exists
-  return loadJS('../../modules/goals/goals.js')
-    .then(function(){ return loadJS('../../modules/gym/gym.js'); })
+  return loadJS('../../modules/gym/gym.js')
     .then(function(){ return loadJS('../../modules/endurance/endurance.js'); })
-    .then(function(){ return loadJS('../../modules/training-calendar/training-calendar.js'); });
+    .then(function(){ return loadJS('../../modules/training-calendar/training-calendar.js'); })
+    .then(function(){ return loadJS('../../modules/goals/goals.js'); });
 }).then(function(){
   var saved = localStorage.getItem('tr_subtab') || 'gym';
   trSwitch(saved);
 }).catch(function(e){ console.error('training load failed:', e); });
 
+var PANES = { gym: 'trPaneGym', end: 'trPaneEnd', plan: 'trPanePlan', goals: 'trPaneGoals' };
 function trSwitch(pane) {
   document.querySelectorAll('.tr-tab').forEach(function(b){ b.classList.toggle('on', b.dataset.pane === pane); });
-  ['gym','end','plan'].forEach(function(p){
-    var el = document.getElementById(p === 'gym' ? 'trPaneGym' : p === 'end' ? 'trPaneEnd' : 'trPanePlan');
+  Object.keys(PANES).forEach(function(p){
+    var el = document.getElementById(PANES[p]);
     if (el) el.classList.toggle('on', p === pane);
   });
   try { localStorage.setItem('tr_subtab', pane); } catch(e){}

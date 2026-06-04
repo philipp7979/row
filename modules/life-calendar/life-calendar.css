@@ -1,4 +1,16 @@
 
+:root{
+  --bg: #000000; --bg-card: #0F0F0F; --bg-card-2: #141414; --bg-elevated: #1C1C1E;
+  --border: rgba(255,255,255,0.06); --border-strong: rgba(255,255,255,0.12);
+  --text-1: #FFFFFF; --text-2: rgba(255,255,255,0.55); --text-3: rgba(255,255,255,0.30); --text-4: rgba(255,255,255,0.15);
+  --green: #30D158; --green-bg: rgba(48,209,88,0.12); --blue: #0A84FF; --red: #FF453A; --orange: #FF9F0A; --purple: #BF5AF2;
+  --radius-sm: 10px; --radius: 14px; --radius-lg: 20px; --radius-xl: 28px;
+  --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1); --ease: cubic-bezier(0.25, 0.46, 0.45, 0.94); --duration: 0.25s;
+  --t: var(--text-1);
+}
 /* restored body text color */
 body{color:var(--t);}
 .pc-wrap{margin:18px 0 4px;color:#fff}
@@ -71,7 +83,7 @@ body{color:var(--t);}
   .pc-sheet.open{display:block}
   .pc-sheet-scrim{position:fixed;inset:0;background:rgba(0,0,0,.7);opacity:0;transition:opacity .3s}
   .pc-sheet.open .pc-sheet-scrim{opacity:1}
-  .pc-sheet-panel{position:fixed;bottom:0;left:0;right:0;background:#121214;border-radius:24px 24px 0 0;padding:18px 18px max(20px,env(safe-area-inset-bottom));transform:translateY(100%);transition:transform .4s cubic-bezier(.32,.72,0,1);max-height:90vh;overflow-y:auto}
+  .pc-sheet-panel{position:fixed;bottom:0;left:0;right:0;background:rgba(20,20,20,0.92);backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);border-radius:var(--radius-xl) var(--radius-xl) 0 0;padding:18px 18px max(20px,env(safe-area-inset-bottom));transform:translateY(100%);transition:transform .4s var(--spring);max-height:90vh;overflow-y:auto}
   .pc-sheet.open .pc-sheet-panel{transform:translateY(0)}
   .pc-handle{width:36px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;margin:0 auto 16px}
   .pc-sheet-title{font-size:19px;font-weight:800;margin-bottom:14px}
@@ -83,16 +95,18 @@ body{color:var(--t);}
   .pc-type-l{font-size:9px;font-weight:600;color:rgba(255,255,255,.6)}
   .pc-f{margin-bottom:10px}
   .pc-f label{display:block;font-size:11px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
-  .pc-f input,.pc-f select,.pc-f textarea{width:100%;background:rgba(255,255,255,.06);border:none;border-radius:12px;padding:12px 14px;font-size:16px;color:#fff;font-family:inherit;outline:none}
+  .pc-f input,.pc-f select,.pc-f textarea{width:100%;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;font-size:16px;color:var(--text-1);font-family:inherit;outline:none}
+  .pc-f input:focus,.pc-f select:focus,.pc-f textarea:focus{border-color:var(--border-strong)}
   .pc-f-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
   .pc-prio{display:flex;gap:8px}
   .pc-prio-opt{flex:1;padding:10px;border-radius:12px;background:rgba(255,255,255,.05);text-align:center;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
   .pc-prio-opt.sel{box-shadow:0 0 0 2px currentColor}
   .pc-prio-dot{width:9px;height:9px;border-radius:50%}
-  .pc-btn{width:100%;padding:15px;border:none;border-radius:15px;font-size:16px;font-weight:800;cursor:pointer;font-family:inherit;margin-top:6px}
-  .pc-btn.pri{background:#fff;color:#000}
-  .pc-btn.sec{background:rgba(255,255,255,.07);color:rgba(255,255,255,.7)}
-  .pc-btn.del{background:rgba(244,63,94,.15);color:#f43f5e}
+  .pc-btn{width:100%;padding:14px;border:none;border-radius:var(--radius);font-size:16px;font-weight:800;cursor:pointer;font-family:inherit;margin-top:6px;transition:transform var(--duration) var(--spring)}
+  .pc-btn:active{transform:scale(0.97)}
+  .pc-btn.pri{background:var(--text-1);color:var(--bg)}
+  .pc-btn.sec{background:var(--bg-card-2);border:1px solid var(--border-strong);color:var(--text-1)}
+  .pc-btn.del{background:rgba(255,69,58,.12);color:var(--red);border:1px solid rgba(255,69,58,.25)}
   .pc-de{display:flex;align-items:center;gap:12px;padding:12px 4px;border-radius:12px;position:relative;overflow:hidden}
   .pc-de-bar{width:4px;align-self:stretch;border-radius:2px;min-height:38px}
   .pc-de-b{flex:1;min-width:0}

@@ -1,11 +1,19 @@
 :root{
-  --bg:#050506;--card:rgba(255,255,255,.04);--card2:rgba(255,255,255,.07);
-  --border:rgba(255,255,255,.06);--border2:rgba(255,255,255,.12);
-  --t1:#FAFAFA;--t2:#B8B6B0;--t3:#76746E;--t4:#4D4B47;
-  --green:#6BE3A4;--green-bg:rgba(107,227,164,.12);--green-border:rgba(107,227,164,.25);
-  --orange:#F59E0B;--red:#f87171;
-  --r:16px;--r2:22px;
-  --font:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;
+  --bg: #000000; --bg-card: #0F0F0F; --bg-card-2: #141414; --bg-elevated: #1C1C1E;
+  --border: rgba(255,255,255,0.06); --border-strong: rgba(255,255,255,0.12);
+  --text-1: #FFFFFF; --text-2: rgba(255,255,255,0.55); --text-3: rgba(255,255,255,0.30); --text-4: rgba(255,255,255,0.15);
+  --green: #30D158; --green-bg: rgba(48,209,88,0.12); --blue: #0A84FF; --red: #FF453A; --orange: #FF9F0A; --purple: #BF5AF2;
+  --radius-sm: 10px; --radius: 14px; --radius-lg: 20px; --radius-xl: 28px;
+  --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1); --ease: cubic-bezier(0.25, 0.46, 0.45, 0.94); --duration: 0.25s;
+  /* Bible aliases */
+  --card: var(--bg-card); --card2: var(--bg-card-2);
+  --border2: var(--border-strong);
+  --t1: var(--text-1); --t2: var(--text-2); --t3: var(--text-3); --t4: var(--text-4);
+  --green-border: rgba(48,209,88,0.25);
+  --r: var(--radius); --r2: var(--radius-xl);
 }
 /* restored body text color */
 body{color:var(--t1);}
@@ -17,7 +25,7 @@ button{cursor:pointer}
 .section-title{font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin:28px 0 10px}
 
 /* ── CARDS ── */
-.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:20px;margin-bottom:14px}
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:14px}
 .card.green{background:var(--green-bg);border-color:var(--green-border)}
 .card.orange{background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.25)}
 
@@ -34,9 +42,9 @@ button{cursor:pointer}
 .today-date{font-size:12px;color:var(--t4)}
 .today-reading{font-size:20px;font-weight:700;color:var(--t1);margin-bottom:6px;line-height:1.35}
 .today-sub{font-size:14px;color:var(--t2);margin-bottom:20px}
-.check-btn{width:100%;padding:15px;border:none;border-radius:14px;font-size:16px;font-weight:700;transition:background .2s,transform .1s;display:flex;align-items:center;justify-content:center;gap:10px}
+.check-btn{width:100%;padding:14px;border:none;border-radius:var(--radius);font-size:16px;font-weight:700;transition:transform var(--duration) var(--spring);display:flex;align-items:center;justify-content:center;gap:10px}
 .check-btn:active{transform:scale(.97)}
-.check-btn.unread{background:rgba(255,255,255,.08);color:var(--t1)}
+.check-btn.unread{background:var(--bg-card-2);border:1px solid var(--border-strong);color:var(--text-1)}
 .check-btn.done{background:var(--green);color:#000}
 .no-plan-msg{text-align:center;padding:10px 0 4px;color:var(--t3);font-size:15px}
 
@@ -105,7 +113,7 @@ button{cursor:pointer}
 #planModal{position:fixed;inset:0;z-index:200;display:none}
 #planModal.open{display:flex;flex-direction:column;justify-content:flex-end}
 .modal-scrim{position:fixed;inset:0;background:rgba(0,0,0,.7)}
-.modal-panel{position:relative;background:#1c1c1e;border-radius:22px 22px 0 0;padding:20px;padding-bottom:max(24px,env(safe-area-inset-bottom));max-height:90vh;overflow-y:auto}
+.modal-panel{position:relative;background:rgba(20,20,20,0.92);backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);border-radius:var(--radius-xl) var(--radius-xl) 0 0;padding:20px;padding-bottom:max(24px,env(safe-area-inset-bottom));max-height:90vh;overflow-y:auto}
 .modal-handle{width:36px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;margin:0 auto 20px}
 .modal-title{font-size:20px;font-weight:700;margin-bottom:4px}
 .modal-sub{font-size:14px;color:var(--t3);margin-bottom:20px}
@@ -115,9 +123,10 @@ button{cursor:pointer}
 .plan-option-desc{font-size:13px;color:var(--t3)}
 .plan-check{width:24px;height:24px;border-radius:50%;border:2px solid rgba(255,255,255,.2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px}
 .plan-option.sel .plan-check{background:var(--green);border-color:var(--green);color:#000}
-.modal-btn{width:100%;padding:16px;border:none;border-radius:14px;font-size:17px;font-weight:700;margin-top:8px}
-.modal-btn.pri{background:var(--green);color:#000}
-.modal-btn.sec{background:rgba(255,255,255,.08);color:var(--t2)}
+.modal-btn{width:100%;padding:14px;border:none;border-radius:var(--radius);font-size:17px;font-weight:700;margin-top:8px;transition:transform var(--duration) var(--spring)}
+.modal-btn:active{transform:scale(0.97)}
+.modal-btn.pri{background:var(--text-1);color:var(--bg)}
+.modal-btn.sec{background:var(--bg-card-2);border:1px solid var(--border-strong);color:var(--text-1)}
 .custom-fields{background:rgba(0,0,0,.2);border-radius:14px;padding:14px;margin-top:8px;display:none}
 .custom-fields.show{display:block}
 .field-label{font-size:13px;font-weight:600;color:var(--t2);margin-bottom:6px}
@@ -150,8 +159,9 @@ button{cursor:pointer}
 
 
 .ot-tabbar{position:sticky;top:0;z-index:30;display:flex;gap:8px;background:var(--bg);padding:14px 16px 12px;margin-bottom:2px}
-.ot-tab{flex:1;padding:11px;border:1px solid var(--border);background:var(--card);border-radius:13px;color:var(--t2);font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;transition:background .18s,color .18s,border-color .18s}
-.ot-tab.on{background:#fff;color:#000;border-color:#fff}
+.ot-tab{flex:1;padding:11px;border:1px solid var(--border);background:var(--bg-card);border-radius:var(--radius);color:var(--text-2);font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;transition:background var(--duration) var(--ease),color var(--duration) var(--ease),border-color var(--duration) var(--ease)}
+.ot-tab.on{background:var(--text-1);color:var(--bg);border-color:var(--text-1)}
+.ot-tab:active{transform:scale(.98)}
 .ot-tab:active{transform:scale(.98)}
 .ot-pane{display:none;animation:otFade .25s ease}
 .ot-pane.on{display:block}
@@ -234,7 +244,7 @@ button{cursor:pointer}
 #thModal{position:fixed;inset:0;z-index:300;display:none}
 #thModal.open{display:flex;flex-direction:column;justify-content:flex-end}
 .th-modal-scrim{position:fixed;inset:0;background:rgba(0,0,0,.7)}
-.th-modal-panel{position:relative;background:#1c1c1e;border-radius:22px 22px 0 0;padding:20px;padding-bottom:max(24px,env(safe-area-inset-bottom));max-height:88vh;overflow-y:auto}
+.th-modal-panel{position:relative;background:var(--bg-elevated);border-radius:22px 22px 0 0;padding:20px;padding-bottom:max(24px,env(safe-area-inset-bottom));max-height:88vh;overflow-y:auto}
 .th-modal-handle{width:36px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;margin:0 auto 18px}
 .th-modal-title{font-size:20px;font-weight:800;margin-bottom:14px}
 .th-field{margin-bottom:12px}

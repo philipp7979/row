@@ -1,17 +1,18 @@
 
 :root {
-  --bg: #000000;
-  --surface: #1c1c1e;
-  --surface2: #2c2c2e;
-  --surface3: #3a3a3c;
-  --text: #ffffff;
-  --text2: rgba(255,255,255,.55);
-  --text3: rgba(255,255,255,.28);
-  --blue: #0A84FF;
-  --red: #FF3B30;
-  --green: #30d158;
-  --divider: rgba(255,255,255,.08);
-  --font: -apple-system,"SF Pro Display","SF Pro Text","Helvetica Neue","Inter",sans-serif;
+  --bg: #000000; --bg-card: #0F0F0F; --bg-card-2: #141414; --bg-elevated: #1C1C1E;
+  --border: rgba(255,255,255,0.06); --border-strong: rgba(255,255,255,0.12);
+  --text-1: #FFFFFF; --text-2: rgba(255,255,255,0.55); --text-3: rgba(255,255,255,0.30); --text-4: rgba(255,255,255,0.15);
+  --green: #30D158; --green-bg: rgba(48,209,88,0.12); --blue: #0A84FF; --red: #FF453A; --orange: #FF9F0A; --purple: #BF5AF2;
+  --radius-sm: 10px; --radius: 14px; --radius-lg: 20px; --radius-xl: 28px;
+  --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1); --ease: cubic-bezier(0.25, 0.46, 0.45, 0.94); --duration: 0.25s;
+  /* Calendar aliases */
+  --surface: var(--bg-elevated); --surface2: #2C2C2E; --surface3: #3A3A3C;
+  --text: var(--text-1); --text2: var(--text-2); --text3: var(--text-3);
+  --divider: var(--border);
   --c-swim:#38bdf8;--c-bike:#f59e0b;--c-run:#6ee7b7;
   --c-strength:#a78bfa;--c-hyrox:#fb923c;--c-race:#f43f5e;--c-rest:#6b7280;
 }
@@ -95,7 +96,7 @@ body{color:var(--text);}
 /* Detail sheet */
 .tr-det-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:100;opacity:0;pointer-events:none;transition:opacity .3s}
 .tr-det-overlay.open{opacity:1;pointer-events:all}
-.tr-detail{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-radius:20px 20px 0 0;padding:10px 20px max(28px,env(safe-area-inset-bottom));z-index:101;transform:translateY(100%);transition:transform .35s cubic-bezier(.32,.72,0,1);max-height:78vh;overflow-y:auto}
+.tr-detail{position:fixed;bottom:0;left:0;right:0;background:rgba(20,20,20,0.92);backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);border-radius:var(--radius-xl) var(--radius-xl) 0 0;padding:10px 20px max(28px,env(safe-area-inset-bottom));z-index:101;transform:translateY(100%);transition:transform .35s var(--spring);max-height:78vh;overflow-y:auto}
 .tr-detail.open{transform:translateY(0)}
 .tr-det-badge{display:inline-block;padding:4px 12px;border-radius:999px;font-size:12px;font-weight:700;margin-bottom:10px}
 .tr-det-title{font-size:22px;font-weight:700;color:var(--text);margin-bottom:8px}
@@ -123,7 +124,7 @@ body{color:var(--text);}
    ============================================================ */
 .ac-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;opacity:0;pointer-events:none;transition:opacity .3s}
 .ac-overlay.open{opacity:1;pointer-events:all}
-.ac-modal{position:fixed;bottom:0;left:0;right:0;background:#1C1C1E;border-radius:14px 14px 0 0;z-index:201;transform:translateY(100%);transition:transform .4s cubic-bezier(.32,.72,0,1);max-height:96vh;display:flex;flex-direction:column;font-family:var(--font)}
+.ac-modal{position:fixed;bottom:0;left:0;right:0;background:rgba(20,20,20,0.92);backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);border-radius:var(--radius-xl) var(--radius-xl) 0 0;z-index:201;transform:translateY(100%);transition:transform .4s var(--spring);max-height:96vh;display:flex;flex-direction:column;font-family:var(--font)}
 .ac-modal.open{transform:translateY(0)}
 .ac-handle{width:36px;height:5px;background:rgba(255,255,255,.22);border-radius:3px;margin:8px auto 0;flex-shrink:0}
 .ac-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px 8px;flex-shrink:0}

@@ -3,32 +3,23 @@
 @media (max-width: 768px) { input, select, textarea { font-size: 16px !important; } }
 
 :root {
-  --bg: #0A0A0B;
-  --bg-deep: #050506;
-  --bg-card: rgba(255, 255, 255, 0.04);
-  --bg-secondary: rgba(255, 255, 255, 0.035);
-  --glass-bg: rgba(255, 255, 255, 0.04);
-  --glass-border: transparent;
-  --glass-border-strong: transparent;
-  --glass-shadow:
-    0 1px 0 0 rgba(255, 255, 255, 0.06) inset,
-    0 12px 40px rgba(0, 0, 0, 0.45),
-    0 1px 2px rgba(0, 0, 0, 0.25);
-  --text-primary: #FAFAFA;
-  --text-secondary: #B8B6B0;
-  --text-tertiary: #76746E;
-  --text-quaternary: #4D4B47;
-  --border: transparent;
-  --border-soft: transparent;
-  --accent: #E07658;
-  --success: #6BE3A4;
-  --warning: #F2C063;
-  --danger: #FF6B6B;
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --font: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --bg: #000000; --bg-card: #0F0F0F; --bg-card-2: #141414; --bg-elevated: #1C1C1E;
+  --border: rgba(255,255,255,0.06); --border-strong: rgba(255,255,255,0.12);
+  --text-1: #FFFFFF; --text-2: rgba(255,255,255,0.55); --text-3: rgba(255,255,255,0.30); --text-4: rgba(255,255,255,0.15);
+  --green: #30D158; --green-bg: rgba(48,209,88,0.12); --blue: #0A84FF; --red: #FF453A; --orange: #FF9F0A; --purple: #BF5AF2;
+  --radius-sm: 10px; --radius: 14px; --radius-lg: 20px; --radius-xl: 28px;
+  --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1); --ease: cubic-bezier(0.25, 0.46, 0.45, 0.94); --duration: 0.25s;
+  /* Finance aliases */
+  --bg-deep: #000000; --bg-secondary: rgba(255,255,255,0.04);
+  --glass-bg: var(--bg-card); --glass-border: var(--border); --glass-border-strong: var(--border-strong);
+  --glass-shadow: 0 1px 0 0 rgba(255,255,255,0.06) inset, 0 12px 40px rgba(0,0,0,0.45), 0 1px 2px rgba(0,0,0,0.25);
+  --text-primary: var(--text-1); --text-secondary: var(--text-2); --text-tertiary: var(--text-3); --text-quaternary: var(--text-4);
+  --border-soft: rgba(255,255,255,0.04);
+  --accent: var(--green); --success: var(--green); --warning: var(--orange); --danger: var(--red);
+  --radius-md: var(--radius);
   color-scheme: dark;
 }
 /* restored body text color */
@@ -164,24 +155,14 @@ body{color:var(--text-primary);}
 
 /* Card */
 .card {
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 18px 20px;
+  padding: 20px;
   margin-bottom: 10px;
-  backdrop-filter: blur(24px) saturate(1.2);
-  -webkit-backdrop-filter: blur(24px) saturate(1.2);
   box-shadow: var(--glass-shadow);
   position: relative;
   overflow: hidden;
-}
-.card::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 14px; right: 14px;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.16), transparent);
-  pointer-events: none;
 }
 .card-grid {
   display: grid;
@@ -697,15 +678,13 @@ body{color:var(--text-primary);}
 .ord-input-from { font-size: 12px; }
 .ord-add-btn {
   padding: 0 14px;
-  background: linear-gradient(180deg, #6EE7B7, #4ED4A0);
-  color: #04201A; border: none;
-  border-radius: 9px;
+  background: var(--green);
+  color: #fff; border: none;
+  border-radius: var(--radius-sm);
   font-family: inherit; font-size: 13px; font-weight: 700;
   cursor: pointer; white-space: nowrap;
-  box-shadow: 0 4px 14px rgba(110,231,183,0.22);
-  transition: transform 0.12s, box-shadow 0.18s;
+  transition: transform var(--duration) var(--spring);
 }
-.ord-add-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(110,231,183,0.36); }
 .ord-add-btn:active { transform: scale(0.97); }
 .ord-add-preview {
   margin-top: 10px; padding: 8px 12px;
@@ -921,16 +900,14 @@ body{color:var(--text-primary);}
 }
 .wish-add-btn {
   padding: 0 18px;
-  background: linear-gradient(180deg, #B794F4, #9F7DD4);
+  background: var(--purple);
   color: #ffffff; border: none;
-  border-radius: 9px;
+  border-radius: var(--radius-sm);
   font-family: inherit; font-size: 14px; font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
-  box-shadow: 0 4px 14px rgba(183,148,244,0.30);
-  transition: transform 0.12s, box-shadow 0.18s;
+  transition: transform var(--duration) var(--spring);
 }
-.wish-add-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(183,148,244,0.45); }
 .wish-add-btn:active { transform: scale(0.97); }
 
 .wish-section-h {

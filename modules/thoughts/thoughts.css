@@ -1,7 +1,21 @@
 
+:root{
+  --bg: #000000; --bg-card: #0F0F0F; --bg-card-2: #141414; --bg-elevated: #1C1C1E;
+  --border: rgba(255,255,255,0.06); --border-strong: rgba(255,255,255,0.12);
+  --text-1: #FFFFFF; --text-2: rgba(255,255,255,0.55); --text-3: rgba(255,255,255,0.30); --text-4: rgba(255,255,255,0.15);
+  --green: #30D158; --green-bg: rgba(48,209,88,0.12); --blue: #0A84FF; --red: #FF453A; --orange: #FF9F0A; --purple: #BF5AF2;
+  --radius-sm: 10px; --radius: 14px; --radius-lg: 20px; --radius-xl: 28px;
+  --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1); --ease: cubic-bezier(0.25, 0.46, 0.45, 0.94); --duration: 0.25s;
+  --card: var(--bg-card); --card2: var(--bg-card-2); --border2: var(--border-strong);
+  --t1: var(--text-1); --t2: var(--text-2); --t3: var(--text-3); --t4: var(--text-4);
+  --r: var(--radius); --r2: var(--radius-xl);
+}
 /* restored body text color */
 body{color:var(--t1);}
-.th-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:16px;margin-bottom:14px}
+.th-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:14px}
 /* quick capture */
 .th-capture{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:14px;margin-bottom:14px}
 .th-capture-ta{width:100%;background:rgba(0,0,0,.28);border:1px solid var(--border2);border-radius:14px;padding:13px 14px;font-size:16px;color:var(--t1);font-family:inherit;outline:none;resize:none;min-height:54px;line-height:1.5;transition:border-color .2s}
@@ -78,17 +92,19 @@ body{color:var(--t1);}
 #thModal{position:fixed;inset:0;z-index:300;display:none}
 #thModal.open{display:flex;flex-direction:column;justify-content:flex-end}
 .th-modal-scrim{position:fixed;inset:0;background:rgba(0,0,0,.7)}
-.th-modal-panel{position:relative;background:#1c1c1e;border-radius:22px 22px 0 0;padding:20px;padding-bottom:max(24px,env(safe-area-inset-bottom));max-height:88vh;overflow-y:auto}
+.th-modal-panel{position:relative;background:rgba(20,20,20,0.92);backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);border-radius:var(--radius-xl) var(--radius-xl) 0 0;padding:20px;padding-bottom:max(24px,env(safe-area-inset-bottom));max-height:88vh;overflow-y:auto}
 .th-modal-handle{width:36px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;margin:0 auto 18px}
 .th-modal-title{font-size:20px;font-weight:800;margin-bottom:14px}
 .th-field{margin-bottom:12px}
 .th-field label{display:block;font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
-.th-field input,.th-field textarea,.th-field select{width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border2);border-radius:12px;padding:12px 14px;font-size:16px;color:#fff;font-family:inherit;outline:none}
+.th-field input,.th-field textarea,.th-field select{width:100%;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;font-size:16px;color:var(--text-1);font-family:inherit;outline:none}
+.th-field input:focus,.th-field textarea:focus,.th-field select:focus{border-color:var(--border-strong)}
 .th-color-row{display:flex;gap:8px;flex-wrap:wrap}
 .th-color-opt{width:30px;height:30px;border-radius:8px;cursor:pointer;border:2px solid transparent}
 .th-color-opt.on{border-color:#fff}
-.th-mbtn{width:100%;padding:14px;border:none;border-radius:14px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:6px}
-.th-mbtn.pri{background:#fff;color:#000}
-.th-mbtn.sec{background:rgba(255,255,255,.07);color:var(--t2)}
+.th-mbtn{width:100%;padding:14px;border:none;border-radius:var(--radius);font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:6px;transition:transform var(--duration) var(--spring)}
+.th-mbtn:active{transform:scale(0.97)}
+.th-mbtn.pri{background:var(--text-1);color:var(--bg)}
+.th-mbtn.sec{background:var(--bg-card-2);border:1px solid var(--border-strong);color:var(--text-1)}
 .th-spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:thSpin .7s linear infinite;vertical-align:middle}
 @keyframes thSpin{to{transform:rotate(360deg)}}

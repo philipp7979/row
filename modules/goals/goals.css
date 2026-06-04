@@ -1,3 +1,15 @@
+:root{
+  --bg: #000000; --bg-card: #0F0F0F; --bg-card-2: #141414; --bg-elevated: #1C1C1E;
+  --border: rgba(255,255,255,0.06); --border-strong: rgba(255,255,255,0.12);
+  --text-1: #FFFFFF; --text-2: rgba(255,255,255,0.55); --text-3: rgba(255,255,255,0.30); --text-4: rgba(255,255,255,0.15);
+  --green: #30D158; --green-bg: rgba(48,209,88,0.12); --blue: #0A84FF; --red: #FF453A; --orange: #FF9F0A; --purple: #BF5AF2;
+  --radius-sm: 10px; --radius: 14px; --radius-lg: 20px; --radius-xl: 28px;
+  --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1); --ease: cubic-bezier(0.25, 0.46, 0.45, 0.94); --duration: 0.25s;
+}
+
 /* ── Goals section ── */
 .goals-wrap { margin: 0 0 14px; }
 .goals-head {
@@ -38,10 +50,10 @@
   position: relative;
   display: grid; grid-template-columns: 30px 1fr auto; gap: 12px;
   align-items: start;
-  background: #111113;
-  border: 1px solid var(--border, rgba(255,255,255,.06));
+  background: var(--bg-card);
+  border: 1px solid var(--border);
   border-left: 3px solid rgba(255,255,255,0.10);
-  border-radius: 16px; padding: 14px 14px 14px 13px;
+  border-radius: var(--radius-lg); padding: 14px 14px 14px 13px;
   -webkit-tap-highlight-color: transparent;
   transition: border-color .2s, box-shadow .2s, transform .12s, opacity .2s;
 }
@@ -156,10 +168,11 @@
 .goal-modal-bg.show { display: flex; }
 .goal-modal {
   width: 100%; max-width: 480px;
-  background: #1c1c1e; border-radius: 22px 22px 0 0;
+  background: rgba(20,20,20,0.92); backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
   padding: 8px 20px max(20px, env(safe-area-inset-bottom));
   max-height: 92vh; overflow-y: auto;
-  animation: goalUp .28s cubic-bezier(.33,1,.68,1);
+  animation: goalUp .28s var(--spring);
 }
 @keyframes goalUp { from { transform: translateY(100%); } to { transform: none; } }
 .goal-modal-handle { width: 36px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.2); margin: 8px auto 16px; }
@@ -171,11 +184,11 @@
   color: var(--text-3, rgba(255,255,255,.4));
 }
 .gm-field input, .gm-field textarea {
-  background: #2c2c2e; border: 1px solid transparent; border-radius: 12px;
-  padding: 13px 14px; color: #fff; font-size: 16px; font-family: inherit; outline: none;
+  background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 13px 14px; color: var(--text-1); font-size: 16px; font-family: inherit; outline: none;
   width: 100%; resize: none;
 }
-.gm-field input:focus, .gm-field textarea:focus { border-color: rgba(125,211,252,0.4); }
+.gm-field input:focus, .gm-field textarea:focus { border-color: var(--border-strong); }
 .gm-row { display: grid; grid-template-columns: 1fr auto; gap: 12px; }
 
 .gm-sports { display: flex; gap: 8px; }
@@ -197,9 +210,11 @@
 
 .gm-actions { display: flex; gap: 10px; margin-top: 8px; }
 .gm-btn {
-  flex: 1; padding: 14px; border-radius: 14px; border: none; cursor: pointer;
+  flex: 1; padding: 14px; border-radius: var(--radius); border: none; cursor: pointer;
   font-family: inherit; font-size: 15px; font-weight: 700; -webkit-tap-highlight-color: transparent;
+  transition: transform var(--duration) var(--spring);
 }
-.gm-save { background: #fff; color: #000; }
-.gm-cancel { background: #2c2c2e; color: rgba(255,255,255,.7); }
-.gm-del { background: rgba(255,59,48,0.12); color: #ff6b6b; flex: 0 0 auto; padding: 14px 18px; }
+.gm-btn:active{transform:scale(0.97)}
+.gm-save { background: var(--text-1); color: var(--bg); }
+.gm-cancel { background: var(--bg-card-2); border: 1px solid var(--border-strong); color: var(--text-1); }
+.gm-del { background: rgba(255,69,58,0.12); color: var(--red); border: 1px solid rgba(255,69,58,0.25); flex: 0 0 auto; padding: 14px 18px; }

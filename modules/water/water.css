@@ -1,19 +1,16 @@
 
 :root {
-  --bg: #0a0a0b;
-  --bg-card: #111113;
-  --text-1: #ffffff;
-  --text-2: rgba(255,255,255,0.6);
-  --text-3: rgba(255,255,255,0.4);
-  --text-4: rgba(255,255,255,0.25);
-  --border: rgba(255,255,255,0.06);
-  --border-strong: rgba(255,255,255,0.14);
-  --good: #6ee7b7;
-  --warn: #fbbf24;
-  --bad: #ff8a8a;
-  --info: #7DD3FC;
-  --font: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif;
-  --font-mono: ui-monospace, SF Mono, Menlo, Consolas, monospace;
+  --bg: #000000; --bg-card: #0F0F0F; --bg-card-2: #141414; --bg-elevated: #1C1C1E;
+  --border: rgba(255,255,255,0.06); --border-strong: rgba(255,255,255,0.12);
+  --text-1: #FFFFFF; --text-2: rgba(255,255,255,0.55); --text-3: rgba(255,255,255,0.30); --text-4: rgba(255,255,255,0.15);
+  --green: #30D158; --green-bg: rgba(48,209,88,0.12); --blue: #0A84FF; --red: #FF453A; --orange: #FF9F0A; --purple: #BF5AF2;
+  --radius-sm: 10px; --radius: 14px; --radius-lg: 20px; --radius-xl: 28px;
+  --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1); --ease: cubic-bezier(0.25, 0.46, 0.45, 0.94); --duration: 0.25s;
+  --good: var(--green); --bad: var(--red); --warn: var(--orange); --info: var(--blue);
+  --r: var(--radius); --r2: var(--radius-xl);
 }
 /* restored body text color */
 body{color:var(--text-1);}
@@ -116,14 +113,13 @@ body{color:var(--text-1);}
 .water-minus-btn:hover { background: rgba(255,255,255,0.10); }
 .water-minus-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 .water-plus-btn {
-  background: linear-gradient(180deg, #ffffff 0%, #e8e5dd 100%);
-  color: #0a0a0b; border: none; border-radius: 18px;
+  background: var(--text-1);
+  color: var(--bg); border: none; border-radius: 18px;
   font-family: inherit; font-size: 19px; font-weight: 800;
   cursor: pointer; padding: 20px;
   display: flex; align-items: center; justify-content: center; gap: 8px;
   -webkit-tap-highlight-color: transparent;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.55), 0 6px 18px rgba(0,0,0,0.45);
-  transition: transform 0.12s;
+  transition: transform var(--duration) var(--spring);
 }
 .water-plus-btn .plus-sign { font-size: 24px; line-height: 1; }
 .water-plus-btn:active { transform: scale(0.97); }
@@ -136,7 +132,7 @@ body{color:var(--text-1);}
 .stat {
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--radius);
   padding: 14px 8px; text-align: center;
 }
 .stat-val {
@@ -214,8 +210,8 @@ body{color:var(--text-1);}
   width: 100%; max-width: 480px;
   background: var(--bg-card);
   border: 1px solid var(--border-strong);
-  border-radius: 16px;
-  padding: 22px; max-height: 88vh; overflow-y: auto;
+  border-radius: var(--radius-lg);
+  padding: 20px; max-height: 88vh; overflow-y: auto;
 }
 .modal h3 {
   margin: 0 0 14px; font-size: 17px; font-weight: 700;
@@ -261,7 +257,7 @@ body{color:var(--text-1);}
 }
 .seg button.active {
   background: linear-gradient(180deg, #ffffff 0%, #e8e5dd 100%);
-  color: #0a0a0b;
+  color: var(--bg);
 }
 
 /* ----- Stimulant search ----- */
@@ -346,7 +342,7 @@ body{color:var(--text-1);}
   width: 100%; padding: 13px;
   border: none;
   background: linear-gradient(180deg, #ffffff 0%, #e8e5dd 100%);
-  color: #0a0a0b; border-radius: 12px;
+  color: var(--bg); border-radius: 12px;
   font-family: inherit; font-size: 14px; font-weight: 700;
   cursor: pointer;
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.55), 0 4px 14px rgba(0,0,0,0.40);
