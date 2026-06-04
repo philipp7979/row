@@ -46,7 +46,7 @@ Promise.all([
     .then(function(){ return loadJS('../../modules/training-calendar/training-calendar.js'); })
     .then(function(){ return loadJS('../../modules/goals/goals.js'); });
 }).then(function(){
-  var saved = localStorage.getItem('tr_subtab') || 'gym';
+  var saved = localStorage.getItem('tr_subtab') || 'goals';
   trSwitch(saved);
 }).catch(function(e){ console.error('training load failed:', e); });
 
