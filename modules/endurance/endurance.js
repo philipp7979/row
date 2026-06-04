@@ -102,6 +102,14 @@ function enRender(){
       <div style="text-align:right;margin-top:10px"><span style="font-size:12px;color:rgba(255,255,255,.4);cursor:pointer;text-decoration:underline" onclick="enOpenTargets()">Edit targets</span></div>
     </div>
 
+    <div class="en-card" id="enStravaCard">
+      <div class="en-title" style="margin-bottom:${svConnected()?'0':'12px'}">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="#FC4C02" style="margin-right:4px;vertical-align:-1px"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.172"/></svg>
+        Strava
+      </div>
+      ${enRenderStravaCard()}
+    </div>
+
     <div class="en-card">
       <div class="en-title">Log Endurance Session</div>
       <div class="en-disc-btns">
@@ -517,6 +525,192 @@ window.enAiPredict=async function(){
     enOut(`<h4><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.14em;display:inline-block" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg> Prediction <span class="en-conf" style="background:${cc}22;color:${cc}">${conf} confidence</span></h4>${esc(out)}`);
     s.predictions.unshift({q,answer:out,date:todayK()});if(s.predictions.length>20)s.predictions.length=20;esave(s);
   }catch(e){enErr(e);}};
+
+// ════════ STRAVA SECTION ════════
+const SV_TOKEN_KEY='strava_token_v1';
+
+// Parse OAuth hash tokens written by /api/strava-callback
+function svParseHash(){
+  const hash=location.hash.slice(1);
+  if(!hash||!hash.includes('strava_access'))return;
+  try{
+    const p=new URLSearchParams(hash);
+    const access=p.get('strava_access'),refresh=p.get('strava_refresh'),expires=parseInt(p.get('strava_expires')||'0',10);
+    if(access){localStorage.setItem(SV_TOKEN_KEY,JSON.stringify({access,refresh,expires}));history.replaceState(null,'',location.pathname+location.search);}
+  }catch(e){}
+}
+svParseHash();
+
+function svData(){try{return JSON.parse(localStorage.getItem('strava_data_v1'))||{activities:[]};}catch{return{activities:[]};}}
+function svToken(){try{return JSON.parse(localStorage.getItem(SV_TOKEN_KEY));}catch{return null;}}
+function svConnected(){const d=svData();return!!(d.activities&&d.activities.length>0)||(!!svToken());}
+
+function fmtSyncedAt(ts){
+  if(!ts)return'Never synced';
+  const diffMin=Math.round((Date.now()-ts)/60000);
+  if(diffMin<1)return'Just now';if(diffMin<60)return diffMin+'m ago';
+  if(diffMin<1440)return Math.round(diffMin/60)+'h ago';
+  return new Date(ts).toLocaleDateString();
+}
+
+// Normalize raw Strava API activity → internal shape
+function svNorm(a){
+  const tmap={Run:'run',VirtualRun:'run',Ride:'bike',VirtualRide:'bike',EBikeRide:'bike',MountainBikeRide:'bike',
+    Swim:'swim',OpenWaterSwim:'swim',WeightTraining:'strength',Crossfit:'strength',Workout:'strength',Hyrox:'hyrox'};
+  const disc=tmap[a.sport_type]||tmap[a.type]||'run';
+  const distKm=Math.round((a.distance||0)/10)/100;
+  const durMin=Math.round((a.moving_time||0)/60);
+  let pace='';
+  if(distKm>0&&durMin>0){
+    if(disc==='run'){const pm=durMin/distKm;pace=Math.floor(pm)+':'+String(Math.round((pm%1)*60)).padStart(2,'0')+'/km';}
+    else if(disc==='swim'){const p100=durMin/(distKm*10);pace=Math.floor(p100)+':'+String(Math.round((p100%1)*60)).padStart(2,'0')+'/100m';}
+    else if(disc==='bike')pace=(Math.round(distKm/(durMin/60)*10)/10)+'km/h';
+  }
+  const dateStr=(a.start_date_local||a.start_date||'').slice(0,10);
+  // Run PRs from best_efforts
+  const prMap={'1k':'run1','5k':'run5','10k':'run10','Half-Marathon':'run21','Marathon':'run42'};
+  const prs={};
+  if(disc==='run'&&Array.isArray(a.best_efforts)){
+    a.best_efforts.forEach(be=>{
+      const key=prMap[be.name];if(!key||!be.elapsed_time)return;
+      const s=be.elapsed_time,h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;
+      prs[key]={value:(h>0?h+':'+String(m).padStart(2,'0'):m)+':'+String(sec).padStart(2,'0'),date:dateStr};
+    });
+  }
+  return{id:String(a.id),name:a.name||'Activity',disc,date:dateStr,distanceKm:distKm,durationMin:durMin,pace,
+    avgHr:a.average_heartrate||null,maxHr:a.max_heartrate||null,elevM:Math.round(a.total_elevation_gain)||null,
+    isRace:a.workout_type===1||a.workout_type===11,_prs:prs};
+}
+
+async function svFetch(path,qs){
+  const tok=svToken();
+  const hdrs={};if(tok&&tok.access)hdrs['Authorization']='Bearer '+tok.access;
+  const url='/api/strava-data?path='+encodeURIComponent(path)+(qs?'&'+qs:'');
+  const r=await fetch(url,{headers:hdrs});
+  if(!r.ok){const b=await r.json().catch(()=>({error:'HTTP '+r.status}));throw new Error(b.error||'HTTP '+r.status);}
+  return r.json();
+}
+
+window.enStravaSync=async function(){
+  const btn=document.getElementById('enStravaSyncBtn');
+  if(btn){btn.disabled=true;btn.textContent='Syncing…';}
+  const errEl=document.getElementById('enStravaErr');
+  if(errEl)errEl.textContent='';
+  try{
+    const [p1,p2]=await Promise.all([
+      svFetch('/athlete/activities','per_page=100&page=1'),
+      svFetch('/athlete/activities','per_page=100&page=2'),
+    ]);
+    const raw=[...(Array.isArray(p1)?p1:[]),...(Array.isArray(p2)?p2:[])];
+    const normed=raw.map(svNorm);
+    // Collect PRs (Strava returns best_efforts fastest first per activity; take first seen per key)
+    const prs={};
+    normed.forEach(a=>{Object.entries(a._prs||{}).forEach(([k,v])=>{if(!prs[k])prs[k]=v;});});
+    const existing=svData();
+    let athlete=existing.athlete||null;
+    if(!athlete){try{const ath=await svFetch('/athlete','');athlete={id:ath.id,firstname:ath.firstname,lastname:ath.lastname};}catch(e){}}
+    const data={activities:normed.map(({_prs,...a})=>a),prs,synced:Date.now(),athlete};
+    localStorage.setItem('strava_data_v1',JSON.stringify(data));
+    // Check for new PRs vs current endurance data
+    const enD=eload();let newPR=null;
+    Object.entries(prs).forEach(([k,v])=>{if(!enD.prs[k])newPR=v.value;});
+    if(newPR)enPrStar('New PR: '+newPR);
+    enRender();
+  }catch(e){
+    if(btn){btn.disabled=false;btn.textContent='Sync now';}
+    if(errEl)errEl.textContent='Sync failed: '+e.message;
+  }
+};
+
+window.enStravaConnect=function(){
+  const errEl=document.getElementById('enStravaErr');
+  if(errEl)errEl.textContent='';
+  enStravaSync().catch(e=>{
+    if(errEl)errEl.textContent='Could not connect: '+e.message+'. Make sure STRAVA_CLIENT_ID / SECRET / REFRESH_TOKEN are set on the server.';
+  });
+};
+
+window.enStravaDisconnect=function(){
+  if(!confirm('Disconnect Strava? Local Strava data will be removed.'))return;
+  localStorage.removeItem('strava_data_v1');localStorage.removeItem(SV_TOKEN_KEY);
+  enRender();
+};
+
+const SV_DISC_COL={swim:'#38bdf8',bike:'#f59e0b',run:'#22c55e',strength:'#8b5cf6',hyrox:'#ef4444'};
+const SV_DISC_ICO={swim:'🏊',bike:'🚴',run:'🏃',strength:'🏋️',hyrox:'🔥'};
+
+function enRenderStravaCard(){
+  const d=svData();
+  const connected=d.activities&&d.activities.length>0;
+  const tok=svToken();
+  if(!connected&&!tok){
+    return`<div style="display:flex;flex-direction:column;align-items:center;gap:14px;padding:8px 0 4px">
+      <div style="width:44px;height:44px;border-radius:12px;background:#FC4C02;display:flex;align-items:center;justify-content:center">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="#fff"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.172"/></svg>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:16px;font-weight:700;color:var(--text-1);margin-bottom:4px">Connect Strava</div>
+        <div style="font-size:13px;color:var(--text-3);line-height:1.5">Auto-import runs, rides & swims to feed the Spider Chart and PRs.</div>
+      </div>
+      <button onclick="enStravaConnect()" style="display:inline-flex;align-items:center;gap:8px;padding:13px 22px;background:#FC4C02;border:none;border-radius:var(--radius);color:#fff;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;transition:transform var(--duration) var(--spring)" ontouchstart="" onmousedown="this.style.transform='scale(.97)'" onmouseup="this.style.transform=''" ontouchend="this.style.transform=''">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="#fff"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.172"/></svg>
+        Connect Strava
+      </button>
+      <div id="enStravaErr" style="font-size:12px;color:var(--red);text-align:center;min-height:16px;padding:0 8px"></div>
+    </div>`;
+  }
+
+  // Connected — header row
+  const ath=d.athlete;
+  const last5=(d.activities||[]).slice(0,5);
+  // This-week volume from Strava (for the pills — allSessions() already feeds the spider)
+  const ws=weekStart();
+  const wkActs=(d.activities||[]).filter(a=>a.date&&new Date(a.date)>=ws);
+  const wkKm={swim:0,bike:0,run:0};
+  wkActs.forEach(a=>{if(wkKm[a.disc]!==undefined)wkKm[a.disc]+=(a.distanceKm||0);});
+
+  return`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:8px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:30px;height:30px;border-radius:8px;background:#FC4C02;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.172"/></svg>
+        </div>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--text-1)">Strava${ath?' · '+ath.firstname:''}</div>
+          <div style="font-size:11px;color:var(--text-3)">${fmtSyncedAt(d.synced)}</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button id="enStravaSyncBtn" onclick="enStravaSync()" style="padding:7px 11px;background:rgba(252,76,2,.12);border:1px solid rgba(252,76,2,.25);border-radius:var(--radius-sm);color:#FC4C02;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">Sync now</button>
+        <button onclick="enStravaDisconnect()" style="padding:7px 9px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-3);font-family:inherit;font-size:12px;cursor:pointer">✕</button>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      ${['swim','bike','run'].map(disc=>`
+        <div style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 10px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:var(--radius-sm)">
+          <span>${SV_DISC_ICO[disc]}</span>
+          <span style="font-size:13px;font-weight:700;color:${SV_DISC_COL[disc]};font-variant-numeric:tabular-nums">${(wkKm[disc]||0).toFixed(1)}</span>
+          <span style="font-size:10px;color:var(--text-3)">km</span>
+        </div>`).join('')}
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:7px">
+      ${last5.length===0?`<div style="text-align:center;color:var(--text-3);font-size:13px;padding:12px">No activities — tap Sync now</div>`:
+      last5.map(a=>{
+        const col=SV_DISC_COL[a.disc]||'#fff';
+        const meta=[a.distanceKm>0?a.distanceKm.toFixed(1)+' km':null,a.durationMin>0?a.durationMin+' min':null,a.pace||null,a.avgHr?Math.round(a.avgHr)+' bpm':null].filter(Boolean).join(' · ');
+        return`<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg-card-2);border:1px solid var(--border);border-radius:var(--radius-sm)">
+          <div style="width:30px;height:30px;border-radius:7px;background:${col}20;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0">${SV_DISC_ICO[a.disc]||'⚡'}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600;color:var(--text-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.name}</div>
+            <div style="font-size:11px;color:var(--text-3);margin-top:1px">${meta}${meta?' · ':''}${a.date.slice(5)}</div>
+          </div>
+          ${a.isRace?'<span style="font-size:9px;font-weight:800;padding:2px 6px;border-radius:4px;background:rgba(252,76,2,.15);color:#FC4C02;flex-shrink:0">RACE</span>':''}
+        </div>`;}).join('')}
+    </div>
+    <div id="enStravaErr" style="font-size:12px;color:var(--red);margin-top:8px;min-height:14px"></div>`;
+}
 
 // ════════ BOOT ════════
 window.enRender=enRender; // allow the Strava module to refresh this panel
