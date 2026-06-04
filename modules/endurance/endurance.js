@@ -582,11 +582,22 @@ function svNorm(a){
     isRace:a.workout_type===1||a.workout_type===11,_prs:prs};
 }
 
-async function svFetch(path,qs){
-  const tok=svToken();
-  const hdrs={};if(tok&&tok.access)hdrs['Authorization']='Bearer '+tok.access;
+async function svFetch(path,qs,useClientToken=true){
   const url='/api/strava-data?path='+encodeURIComponent(path)+(qs?'&'+qs:'');
+  const hdrs={};
+  if(useClientToken){
+    const tok=svToken();
+    // Only use client token if it hasn't expired (Strava tokens last 6h)
+    if(tok&&tok.access&&tok.expires&&tok.expires>Date.now()+60000){
+      hdrs['Authorization']='Bearer '+tok.access;
+    }
+  }
   const r=await fetch(url,{headers:hdrs});
+  if(r.status===401&&useClientToken){
+    // Client token rejected — clear it and retry using server-side auth only
+    localStorage.removeItem(SV_TOKEN_KEY);
+    return svFetch(path,qs,false);
+  }
   if(!r.ok){const b=await r.json().catch(()=>({error:'HTTP '+r.status}));throw new Error(b.error||'HTTP '+r.status);}
   return r.json();
 }
